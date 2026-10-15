@@ -1,12 +1,12 @@
 import type { VideoCatalog, VideoPatch } from '../domain/catalog.js';
 import { ADMIN_VIEWER } from '../domain/video.js';
-import type { ViewCounter } from '../domain/view-counter.js';
+import type { VideoCounters } from '../domain/counters.js';
 import { toVideoViews, type VideoView } from './video-view.js';
 
 export class UpdateVideoUseCase {
   constructor(
     private readonly catalog: VideoCatalog,
-    private readonly viewCounter: ViewCounter,
+    private readonly counters: VideoCounters,
   ) {}
 
   // Renvoie null si la vidéo n'existe pas.
@@ -15,7 +15,7 @@ export class UpdateVideoUseCase {
     if (!video) {
       return null;
     }
-    const [view] = await toVideoViews([video], ADMIN_VIEWER, this.viewCounter);
+    const [view] = await toVideoViews([video], ADMIN_VIEWER, this.counters);
     return view;
   }
 }

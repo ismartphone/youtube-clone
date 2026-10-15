@@ -1,5 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { AppModule } from './app.module.js';
 
 // En développement, les variables viennent du fichier .env ; en production, de l'environnement.
@@ -19,6 +20,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+  // WebSocket standard (bibliothèque ws), sur le même port que l'API : le client
+  // OkHttp de l'application parle ce protocole, pas celui de Socket.IO (ADR-004).
+  app.useWebSocketAdapter(new WsAdapter(app));
   // Déclenche les hooks d'arrêt, pour reporter les vues en attente avant de couper.
   app.enableShutdownHooks();
   await app.listen(process.env.PORT ?? 3000);

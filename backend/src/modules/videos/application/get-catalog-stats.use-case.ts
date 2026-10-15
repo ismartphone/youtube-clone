@@ -1,5 +1,5 @@
 import type { CatalogStatsReader } from '../domain/catalog.js';
-import type { ViewCounter } from '../domain/view-counter.js';
+import type { VideoCounters } from '../domain/counters.js';
 
 export interface CatalogStats {
   users: number;
@@ -12,13 +12,13 @@ export interface CatalogStats {
 export class GetCatalogStatsUseCase {
   constructor(
     private readonly stats: CatalogStatsReader,
-    private readonly viewCounter: ViewCounter,
+    private readonly counters: VideoCounters,
   ) {}
 
   async execute(): Promise<CatalogStats> {
     const [counts, pendingViews] = await Promise.all([
       this.stats.counts(),
-      this.viewCounter.pendingTotal(),
+      this.counters.views.pendingTotal(),
     ]);
     return {
       users: counts.users,

@@ -3,11 +3,20 @@ import type { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../../shared/infrastructure/infrastructure.module.js';
 import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
 import { AuthModule } from '../auth/auth.module.js';
+import {
+  VIDEO_ROOM_PUBLISHER,
+  type VideoRoomPublisher,
+} from '../realtime/domain/video-room-publisher.js';
+import { RealtimeModule } from '../realtime/realtime.module.js';
 import { CreateVideoUseCase } from './application/create-video.use-case.js';
 import { DeleteVideoUseCase } from './application/delete-video.use-case.js';
 import { GetCatalogStatsUseCase } from './application/get-catalog-stats.use-case.js';
 import { GetChannelUseCase } from './application/get-channel.use-case.js';
 import { GetVideoUseCase } from './application/get-video.use-case.js';
+import {
+  GetLikeStatusUseCase,
+  LikeVideoUseCase,
+} from './application/like-video.use-case.js';
 import { ListVideosUseCase } from './application/list-videos.use-case.js';
 import {
   CreateCategoryUseCase,
@@ -24,16 +33,21 @@ import {
   type CategoryRepository,
   type VideoCatalog,
 } from './domain/catalog.js';
+import { VIDEO_COUNTERS, type VideoCounters } from './domain/counters.js';
+import {
+  LIKE_REPOSITORY,
+  type LikeRepository,
+} from './domain/like.repository.js';
 import {
   VIDEO_REPOSITORY,
   type VideoRepository,
 } from './domain/video.repository.js';
-import { VIEW_COUNTER, type ViewCounter } from './domain/view-counter.js';
 import { PrismaCatalogStats } from './infrastructure/prisma-catalog-stats.js';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category.repository.js';
+import { PrismaLikeRepository } from './infrastructure/prisma-like.repository.js';
 import { PrismaVideoCatalog } from './infrastructure/prisma-video-catalog.js';
 import { PrismaVideoRepository } from './infrastructure/prisma-video.repository.js';
-import { RedisViewCounter } from './infrastructure/redis-view-counter.js';
+import { RedisBufferedCounter } from './infrastructure/redis-buffered-counter.js';
 import {
   AdminCategoriesController,
   AdminStatsController,
@@ -42,13 +56,13 @@ import {
 import { FeedController } from './interfaces/http/feed.controller.js';
 import { VideosController } from './interfaces/http/videos.controller.js';
 
+// Chaque compteur est un fournisseur à part : NestJS appelle ainsi ses hooks
+// de démarrage (report périodique) et d'arrêt (dernier report avant de couper).
+const VIEW_COUNTER = Symbol('VIEW_COUNTER');
+const LIKE_COUNTER = Symbol('LIKE_COUNTER');
+
 // Les cas d'usage ne dépendent que des ports du domaine : c'est ici qu'on branche les adaptateurs.
-const READ_USE_CASES = [
-  ListVideosUseCase,
-  GetVideoUseCase,
-  GetChannelUseCase,
-  RecordViewUseCase,
-];
+const READ_USE_CASES = [ListVideosUseCase, GetVideoUseCase, GetChannelUseCase];
 
 const CATALOG_USE_CASES = [CreateVideoUseCase, UpdateVideoUseCase];
 
@@ -59,7 +73,7 @@ const CATEGORY_USE_CASES = [
 ];
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, RealtimeModule],
   controllers: [
     VideosController,
     FeedController,
@@ -74,10 +88,35 @@ const CATEGORY_USE_CASES = [
       inject: [PrismaService],
     },
     {
+      provide: LIKE_REPOSITORY,
+      useFactory: (prisma: PrismaService) => new PrismaLikeRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
       provide: VIEW_COUNTER,
       useFactory: (redis: Redis, prisma: PrismaService) =>
-        new RedisViewCounter(redis, prisma),
+        new RedisBufferedCounter(redis, prisma, {
+          name: 'views',
+          column: 'viewCount',
+        }),
       inject: [REDIS_CLIENT, PrismaService],
+    },
+    {
+      provide: LIKE_COUNTER,
+      useFactory: (redis: Redis, prisma: PrismaService) =>
+        new RedisBufferedCounter(redis, prisma, {
+          name: 'likes',
+          column: 'likeCount',
+        }),
+      inject: [REDIS_CLIENT, PrismaService],
+    },
+    {
+      provide: VIDEO_COUNTERS,
+      useFactory: (
+        views: RedisBufferedCounter,
+        likes: RedisBufferedCounter,
+      ): VideoCounters => ({ views, likes }),
+      inject: [VIEW_COUNTER, LIKE_COUNTER],
     },
     {
       provide: VIDEO_CATALOG,
@@ -97,15 +136,44 @@ const CATEGORY_USE_CASES = [
     },
     ...READ_USE_CASES.map((UseCase) => ({
       provide: UseCase,
-      useFactory: (videos: VideoRepository, viewCounter: ViewCounter) =>
-        new UseCase(videos, viewCounter),
-      inject: [VIDEO_REPOSITORY, VIEW_COUNTER],
+      useFactory: (videos: VideoRepository, counters: VideoCounters) =>
+        new UseCase(videos, counters),
+      inject: [VIDEO_REPOSITORY, VIDEO_COUNTERS],
     })),
+    {
+      provide: RecordViewUseCase,
+      useFactory: (
+        videos: VideoRepository,
+        counters: VideoCounters,
+        publisher: VideoRoomPublisher,
+      ) => new RecordViewUseCase(videos, counters, publisher),
+      inject: [VIDEO_REPOSITORY, VIDEO_COUNTERS, VIDEO_ROOM_PUBLISHER],
+    },
+    {
+      provide: LikeVideoUseCase,
+      useFactory: (
+        videos: VideoRepository,
+        likes: LikeRepository,
+        counters: VideoCounters,
+        publisher: VideoRoomPublisher,
+      ) => new LikeVideoUseCase(videos, likes, counters, publisher),
+      inject: [
+        VIDEO_REPOSITORY,
+        LIKE_REPOSITORY,
+        VIDEO_COUNTERS,
+        VIDEO_ROOM_PUBLISHER,
+      ],
+    },
+    {
+      provide: GetLikeStatusUseCase,
+      useFactory: (likes: LikeRepository) => new GetLikeStatusUseCase(likes),
+      inject: [LIKE_REPOSITORY],
+    },
     ...CATALOG_USE_CASES.map((UseCase) => ({
       provide: UseCase,
-      useFactory: (catalog: VideoCatalog, viewCounter: ViewCounter) =>
-        new UseCase(catalog, viewCounter),
-      inject: [VIDEO_CATALOG, VIEW_COUNTER],
+      useFactory: (catalog: VideoCatalog, counters: VideoCounters) =>
+        new UseCase(catalog, counters),
+      inject: [VIDEO_CATALOG, VIDEO_COUNTERS],
     })),
     {
       provide: DeleteVideoUseCase,
@@ -119,9 +187,9 @@ const CATEGORY_USE_CASES = [
     })),
     {
       provide: GetCatalogStatsUseCase,
-      useFactory: (stats: CatalogStatsReader, viewCounter: ViewCounter) =>
-        new GetCatalogStatsUseCase(stats, viewCounter),
-      inject: [CATALOG_STATS, VIEW_COUNTER],
+      useFactory: (stats: CatalogStatsReader, counters: VideoCounters) =>
+        new GetCatalogStatsUseCase(stats, counters),
+      inject: [CATALOG_STATS, VIDEO_COUNTERS],
     },
   ],
   // La page de chaîne (module channels) affiche les vidéos de la chaîne.

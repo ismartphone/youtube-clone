@@ -25,6 +25,7 @@ export interface Video {
   format: VideoFormat;
   isPremium: boolean;
   viewCount: number;
+  likeCount: number;
   publishedAt: Date;
   channel: ChannelSummary;
   category: CategorySummary | null;

@@ -5,13 +5,13 @@ import type {
   VideoFilter,
   VideoRepository,
 } from '../domain/video.repository.js';
-import type { ViewCounter } from '../domain/view-counter.js';
+import type { VideoCounters } from '../domain/counters.js';
 import { toVideoViews, type VideoView } from './video-view.js';
 
 export class ListVideosUseCase {
   constructor(
     private readonly videos: VideoRepository,
-    private readonly viewCounter: ViewCounter,
+    private readonly counters: VideoCounters,
   ) {}
 
   async execute(
@@ -22,7 +22,7 @@ export class ListVideosUseCase {
     const page = await this.videos.findPage(filter, pagination);
     return {
       ...page,
-      items: await toVideoViews(page.items, viewer, this.viewCounter),
+      items: await toVideoViews(page.items, viewer, this.counters),
     };
   }
 }

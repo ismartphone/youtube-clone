@@ -81,6 +81,8 @@ model Video {
   format          VideoFormat
   isPremium       Boolean     @default(false)
   viewCount       Int         @default(0)
+  // Compteur dénormalisé des lignes Like, reporté depuis Redis par lot (ADR-004).
+  likeCount       Int         @default(0)
   publishedAt     DateTime    @default(now())
 
   channel      Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)

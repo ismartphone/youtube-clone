@@ -9,6 +9,12 @@ export interface VideoFilter {
   followedBy?: string;
 }
 
+// Compteurs tels qu'enregistrés en base, sans les variations encore dans Redis.
+export interface StoredCounts {
+  viewCount: number;
+  likeCount: number;
+}
+
 export interface Pagination {
   page: number;
   pageSize: number;
@@ -25,6 +31,7 @@ export interface Page<T> {
 export interface VideoRepository {
   findPage(filter: VideoFilter, pagination: Pagination): Promise<Page<Video>>;
   findById(id: string): Promise<Video | null>;
-  exists(id: string): Promise<boolean>;
+  // Compteurs enregistrés en base, ou null si la vidéo n'existe pas.
+  findCounts(id: string): Promise<StoredCounts | null>;
   findChannelWithVideos(channelId: string): Promise<Channel | null>;
 }

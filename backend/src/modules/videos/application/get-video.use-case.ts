@@ -1,12 +1,12 @@
 import type { Viewer } from '../domain/video.js';
 import type { VideoRepository } from '../domain/video.repository.js';
-import type { ViewCounter } from '../domain/view-counter.js';
+import type { VideoCounters } from '../domain/counters.js';
 import { toVideoViews, type VideoView } from './video-view.js';
 
 export class GetVideoUseCase {
   constructor(
     private readonly videos: VideoRepository,
-    private readonly viewCounter: ViewCounter,
+    private readonly counters: VideoCounters,
   ) {}
 
   async execute(id: string, viewer: Viewer): Promise<VideoView | null> {
@@ -14,7 +14,7 @@ export class GetVideoUseCase {
     if (!video) {
       return null;
     }
-    const [view] = await toVideoViews([video], viewer, this.viewCounter);
+    const [view] = await toVideoViews([video], viewer, this.counters);
     return view;
   }
 }

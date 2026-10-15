@@ -1,6 +1,6 @@
 import type { Channel, Viewer } from '../domain/video.js';
 import type { VideoRepository } from '../domain/video.repository.js';
-import type { ViewCounter } from '../domain/view-counter.js';
+import type { VideoCounters } from '../domain/counters.js';
 import { toVideoViews, type VideoView } from './video-view.js';
 
 export type ChannelView = Omit<Channel, 'videos'> & { videos: VideoView[] };
@@ -8,7 +8,7 @@ export type ChannelView = Omit<Channel, 'videos'> & { videos: VideoView[] };
 export class GetChannelUseCase {
   constructor(
     private readonly videos: VideoRepository,
-    private readonly viewCounter: ViewCounter,
+    private readonly counters: VideoCounters,
   ) {}
 
   async execute(
@@ -21,7 +21,7 @@ export class GetChannelUseCase {
     }
     return {
       ...channel,
-      videos: await toVideoViews(channel.videos, viewer, this.viewCounter),
+      videos: await toVideoViews(channel.videos, viewer, this.counters),
     };
   }
 }

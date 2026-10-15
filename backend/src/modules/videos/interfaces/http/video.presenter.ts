@@ -26,11 +26,14 @@ export function presentVideoSummary(video: VideoView) {
   };
 }
 
-export function presentVideoDetail(video: VideoView) {
+// isLiked n'est présent que sur la route publique : il dépend de l'utilisateur de la requête.
+export function presentVideoDetail(video: VideoView, isLiked?: boolean) {
   return {
     ...presentVideoSummary(video),
     description: video.description,
     videoUrl: video.videoUrl,
+    likeCount: video.likeCount,
+    ...(isLiked === undefined ? {} : { isLiked }),
   };
 }
 

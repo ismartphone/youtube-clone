@@ -4,6 +4,7 @@ import type { Channel, Video } from '../domain/video.js';
 import type {
   Page,
   Pagination,
+  StoredCounts,
   VideoFilter,
   VideoRepository,
 } from '../domain/video.repository.js';
@@ -27,6 +28,7 @@ export const VIDEO_SELECT = {
   format: true,
   isPremium: true,
   viewCount: true,
+  likeCount: true,
   publishedAt: true,
   channel: { select: CHANNEL_SUMMARY_SELECT },
   category: { select: { id: true, name: true } },
@@ -70,12 +72,11 @@ export class PrismaVideoRepository implements VideoRepository {
     });
   }
 
-  async exists(id: string): Promise<boolean> {
-    const video = await this.prisma.video.findUnique({
+  findCounts(id: string): Promise<StoredCounts | null> {
+    return this.prisma.video.findUnique({
       where: { id },
-      select: { id: true },
+      select: { viewCount: true, likeCount: true },
     });
-    return video !== null;
   }
 
   findChannelWithVideos(channelId: string): Promise<Channel | null> {
