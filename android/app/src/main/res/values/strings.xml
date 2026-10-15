@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">android</string>
+
+    <string name="tab_home">Accueil</string>
+    <string name="tab_shorts">Shorts</string>
+    <string name="tab_library">Bibliothèque</string>
+
+    <string name="home_empty">Aucune vidéo pour le moment.</string>
+    <string name="retry">Réessayer</string>
+    <string name="error_network">Impossible de joindre le serveur. Vérifiez votre connexion.</string>
+    <string name="error_server">Le serveur a rencontré une erreur (%1$d).</string>
+    <string name="error_unexpected">Une erreur inattendue est survenue.</string>
 </resources>

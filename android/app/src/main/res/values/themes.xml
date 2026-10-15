@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.Android" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Fond sombre dès le lancement, avant l'affichage de Compose, pour éviter un flash blanc. -->
+    <style name="Theme.Android" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/background_dark</item>
+    </style>
 </resources>

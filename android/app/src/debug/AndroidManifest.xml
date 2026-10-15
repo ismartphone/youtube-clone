@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Debug uniquement. Depuis Android 17, joindre une adresse du réseau local
+         (dont 10.0.2.2, le PC vu depuis l'émulateur) demande cette permission.
+         À accorder une fois après installation :
+         adb shell pm grant com.youtubeclone.app android.permission.ACCESS_LOCAL_NETWORK -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+
+</manifest>
