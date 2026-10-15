@@ -3,13 +3,14 @@ package com.youtubeclone.app.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.youtubeclone.app.domain.model.Video
-import com.youtubeclone.app.domain.model.VideoFormat
-import com.youtubeclone.app.domain.usecase.GetVideosUseCase
+import com.youtubeclone.app.domain.usecase.GetHomeFeedUseCase
+import com.youtubeclone.app.domain.usecase.ObserveInterestsUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,23 +25,30 @@ sealed interface HomeUiState {
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val getVideos: GetVideosUseCase,
+    private val getHomeFeed: GetHomeFeedUseCase,
+    observeInterests: ObserveInterestsUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private var loadJob: Job? = null
+
     init {
-        load()
+        // Premier chargement, puis à chaque changement des centres d'intérêt (onglet « Vous »),
+        // pour remonter les bonnes vidéos en tête du fil.
+        viewModelScope.launch {
+            observeInterests().collect { load() }
+        }
     }
 
     fun load() {
+        loadJob?.cancel()
         _uiState.value = HomeUiState.Loading
-        viewModelScope.launch {
+        loadJob = viewModelScope.launch {
             _uiState.value = try {
-                // Le fil d'accueil ne montre que les vidéos classiques, les Shorts ont leur onglet.
-                val page = getVideos(format = VideoFormat.LONG)
-                if (page.items.isEmpty()) HomeUiState.Empty else HomeUiState.Success(page.items)
+                val videos = getHomeFeed()
+                if (videos.isEmpty()) HomeUiState.Empty else HomeUiState.Success(videos)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

@@ -28,6 +28,7 @@ import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
+import com.youtubeclone.app.presentation.onboarding.InterestsScreen
 import com.youtubeclone.app.presentation.library.LibraryScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
@@ -43,11 +44,17 @@ import kotlinx.serialization.Serializable
 @Serializable data object YouRoute
 @Serializable data object LoginRoute
 @Serializable data object RegisterRoute
+@Serializable data object InterestsRoute
 @Serializable data object SubscriptionsRoute
 @Serializable data class WatchRoute(val videoId: String)
 @Serializable data class ChannelRoute(val channelId: String)
 
-private val FULL_SCREEN_ROUTES = listOf(WatchRoute::class, LoginRoute::class, RegisterRoute::class)
+private val FULL_SCREEN_ROUTES = listOf(
+    WatchRoute::class,
+    LoginRoute::class,
+    RegisterRoute::class,
+    InterestsRoute::class,
+)
 
 private enum class Tab(
     val route: Any,
@@ -127,6 +134,7 @@ fun AppNavigation() {
                 YouScreen(
                     onLoginClick = { navController.navigate(LoginRoute) },
                     onRegisterClick = { navController.navigate(RegisterRoute) },
+                    onEditInterests = { navController.navigate(InterestsRoute) },
                 )
             }
             // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
@@ -146,6 +154,9 @@ fun AppNavigation() {
                         navController.navigate(LoginRoute) { popUpTo<RegisterRoute> { inclusive = true } }
                     },
                 )
+            }
+            composable<InterestsRoute> {
+                InterestsScreen(onSaved = { navController.popBackStack() })
             }
         }
     }

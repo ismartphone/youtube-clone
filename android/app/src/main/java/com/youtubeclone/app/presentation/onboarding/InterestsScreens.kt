@@ -1,0 +1,218 @@
+package com.youtubeclone.app.presentation.onboarding
+
+import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.common.asText
+
+/** Écran de chargement du démarrage, le temps de lire les préférences. */
+@Composable
+fun StartupScreen(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        AppLogo()
+    }
+}
+
+/** Écran d'accueil du tout premier lancement. « Commencer » l'enregistre comme vu. */
+@Composable
+fun OnboardingScreen(viewModel: InterestsViewModel = hiltViewModel()) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    InterestsContent(
+        state = state,
+        title = R.string.onboarding_title,
+        message = R.string.onboarding_message,
+        footer = R.string.onboarding_footer,
+        submitLabel = R.string.onboarding_start,
+        onToggle = viewModel::toggle,
+        onRetry = viewModel::loadCategories,
+        onSubmit = { viewModel.save(completesOnboarding = true) },
+        showLogo = true,
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
+            .safeDrawingPadding(),
+    )
+}
+
+/** Modification des centres d'intérêt, depuis l'onglet « Vous ». */
+@Composable
+fun InterestsScreen(
+    onSaved: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: InterestsViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(state.isSaved) {
+        if (state.isSaved) onSaved()
+    }
+    InterestsContent(
+        state = state,
+        title = R.string.interests_title,
+        message = R.string.interests_message,
+        footer = null,
+        submitLabel = R.string.interests_save,
+        onToggle = viewModel::toggle,
+        onRetry = viewModel::loadCategories,
+        onSubmit = { viewModel.save(completesOnboarding = false) },
+        showLogo = false,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun InterestsContent(
+    state: InterestsUiState,
+    @StringRes title: Int,
+    @StringRes message: Int,
+    @StringRes footer: Int?,
+    @StringRes submitLabel: Int,
+    onToggle: (String) -> Unit,
+    onRetry: () -> Unit,
+    onSubmit: () -> Unit,
+    showLogo: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (showLogo) AppLogo()
+            Text(
+                text = stringResource(title),
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = stringResource(message),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            CategoryChips(state, onToggle, onRetry)
+        }
+        // Bouton toujours visible en bas, même avec beaucoup de catégories.
+        Column(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            footer?.let {
+                Text(
+                    text = stringResource(it),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Button(
+                onClick = onSubmit,
+                enabled = !state.isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+            ) {
+                Text(stringResource(submitLabel))
+            }
+        }
+    }
+}
+
+// Catégories en puces à cocher. Si elles ne se chargent pas, le choix reste facultatif :
+// on peut réessayer ou continuer sans.
+@Composable
+private fun CategoryChips(
+    state: InterestsUiState,
+    onToggle: (String) -> Unit,
+    onRetry: () -> Unit,
+) {
+    when (val categories = state.categories) {
+        CategoriesState.Loading -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+        }
+        is CategoriesState.Error -> Column {
+            Text(
+                text = categories.error.asText(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+        }
+        is CategoriesState.Loaded -> if (categories.categories.isEmpty()) {
+            Text(
+                text = stringResource(R.string.interests_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                categories.categories.forEach { category ->
+                    FilterChip(
+                        selected = category.id in state.selected,
+                        onClick = { onToggle(category.id) },
+                        label = { Text(category.name) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+// Logo dessiné : bouton lecture blanc sur fond rouge, comme l'identité de l'application.
+@Composable
+private fun AppLogo() {
+    Box(
+        modifier = Modifier
+            .size(72.dp)
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(20.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_play),
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(40.dp),
+        )
+    }
+}

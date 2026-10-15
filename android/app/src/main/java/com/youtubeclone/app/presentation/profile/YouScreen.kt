@@ -40,6 +40,7 @@ import com.youtubeclone.app.presentation.common.LoadingState
 fun YouScreen(
     onLoginClick: () -> Unit,
     onRegisterClick: () -> Unit,
+    onEditInterests: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: YouViewModel = hiltViewModel(),
 ) {
@@ -47,14 +48,24 @@ fun YouScreen(
 
     when (val current = state) {
         YouUiState.Loading -> LoadingState(modifier)
-        YouUiState.LoggedOut -> LoggedOutContent(onLoginClick, onRegisterClick, modifier)
+        YouUiState.LoggedOut -> LoggedOutContent(onLoginClick, onRegisterClick, onEditInterests, modifier)
         is YouUiState.Error -> ErrorState(current.error, onRetry = viewModel::load, modifier = modifier)
-        is YouUiState.LoggedIn -> ProfileContent(current.user, onLogoutClick = viewModel::onLogoutClick, modifier)
+        is YouUiState.LoggedIn -> ProfileContent(
+            user = current.user,
+            onLogoutClick = viewModel::onLogoutClick,
+            onEditInterests = onEditInterests,
+            modifier = modifier,
+        )
     }
 }
 
 @Composable
-private fun ProfileContent(user: User, onLogoutClick: () -> Unit, modifier: Modifier) {
+private fun ProfileContent(
+    user: User,
+    onLogoutClick: () -> Unit,
+    onEditInterests: () -> Unit,
+    modifier: Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -82,6 +93,10 @@ private fun ProfileContent(user: User, onLogoutClick: () -> Unit, modifier: Modi
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+        // Centres d'intérêt : propres à l'appareil, modifiables aussi sans compte.
+        OutlinedButton(onClick = onEditInterests, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.you_edit_interests))
         }
         OutlinedButton(onClick = onLogoutClick, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.you_logout))
@@ -117,7 +132,12 @@ private fun Avatar(user: User) {
 }
 
 @Composable
-private fun LoggedOutContent(onLoginClick: () -> Unit, onRegisterClick: () -> Unit, modifier: Modifier) {
+private fun LoggedOutContent(
+    onLoginClick: () -> Unit,
+    onRegisterClick: () -> Unit,
+    onEditInterests: () -> Unit,
+    modifier: Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -145,5 +165,6 @@ private fun LoggedOutContent(onLoginClick: () -> Unit, onRegisterClick: () -> Un
         )
         Button(onClick = onLoginClick) { Text(stringResource(R.string.login_submit)) }
         TextButton(onClick = onRegisterClick) { Text(stringResource(R.string.you_create_account)) }
+        TextButton(onClick = onEditInterests) { Text(stringResource(R.string.you_edit_interests)) }
     }
 }

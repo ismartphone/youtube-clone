@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.youtubeclone.app.presentation.navigation.AppNavigation
+import com.youtubeclone.app.presentation.navigation.AppRoot
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             YoutubeCloneTheme {
-                AppNavigation()
+                AppRoot()
             }
         }
     }

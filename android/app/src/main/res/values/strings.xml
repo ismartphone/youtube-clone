@@ -64,4 +64,14 @@
     <string name="comments_login_to_comment">Connectez-vous pour ajouter un commentaire.</string>
     <string name="comments_empty">Aucun commentaire pour le moment.</string>
     <string name="comments_load_more">Afficher plus de commentaires</string>
+
+    <string name="onboarding_title">Bienvenue</string>
+    <string name="onboarding_message">Choisissez ce qui vous intéresse : les vidéos de ces catégories apparaîtront en premier dans votre fil d\'accueil. C\'est facultatif.</string>
+    <string name="onboarding_footer">Vous pourrez modifier ces choix dans l\'onglet « Vous ».</string>
+    <string name="onboarding_start">Commencer</string>
+    <string name="interests_title">Centres d\'intérêt</string>
+    <string name="interests_message">Les vidéos de ces catégories apparaissent en premier dans votre fil d\'accueil.</string>
+    <string name="interests_save">Enregistrer</string>
+    <string name="interests_empty">Aucune catégorie pour le moment.</string>
+    <string name="you_edit_interests">Centres d\'intérêt</string>
 </resources>
