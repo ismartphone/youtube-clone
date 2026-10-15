@@ -1,0 +1,206 @@
+// Données fictives de développement. Lancement : npx prisma db seed
+// Le script vide d'abord les tables : ne jamais l'exécuter sur une base de production.
+import 'dotenv/config';
+import { PrismaPg } from '@prisma/adapter-pg';
+import {
+  PrismaClient,
+  Role,
+  VideoFormat,
+} from '../src/generated/prisma/client.js';
+
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env['DATABASE_URL'] }),
+});
+
+// Fichiers MP4 de test publics, à remplacer par les vidéos Pexels et Pixabay du stockage local (ADR-002).
+const TEST_VIDEOS = 'https://test-videos.co.uk/vids';
+const SAMPLELIB = 'https://samplelib.com/preview/mp4';
+
+// Aucune bibliothèque de hachage n'est encore choisie : ces comptes ne permettent pas de se connecter.
+const PLACEHOLDER_PASSWORD_HASH = 'seed-placeholder-not-a-real-hash';
+
+// Miniature de remplacement au format de la vidéo : paysage pour LONG, portrait pour SHORT.
+function thumbnail(title: string, format: VideoFormat) {
+  const size = format === VideoFormat.SHORT ? '720x1280' : '1280x720';
+  return `https://placehold.co/${size}.jpg?text=${encodeURIComponent(title)}`;
+}
+
+async function main() {
+  await prisma.$transaction([
+    prisma.watchHistory.deleteMany(),
+    prisma.premiumSubscription.deleteMany(),
+    prisma.follow.deleteMany(),
+    prisma.like.deleteMany(),
+    prisma.comment.deleteMany(),
+    prisma.video.deleteMany(),
+    prisma.category.deleteMany(),
+    prisma.channel.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
+
+  const [animation, nature, voyage] = await Promise.all(
+    ['Animation', 'Nature', 'Voyage'].map((name) =>
+      prisma.category.create({ data: { name } }),
+    ),
+  );
+
+  const studio = await prisma.user.create({
+    data: {
+      email: 'studio@example.com',
+      passwordHash: PLACEHOLDER_PASSWORD_HASH,
+      displayName: 'Studio Libre',
+      role: Role.CREATOR,
+      channel: {
+        create: {
+          name: 'Studio Libre',
+          handle: 'studiolibre',
+          description: "Extraits de films d'animation sous licence libre.",
+        },
+      },
+    },
+    include: { channel: true },
+  });
+
+  const explorer = await prisma.user.create({
+    data: {
+      email: 'explorer@example.com',
+      passwordHash: PLACEHOLDER_PASSWORD_HASH,
+      displayName: 'Carnet de Route',
+      role: Role.CREATOR,
+      channel: {
+        create: {
+          name: 'Carnet de Route',
+          handle: 'carnetderoute',
+          description: 'Balades en ville et en pleine nature.',
+        },
+      },
+    },
+    include: { channel: true },
+  });
+
+  await prisma.user.createMany({
+    data: [
+      {
+        email: 'viewer@example.com',
+        passwordHash: PLACEHOLDER_PASSWORD_HASH,
+        displayName: 'Camille Spectatrice',
+        role: Role.USER,
+      },
+      {
+        email: 'admin@example.com',
+        passwordHash: PLACEHOLDER_PASSWORD_HASH,
+        displayName: 'Administrateur',
+        role: Role.ADMIN,
+      },
+    ],
+  });
+
+  const studioChannelId = studio.channel!.id;
+  const explorerChannelId = explorer.channel!.id;
+
+  const videos = [
+    {
+      channelId: studioChannelId,
+      categoryId: animation.id,
+      title: 'Sintel, la bande-annonce',
+      description: 'Une jeune femme part à la recherche de son dragon.',
+      videoUrl:
+        'https://download.blender.org/durian/trailer/sintel_trailer-480p.mp4',
+      durationSeconds: 52,
+      format: VideoFormat.LONG,
+    },
+    {
+      channelId: studioChannelId,
+      categoryId: animation.id,
+      title: 'Big Buck Bunny, extrait',
+      description: 'Un lapin géant contre trois rongeurs farceurs.',
+      videoUrl: `${TEST_VIDEOS}/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4`,
+      durationSeconds: 10,
+      format: VideoFormat.LONG,
+    },
+    {
+      channelId: studioChannelId,
+      categoryId: animation.id,
+      title: 'Sintel en haute définition',
+      videoUrl: `${TEST_VIDEOS}/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4`,
+      durationSeconds: 10,
+      format: VideoFormat.LONG,
+    },
+    {
+      channelId: studioChannelId,
+      categoryId: nature.id,
+      title: 'Méduses en 10 secondes',
+      videoUrl: `${TEST_VIDEOS}/jellyfish/mp4/h264/720/Jellyfish_720_10s_1MB.mp4`,
+      durationSeconds: 10,
+      format: VideoFormat.SHORT,
+    },
+    {
+      channelId: studioChannelId,
+      categoryId: nature.id,
+      title: 'Le ballet des méduses',
+      description: 'Plongée au milieu des méduses.',
+      videoUrl: `${TEST_VIDEOS}/jellyfish/mp4/h264/720/Jellyfish_720_10s_5MB.mp4`,
+      durationSeconds: 10,
+      format: VideoFormat.LONG,
+    },
+    {
+      channelId: explorerChannelId,
+      categoryId: voyage.id,
+      title: 'Une demi-minute en ville',
+      description: 'Petite balade urbaine sans commentaire.',
+      videoUrl: `${SAMPLELIB}/sample-30s.mp4`,
+      durationSeconds: 30,
+      format: VideoFormat.LONG,
+    },
+    {
+      channelId: explorerChannelId,
+      categoryId: voyage.id,
+      title: 'Cinq secondes de voyage',
+      videoUrl: `${SAMPLELIB}/sample-5s.mp4`,
+      durationSeconds: 5,
+      format: VideoFormat.SHORT,
+    },
+    {
+      channelId: explorerChannelId,
+      categoryId: voyage.id,
+      title: 'Instantané de rue',
+      videoUrl: `${SAMPLELIB}/sample-10s.mp4`,
+      durationSeconds: 10,
+      format: VideoFormat.SHORT,
+    },
+    {
+      channelId: explorerChannelId,
+      categoryId: nature.id,
+      title: 'Respirer dehors',
+      videoUrl: `${SAMPLELIB}/sample-15s.mp4`,
+      durationSeconds: 15,
+      format: VideoFormat.SHORT,
+    },
+    {
+      channelId: explorerChannelId,
+      categoryId: nature.id,
+      title: 'Vingt secondes au grand air',
+      videoUrl: `${SAMPLELIB}/sample-20s.mp4`,
+      durationSeconds: 20,
+      format: VideoFormat.SHORT,
+    },
+  ];
+
+  await prisma.video.createMany({
+    data: videos.map((video) => ({
+      ...video,
+      thumbnailUrl: thumbnail(video.title, video.format),
+    })),
+  });
+
+  console.log(
+    `Seed terminé : 3 catégories, 4 utilisateurs, 2 chaînes, ${videos.length} vidéos.`,
+  );
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

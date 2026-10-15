@@ -1,0 +1,27 @@
+# Dépendances
+node_modules/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Variables d'environnement (garder les fichiers .env.example éventuels)
+.env
+.env.*
+!.env.example
+
+# Android
+.gradle/
+local.properties
+*.apk
+*.aab
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Éditeurs et système
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

@@ -1,0 +1,166 @@
+// Modèle de données du clone de YouTube (voir CLAUDE.md et docs/adr/).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// VISITOR existe dans l'enum mais n'est jamais stocké : un visiteur n'a pas de compte.
+enum Role {
+  VISITOR
+  USER
+  CREATOR
+  ADMIN
+}
+
+enum VideoFormat {
+  SHORT
+  LONG
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  avatarUrl    String?
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+
+  channel              Channel?
+  comments             Comment[]
+  likes                Like[]
+  follows              Follow[]
+  premiumSubscriptions PremiumSubscription[]
+  watchHistory         WatchHistory[]
+
+  @@map("users")
+}
+
+// Une seule chaîne par utilisateur : simplification assumée pour le socle.
+model Channel {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String   @unique @db.Uuid
+  name        String
+  handle      String   @unique
+  description String?
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  videos    Video[]
+  followers Follow[]
+
+  @@map("channels")
+}
+
+model Category {
+  id     String  @id @default(uuid()) @db.Uuid
+  name   String  @unique
+  videos Video[]
+
+  @@map("categories")
+}
+
+// La base ne stocke que les URL des fichiers, jamais les fichiers eux-mêmes.
+model Video {
+  id              String      @id @default(uuid()) @db.Uuid
+  channelId       String      @db.Uuid
+  categoryId      String?     @db.Uuid
+  title           String
+  description     String?
+  videoUrl        String
+  thumbnailUrl    String
+  durationSeconds Int
+  format          VideoFormat
+  isPremium       Boolean     @default(false)
+  viewCount       Int         @default(0)
+  publishedAt     DateTime    @default(now())
+
+  channel      Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  category     Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  comments     Comment[]
+  likes        Like[]
+  watchHistory WatchHistory[]
+
+  @@index([format, publishedAt(sort: Desc)]) // fil d'accueil et onglet Shorts
+  @@index([channelId, format, publishedAt(sort: Desc)]) // page de chaîne
+  @@index([categoryId])
+  @@map("videos")
+}
+
+model Comment {
+  id        String   @id @default(uuid()) @db.Uuid
+  videoId   String   @db.Uuid
+  userId    String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([videoId, createdAt(sort: Desc)])
+  @@map("comments")
+}
+
+model Like {
+  userId    String   @db.Uuid
+  videoId   String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([userId, videoId])
+  @@index([videoId])
+  @@map("likes")
+}
+
+// Abonnement gratuit à une chaîne, à ne pas confondre avec PremiumSubscription.
+model Follow {
+  userId    String   @db.Uuid
+  channelId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@id([userId, channelId])
+  @@index([channelId])
+  @@map("follows")
+}
+
+// Abonnement payant, actif tant que expiresAt est dans le futur (ADR-007).
+model PremiumSubscription {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  purchaseToken String   @unique // justificatif renvoyé par Play Billing
+  startedAt     DateTime @default(now())
+  expiresAt     DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("premium_subscriptions")
+}
+
+// Une ligne par couple utilisateur et vidéo, watchedAt mis à jour à chaque visionnage.
+model WatchHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  videoId   String   @db.Uuid
+  watchedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
+  @@index([userId, watchedAt(sort: Desc)])
+  @@map("watch_history")
+}
