@@ -1,7 +1,7 @@
 # ADR-009 — Stockage des tokens du back-office en localStorage
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Le back-office s'authentifie auprès de l'API avec les JWT définis par ADR-008 : un access token valable 15 minutes et un refresh token valable 7 jours. Il faut choisir où le navigateur conserve ces deux tokens.
