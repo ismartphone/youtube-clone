@@ -3,12 +3,15 @@ package com.youtubeclone.app.data.di
 import com.youtubeclone.app.BuildConfig
 import com.youtubeclone.app.data.remote.AuthApi
 import com.youtubeclone.app.data.remote.AuthInterceptor
+import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.RefreshApi
 import com.youtubeclone.app.data.remote.TokenAuthenticator
 import com.youtubeclone.app.data.remote.VideoApi
 import com.youtubeclone.app.data.repository.AuthRepositoryImpl
+import com.youtubeclone.app.data.repository.ChannelRepositoryImpl
 import com.youtubeclone.app.data.repository.VideoRepositoryImpl
 import com.youtubeclone.app.domain.repository.AuthRepository
+import com.youtubeclone.app.domain.repository.ChannelRepository
 import com.youtubeclone.app.domain.repository.VideoRepository
 import dagger.Binds
 import dagger.Module
@@ -59,6 +62,10 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
 
+    @Provides
+    @Singleton
+    fun provideChannelApi(retrofit: Retrofit): ChannelApi = retrofit.create(ChannelApi::class.java)
+
     // Client à part, sans intercepteur ni authenticator : voir RefreshApi.
     @Provides
     @Singleton
@@ -81,4 +88,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindChannelRepository(impl: ChannelRepositoryImpl): ChannelRepository
 }

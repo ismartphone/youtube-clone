@@ -1,8 +1,10 @@
 package com.youtubeclone.app.presentation.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,8 +28,13 @@ import com.youtubeclone.app.presentation.common.formatViewCount
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import java.time.Instant
 
+/** Carte d'une vidéo. Avec [onChannelClick], le nom de la chaîne ouvre sa page. */
 @Composable
-fun VideoCard(video: Video, modifier: Modifier = Modifier) {
+fun VideoCard(
+    video: Video,
+    modifier: Modifier = Modifier,
+    onChannelClick: (() -> Unit)? = null,
+) {
     Column(modifier = modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
@@ -60,14 +67,24 @@ fun VideoCard(video: Video, modifier: Modifier = Modifier) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = "${video.channel.name} · ${formatViewCount(video.viewCount)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 2.dp),
-            )
+            Row(modifier = Modifier.padding(top = 2.dp)) {
+                Text(
+                    text = video.channel.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .then(if (onChannelClick != null) Modifier.clickable(onClick = onChannelClick) else Modifier),
+                )
+                Text(
+                    text = " · ${formatViewCount(video.viewCount)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

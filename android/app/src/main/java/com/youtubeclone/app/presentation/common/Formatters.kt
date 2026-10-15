@@ -24,6 +24,14 @@ fun formatViewCount(count: Int): String = when {
     else -> "${abbreviate(count / 1_000_000.0)} M de vues"
 }
 
+/** Nombre d'abonnés abrégé en français : 0 abonné, 1 abonné, 950 abonnés, 1,2 k abonnés, 3,4 M d'abonnés. */
+fun formatFollowerCount(count: Int): String = when {
+    count < 2 -> "$count abonné"
+    count < 1_000 -> "$count abonnés"
+    count < 1_000_000 -> "${abbreviate(count / 1_000.0)} k abonnés"
+    else -> "${abbreviate(count / 1_000_000.0)} M d'abonnés"
+}
+
 // Une décimale au plus, sans ",0" inutile : 1,2 mais 3 plutôt que 3,0.
 private fun abbreviate(value: Double): String {
     val rounded = String.format(Locale.FRANCE, "%.1f", value)

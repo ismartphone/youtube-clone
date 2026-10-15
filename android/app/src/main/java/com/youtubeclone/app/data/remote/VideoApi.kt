@@ -22,4 +22,11 @@ interface VideoApi {
     // Réponse 204 sans contenu.
     @POST("videos/{id}/view")
     suspend fun recordView(@Path("id") id: String)
+
+    // Route protégée : l'access token est ajouté par AuthInterceptor.
+    @GET("me/feed")
+    suspend fun getSubscriptionFeed(
+        @Query("page") page: Int,
+        @Query("pageSize") pageSize: Int,
+    ): VideoPageDto
 }

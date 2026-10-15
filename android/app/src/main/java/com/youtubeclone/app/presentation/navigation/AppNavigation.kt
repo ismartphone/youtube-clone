@@ -26,10 +26,12 @@ import androidx.navigation.compose.rememberNavController
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
+import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.library.LibraryScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
+import com.youtubeclone.app.presentation.subscriptions.SubscriptionsScreen
 import com.youtubeclone.app.presentation.watch.WatchScreen
 import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
@@ -41,7 +43,9 @@ import kotlinx.serialization.Serializable
 @Serializable data object YouRoute
 @Serializable data object LoginRoute
 @Serializable data object RegisterRoute
+@Serializable data object SubscriptionsRoute
 @Serializable data class WatchRoute(val videoId: String)
+@Serializable data class ChannelRoute(val channelId: String)
 
 private val FULL_SCREEN_ROUTES = listOf(WatchRoute::class, LoginRoute::class, RegisterRoute::class)
 
@@ -53,6 +57,7 @@ private enum class Tab(
 ) {
     Home(HomeRoute, HomeRoute::class, R.string.tab_home, R.drawable.ic_tab_home),
     Shorts(ShortsRoute, ShortsRoute::class, R.string.tab_shorts, R.drawable.ic_tab_shorts),
+    Subscriptions(SubscriptionsRoute, SubscriptionsRoute::class, R.string.tab_subscriptions, R.drawable.ic_tab_subscriptions),
     Library(LibraryRoute, LibraryRoute::class, R.string.tab_library, R.drawable.ic_tab_library),
     You(YouRoute, YouRoute::class, R.string.tab_you, R.drawable.ic_tab_you),
 }
@@ -100,12 +105,24 @@ fun AppNavigation() {
             startDestination = HomeRoute,
             modifier = Modifier.padding(innerPadding),
         ) {
+            val openVideo = { videoId: String -> navController.navigate(WatchRoute(videoId)) }
+            val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
+            val openLogin = { navController.navigate(LoginRoute) }
+
             composable<HomeRoute> {
-                HomeScreen(onVideoClick = { videoId -> navController.navigate(WatchRoute(videoId)) })
+                HomeScreen(onVideoClick = openVideo, onChannelClick = openChannel)
             }
             composable<ShortsRoute> { ShortsScreen() }
+            composable<SubscriptionsRoute> {
+                SubscriptionsScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginClick = openLogin)
+            }
             composable<LibraryRoute> { LibraryScreen() }
-            composable<WatchRoute> { WatchScreen() }
+            composable<WatchRoute> {
+                WatchScreen(onChannelClick = openChannel, onLoginRequired = openLogin)
+            }
+            composable<ChannelRoute> {
+                ChannelScreen(onVideoClick = openVideo, onLoginRequired = openLogin)
+            }
             composable<YouRoute> {
                 YouScreen(
                     onLoginClick = { navController.navigate(LoginRoute) },

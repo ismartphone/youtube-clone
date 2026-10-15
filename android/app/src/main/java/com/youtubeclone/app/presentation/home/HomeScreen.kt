@@ -20,6 +20,7 @@ import com.youtubeclone.app.presentation.common.MessageState
 @Composable
 fun HomeScreen(
     onVideoClick: (videoId: String) -> Unit,
+    onChannelClick: (channelId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -28,6 +29,7 @@ fun HomeScreen(
         uiState = uiState,
         onRetry = viewModel::load,
         onVideoClick = onVideoClick,
+        onChannelClick = onChannelClick,
         modifier = modifier,
     )
 }
@@ -37,6 +39,7 @@ private fun HomeContent(
     uiState: HomeUiState,
     onRetry: () -> Unit,
     onVideoClick: (videoId: String) -> Unit,
+    onChannelClick: (channelId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -50,6 +53,7 @@ private fun HomeContent(
             items(uiState.videos, key = { it.id }) { video ->
                 VideoCard(
                     video = video,
+                    onChannelClick = { onChannelClick(video.channel.id) },
                     modifier = Modifier.clickable { onVideoClick(video.id) },
                 )
             }

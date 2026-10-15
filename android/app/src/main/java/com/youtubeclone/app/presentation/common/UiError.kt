@@ -1,5 +1,6 @@
 package com.youtubeclone.app.presentation.common
 
+import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -29,4 +30,11 @@ fun UiError.asText(): String = when {
     serverMessage != null -> serverMessage
     code != null -> stringResource(messageRes, code)
     else -> stringResource(messageRes)
+}
+
+/** Même texte que [asText], hors composition (par exemple pour un Toast). */
+fun UiError.asText(context: Context): String = when {
+    serverMessage != null -> serverMessage
+    code != null -> context.getString(messageRes, code)
+    else -> context.getString(messageRes)
 }

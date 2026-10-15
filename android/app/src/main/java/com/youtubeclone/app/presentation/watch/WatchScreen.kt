@@ -1,6 +1,7 @@
 package com.youtubeclone.app.presentation.watch
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,11 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -34,21 +33,30 @@ import androidx.annotation.OptIn
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
-import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.VideoDetail
+import com.youtubeclone.app.presentation.channel.FollowButton
+import com.youtubeclone.app.presentation.channel.FollowErrorsToast
+import com.youtubeclone.app.presentation.channel.FollowUiState
+import com.youtubeclone.app.presentation.common.ChannelAvatar
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.LoadingState
+import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
 
 @Composable
 fun WatchScreen(
+    onChannelClick: (channelId: String) -> Unit,
+    onLoginRequired: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WatchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
+    val followState by viewModel.follow.state.collectAsStateWithLifecycle()
+    FollowErrorsToast(viewModel.follow.errors)
 
     // Application en arrière-plan : la lecture se met en pause, sans libérer le lecteur.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.pause() }
@@ -56,12 +64,27 @@ fun WatchScreen(
     when (val state = uiState) {
         WatchUiState.Loading -> LoadingState(modifier)
         is WatchUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
-        is WatchUiState.Success -> WatchContent(state.detail, viewModel.player, modifier)
+        is WatchUiState.Success -> WatchContent(
+            detail = state.detail,
+            player = viewModel.player,
+            followState = followState,
+            onChannelClick = { onChannelClick(state.detail.video.channel.id) },
+            // Visiteur : la connexion est demandée au moment de s'abonner.
+            onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
+            modifier = modifier,
+        )
     }
 }
 
 @Composable
-private fun WatchContent(detail: VideoDetail, player: Player, modifier: Modifier = Modifier) {
+private fun WatchContent(
+    detail: VideoDetail,
+    player: Player,
+    followState: FollowUiState?,
+    onChannelClick: () -> Unit,
+    onFollowClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -87,7 +110,7 @@ private fun WatchContent(detail: VideoDetail, player: Player, modifier: Modifier
                 )
             }
         }
-        VideoInfo(detail)
+        VideoInfo(detail, followState, onChannelClick, onFollowClick)
     }
 }
 
@@ -110,7 +133,12 @@ private fun VideoPlayer(player: Player, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun VideoInfo(detail: VideoDetail) {
+private fun VideoInfo(
+    detail: VideoDetail,
+    followState: FollowUiState?,
+    onChannelClick: () -> Unit,
+    onFollowClick: () -> Unit,
+) {
     val video = detail.video
     Column(
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
@@ -128,7 +156,7 @@ private fun VideoInfo(detail: VideoDetail) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        ChannelRow(video.channel)
+        ChannelRow(video.channel, followState, onChannelClick, onFollowClick)
         detail.description?.let { description ->
             Text(
                 text = description,
@@ -143,41 +171,45 @@ private fun VideoInfo(detail: VideoDetail) {
     }
 }
 
+// Avatar et nom ouvrent la page de la chaîne ; le bouton S'abonner apparaît une fois l'état connu.
 @Composable
-private fun ChannelRow(channel: Channel) {
+private fun ChannelRow(
+    channel: Channel,
+    followState: FollowUiState?,
+    onChannelClick: () -> Unit,
+    onFollowClick: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        ChannelAvatar(channel, Modifier.size(36.dp))
-        Text(
-            text = channel.name,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-    }
-}
-
-// Avatar de la chaîne, ou à défaut un cercle avec l'initiale de son nom.
-@Composable
-private fun ChannelAvatar(channel: Channel, modifier: Modifier = Modifier) {
-    if (channel.avatarUrl != null) {
-        AsyncImage(
-            model = channel.avatarUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = modifier.clip(CircleShape),
-        )
-    } else {
-        Box(
-            modifier = modifier.background(MaterialTheme.colorScheme.primary, CircleShape),
-            contentAlignment = Alignment.Center,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onChannelClick),
         ) {
-            Text(
-                text = channel.name.take(1).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimary,
-            )
+            ChannelAvatar(channel, Modifier.size(36.dp))
+            Column {
+                Text(
+                    text = channel.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (followState != null) {
+                    Text(
+                        text = formatFollowerCount(followState.followerCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        if (followState != null && followState.canFollow) {
+            FollowButton(state = followState, onClick = onFollowClick)
         }
     }
 }

@@ -16,4 +16,7 @@ interface VideoRepository {
     suspend fun getVideoDetail(id: String): VideoDetail
 
     suspend fun recordView(id: String)
+
+    /** Vidéos des chaînes suivies par l'utilisateur connecté. */
+    suspend fun getSubscriptionFeed(page: Int, pageSize: Int): VideoPage
 }
