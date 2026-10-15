@@ -4,6 +4,7 @@
     <string name="tab_home">Accueil</string>
     <string name="tab_shorts">Shorts</string>
     <string name="tab_library">Bibliothèque</string>
+    <string name="tab_you">Vous</string>
 
     <string name="home_empty">Aucune vidéo pour le moment.</string>
     <string name="shorts_empty">Aucun Short pour le moment.</string>
@@ -17,4 +18,29 @@
     <string name="error_video_not_found">Cette vidéo n\'existe pas ou a été supprimée.</string>
     <string name="watch_premium_only">Vidéo réservée aux membres Premium.</string>
     <string name="error_unexpected">Une erreur inattendue est survenue.</string>
+
+
+    <string name="auth_email">Adresse email</string>
+    <string name="auth_password">Mot de passe</string>
+    <string name="auth_display_name">Nom affiché</string>
+    <string name="auth_password_hint">Au moins %1$d caractères</string>
+    <string name="auth_error_email_required">Saisissez votre adresse email.</string>
+    <string name="auth_error_email_invalid">Cette adresse email n\'est pas valide.</string>
+    <string name="auth_error_password_required">Saisissez votre mot de passe.</string>
+    <string name="auth_error_password_too_short">Le mot de passe doit contenir au moins 8 caractères.</string>
+    <string name="auth_error_password_too_long">Le mot de passe ne doit pas dépasser 128 caractères.</string>
+    <string name="auth_error_display_name_required">Saisissez un nom.</string>
+    <string name="auth_error_display_name_too_long">Le nom ne doit pas dépasser 50 caractères.</string>
+
+    <string name="login_title">Connexion</string>
+    <string name="login_submit">Se connecter</string>
+    <string name="login_to_register">Pas encore de compte ? Créer un compte</string>
+    <string name="register_title">Créer un compte</string>
+    <string name="register_submit">Créer mon compte</string>
+    <string name="register_to_login">Déjà un compte ? Se connecter</string>
+
+    <string name="you_logged_out_title">Vous n\'êtes pas connecté</string>
+    <string name="you_logged_out_message">Connectez-vous pour retrouver votre profil.</string>
+    <string name="you_create_account">Créer un compte</string>
+    <string name="you_logout">Se déconnecter</string>
 </resources>

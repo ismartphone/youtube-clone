@@ -1,8 +1,14 @@
 package com.youtubeclone.app.data.di
 
 import com.youtubeclone.app.BuildConfig
+import com.youtubeclone.app.data.remote.AuthApi
+import com.youtubeclone.app.data.remote.AuthInterceptor
+import com.youtubeclone.app.data.remote.RefreshApi
+import com.youtubeclone.app.data.remote.TokenAuthenticator
 import com.youtubeclone.app.data.remote.VideoApi
+import com.youtubeclone.app.data.repository.AuthRepositoryImpl
 import com.youtubeclone.app.data.repository.VideoRepositoryImpl
+import com.youtubeclone.app.domain.repository.AuthRepository
 import com.youtubeclone.app.domain.repository.VideoRepository
 import dagger.Binds
 import dagger.Module
@@ -12,6 +18,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
@@ -28,14 +35,39 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(json: Json): Retrofit = Retrofit.Builder()
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor,
+        tokenAuthenticator: TokenAuthenticator,
+    ): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(authInterceptor)
+        .authenticator(tokenAuthenticator)
+        .build()
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(json: Json, client: OkHttpClient): Retrofit = Retrofit.Builder()
         .baseUrl(BuildConfig.API_BASE_URL)
+        .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
 
     @Provides
     @Singleton
     fun provideVideoApi(retrofit: Retrofit): VideoApi = retrofit.create(VideoApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    // Client à part, sans intercepteur ni authenticator : voir RefreshApi.
+    @Provides
+    @Singleton
+    fun provideRefreshApi(json: Json): RefreshApi = Retrofit.Builder()
+        .baseUrl(BuildConfig.API_BASE_URL)
+        .client(OkHttpClient())
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+        .create(RefreshApi::class.java)
 }
 
 @Module
@@ -45,4 +77,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindVideoRepository(impl: VideoRepositoryImpl): VideoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
 }

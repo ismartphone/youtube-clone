@@ -7,8 +7,8 @@ sealed class DataError : Exception() {
         private fun readResolve(): Any = Network
     }
 
-    /** Le serveur a répondu avec un code d'erreur HTTP. */
-    data class Server(val code: Int) : DataError()
+    /** Le serveur a répondu avec un code d'erreur HTTP, et parfois un message destiné à l'utilisateur. */
+    data class Server(val code: Int, val serverMessage: String? = null) : DataError()
 
     /** La ressource demandée n'existe pas. */
     data object NotFound : DataError() {

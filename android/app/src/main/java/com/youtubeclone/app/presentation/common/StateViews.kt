@@ -38,13 +38,7 @@ fun ErrorState(error: UiError, onRetry: () -> Unit, modifier: Modifier = Modifie
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            MessageText(
-                if (error.code != null) {
-                    stringResource(error.messageRes, error.code)
-                } else {
-                    stringResource(error.messageRes)
-                },
-            )
+            MessageText(error.asText())
             Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
         }
     }

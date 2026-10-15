@@ -24,8 +24,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.auth.LoginScreen
+import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.library.LibraryScreen
+import com.youtubeclone.app.presentation.profile.YouScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
 import com.youtubeclone.app.presentation.watch.WatchScreen
 import kotlin.reflect.KClass
@@ -35,7 +38,12 @@ import kotlinx.serialization.Serializable
 @Serializable data object HomeRoute
 @Serializable data object ShortsRoute
 @Serializable data object LibraryRoute
+@Serializable data object YouRoute
+@Serializable data object LoginRoute
+@Serializable data object RegisterRoute
 @Serializable data class WatchRoute(val videoId: String)
+
+private val FULL_SCREEN_ROUTES = listOf(WatchRoute::class, LoginRoute::class, RegisterRoute::class)
 
 private enum class Tab(
     val route: Any,
@@ -46,6 +54,7 @@ private enum class Tab(
     Home(HomeRoute, HomeRoute::class, R.string.tab_home, R.drawable.ic_tab_home),
     Shorts(ShortsRoute, ShortsRoute::class, R.string.tab_shorts, R.drawable.ic_tab_shorts),
     Library(LibraryRoute, LibraryRoute::class, R.string.tab_library, R.drawable.ic_tab_library),
+    You(YouRoute, YouRoute::class, R.string.tab_you, R.drawable.ic_tab_you),
 }
 
 @Composable
@@ -53,8 +62,8 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
-    // L'écran de lecture occupe tout l'écran, sans barre d'onglets.
-    val showBottomBar = currentDestination?.hasRoute(WatchRoute::class) != true
+    // L'écran de lecture et les formulaires de compte occupent tout l'écran, sans barre d'onglets.
+    val showBottomBar = FULL_SCREEN_ROUTES.none { currentDestination?.hasRoute(it) == true }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -97,6 +106,30 @@ fun AppNavigation() {
             composable<ShortsRoute> { ShortsScreen() }
             composable<LibraryRoute> { LibraryScreen() }
             composable<WatchRoute> { WatchScreen() }
+            composable<YouRoute> {
+                YouScreen(
+                    onLoginClick = { navController.navigate(LoginRoute) },
+                    onRegisterClick = { navController.navigate(RegisterRoute) },
+                )
+            }
+            // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
+            // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute).
+            composable<LoginRoute> {
+                LoginScreen(
+                    onLoggedIn = { navController.popBackStack() },
+                    onRegisterClick = {
+                        navController.navigate(RegisterRoute) { popUpTo<LoginRoute> { inclusive = true } }
+                    },
+                )
+            }
+            composable<RegisterRoute> {
+                RegisterScreen(
+                    onRegistered = { navController.popBackStack() },
+                    onLoginClick = {
+                        navController.navigate(LoginRoute) { popUpTo<RegisterRoute> { inclusive = true } }
+                    },
+                )
+            }
         }
     }
 }
