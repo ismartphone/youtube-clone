@@ -6,6 +6,11 @@
     <string name="tab_library">Bibliothèque</string>
 
     <string name="home_empty">Aucune vidéo pour le moment.</string>
+    <string name="shorts_empty">Aucun Short pour le moment.</string>
+    <string name="shorts_paused">En pause</string>
+    <string name="shorts_like">J\'aime</string>
+    <string name="shorts_comments">Commentaires</string>
+    <string name="shorts_share">Partager</string>
     <string name="retry">Réessayer</string>
     <string name="error_network">Impossible de joindre le serveur. Vérifiez votre connexion.</string>
     <string name="error_server">Le serveur a rencontré une erreur (%1$d).</string>
