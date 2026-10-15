@@ -35,15 +35,22 @@ class TokenAuthenticator @Inject constructor(
         // Déjà rejouée une fois avec un nouveau token et toujours refusée : on abandonne.
         if (response.priorResponse != null) return null
 
-        synchronized(lock) {
-            val current = runBlocking { tokenStore.get() } ?: return null
-            if (current.accessToken != failedToken) {
-                // Une autre requête a renouvelé les tokens pendant qu'on attendait.
-                return request.withBearer(current.accessToken)
-            }
-            val renewed = refresh(current.refreshToken) ?: return null
-            return request.withBearer(renewed.accessToken)
+        val accessToken = renew(failedToken) ?: return null
+        return request.withBearer(accessToken)
+    }
+
+    /**
+     * Renvoie un access token valide pour remplacer [rejectedAccessToken], refusé par le serveur,
+     * ou null si la session ne peut pas être renouvelée. Sert aussi au WebSocket (fermeture 4401).
+     * Appel bloquant : jamais depuis le thread principal.
+     */
+    fun renew(rejectedAccessToken: String): String? = synchronized(lock) {
+        val current = runBlocking { tokenStore.get() } ?: return null
+        if (current.accessToken != rejectedAccessToken) {
+            // Une autre requête a renouvelé les tokens pendant qu'on attendait.
+            return current.accessToken
         }
+        refresh(current.refreshToken)?.accessToken
     }
 
     private fun refresh(refreshToken: String): AuthTokens? {

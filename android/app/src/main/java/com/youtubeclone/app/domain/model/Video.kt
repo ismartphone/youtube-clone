@@ -37,6 +37,7 @@ data class VideoDetail(
     val video: Video,
     val description: String?,
     val videoUrl: String?,
+    val likeStatus: LikeStatus,
 )
 
 data class VideoPage(

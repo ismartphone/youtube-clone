@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.presentation.common.ChannelAvatar
+import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.formatFollowerCount
@@ -40,7 +41,7 @@ fun ChannelScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
-    FollowErrorsToast(viewModel.follow.errors)
+    ErrorToast(viewModel.follow.errors)
 
     when (val state = uiState) {
         ChannelUiState.Loading -> LoadingState(modifier)

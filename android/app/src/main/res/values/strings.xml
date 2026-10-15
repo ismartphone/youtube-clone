@@ -53,4 +53,15 @@
 
     <string name="subscriptions_empty">Aucune vidéo de vos abonnements pour le moment.</string>
     <string name="subscriptions_logged_out">Connectez-vous pour voir les vidéos des chaînes que vous suivez.</string>
+
+    <string name="watch_like">J\'aime</string>
+    <string name="watch_liked">Aimée</string>
+    <string name="watch_not_liked">Pas encore aimée</string>
+
+    <string name="comments_title">Commentaires</string>
+    <string name="comments_placeholder">Ajouter un commentaire…</string>
+    <string name="comments_post">Publier</string>
+    <string name="comments_login_to_comment">Connectez-vous pour ajouter un commentaire.</string>
+    <string name="comments_empty">Aucun commentaire pour le moment.</string>
+    <string name="comments_load_more">Afficher plus de commentaires</string>
 </resources>

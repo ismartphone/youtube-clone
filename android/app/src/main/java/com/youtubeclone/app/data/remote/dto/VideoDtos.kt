@@ -47,6 +47,15 @@ data class VideoDetailDto(
     val description: String? = null,
     // Null quand le serveur refuse l'accès au fichier (vidéo Premium).
     val videoUrl: String? = null,
+    val likeCount: Int = 0,
+    // Vrai seulement si la requête portait le token d'un utilisateur qui a aimé la vidéo.
+    val isLiked: Boolean = false,
+)
+
+@Serializable
+data class LikeStatusDto(
+    val likeCount: Int,
+    val isLiked: Boolean,
 )
 
 @Serializable

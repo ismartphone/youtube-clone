@@ -1,5 +1,6 @@
 package com.youtubeclone.app.domain.repository
 
+import com.youtubeclone.app.domain.model.LikeStatus
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.model.VideoPage
@@ -19,4 +20,7 @@ interface VideoRepository {
 
     /** Vidéos des chaînes suivies par l'utilisateur connecté. */
     suspend fun getSubscriptionFeed(page: Int, pageSize: Int): VideoPage
+
+    /** Aime ou retire son « j'aime ». Exige une session ouverte. */
+    suspend fun setLiked(id: String, like: Boolean): LikeStatus
 }

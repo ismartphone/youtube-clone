@@ -3,6 +3,7 @@ package com.youtubeclone.app.data.repository
 import com.youtubeclone.app.data.remote.VideoApi
 import com.youtubeclone.app.data.remote.dto.toDomain
 import com.youtubeclone.app.domain.model.DataError
+import com.youtubeclone.app.domain.model.LikeStatus
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.model.VideoPage
@@ -31,6 +32,10 @@ class VideoRepositoryImpl @Inject constructor(
 
     override suspend fun recordView(id: String) = call {
         api.recordView(id)
+    }
+
+    override suspend fun setLiked(id: String, like: Boolean): LikeStatus = call {
+        (if (like) api.like(id) else api.unlike(id)).toDomain()
     }
 
     override suspend fun getSubscriptionFeed(page: Int, pageSize: Int): VideoPage = call {

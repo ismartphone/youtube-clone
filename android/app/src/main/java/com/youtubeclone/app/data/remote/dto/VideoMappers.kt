@@ -2,6 +2,7 @@ package com.youtubeclone.app.data.remote.dto
 
 import com.youtubeclone.app.domain.model.Category
 import com.youtubeclone.app.domain.model.Channel
+import com.youtubeclone.app.domain.model.LikeStatus
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
@@ -45,7 +46,10 @@ fun VideoDetailDto.toDomain() = VideoDetail(
     ),
     description = description,
     videoUrl = videoUrl,
+    likeStatus = LikeStatus(likeCount = likeCount, isLiked = isLiked),
 )
+
+fun LikeStatusDto.toDomain() = LikeStatus(likeCount = likeCount, isLiked = isLiked)
 
 fun VideoPageDto.toDomain() = VideoPage(
     items = items.map { it.toDomain() },

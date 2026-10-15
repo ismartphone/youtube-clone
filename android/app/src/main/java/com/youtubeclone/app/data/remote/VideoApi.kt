@@ -1,7 +1,9 @@
 package com.youtubeclone.app.data.remote
 
+import com.youtubeclone.app.data.remote.dto.LikeStatusDto
 import com.youtubeclone.app.data.remote.dto.VideoDetailDto
 import com.youtubeclone.app.data.remote.dto.VideoPageDto
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -22,6 +24,12 @@ interface VideoApi {
     // Réponse 204 sans contenu.
     @POST("videos/{id}/view")
     suspend fun recordView(@Path("id") id: String)
+
+    @POST("videos/{id}/like")
+    suspend fun like(@Path("id") id: String): LikeStatusDto
+
+    @DELETE("videos/{id}/like")
+    suspend fun unlike(@Path("id") id: String): LikeStatusDto
 
     // Route protégée : l'access token est ajouté par AuthInterceptor.
     @GET("me/feed")
