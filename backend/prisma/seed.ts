@@ -19,6 +19,11 @@ const SAMPLELIB = 'https://samplelib.com/preview/mp4';
 // Aucune bibliothèque de hachage n'est encore choisie : ces comptes ne permettent pas de se connecter.
 const PLACEHOLDER_PASSWORD_HASH = 'seed-placeholder-not-a-real-hash';
 
+// Date de publication relative au jour du seed, pour garder un catalogue récent.
+function daysAgo(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
 // Miniature de remplacement au format de la vidéo : paysage pour LONG, portrait pour SHORT.
 function thumbnail(title: string, format: VideoFormat) {
   const size = format === VideoFormat.SHORT ? '720x1280' : '1280x720';
@@ -107,6 +112,7 @@ async function main() {
       videoUrl:
         'https://download.blender.org/durian/trailer/sintel_trailer-480p.mp4',
       durationSeconds: 52,
+      publishedAt: daysAgo(13),
       format: VideoFormat.LONG,
     },
     {
@@ -116,6 +122,7 @@ async function main() {
       description: 'Un lapin géant contre trois rongeurs farceurs.',
       videoUrl: `${TEST_VIDEOS}/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4`,
       durationSeconds: 10,
+      publishedAt: daysAgo(12),
       format: VideoFormat.LONG,
     },
     {
@@ -124,6 +131,7 @@ async function main() {
       title: 'Sintel en haute définition',
       videoUrl: `${TEST_VIDEOS}/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4`,
       durationSeconds: 10,
+      publishedAt: daysAgo(10),
       format: VideoFormat.LONG,
     },
     {
@@ -132,6 +140,7 @@ async function main() {
       title: 'Méduses en 10 secondes',
       videoUrl: `${TEST_VIDEOS}/jellyfish/mp4/h264/720/Jellyfish_720_10s_1MB.mp4`,
       durationSeconds: 10,
+      publishedAt: daysAgo(9),
       format: VideoFormat.SHORT,
     },
     {
@@ -141,6 +150,7 @@ async function main() {
       description: 'Plongée au milieu des méduses.',
       videoUrl: `${TEST_VIDEOS}/jellyfish/mp4/h264/720/Jellyfish_720_10s_5MB.mp4`,
       durationSeconds: 10,
+      publishedAt: daysAgo(7),
       format: VideoFormat.LONG,
     },
     {
@@ -150,6 +160,7 @@ async function main() {
       description: 'Petite balade urbaine sans commentaire.',
       videoUrl: `${SAMPLELIB}/sample-30s.mp4`,
       durationSeconds: 30,
+      publishedAt: daysAgo(6),
       format: VideoFormat.LONG,
     },
     {
@@ -158,6 +169,7 @@ async function main() {
       title: 'Cinq secondes de voyage',
       videoUrl: `${SAMPLELIB}/sample-5s.mp4`,
       durationSeconds: 5,
+      publishedAt: daysAgo(4),
       format: VideoFormat.SHORT,
     },
     {
@@ -166,6 +178,7 @@ async function main() {
       title: 'Instantané de rue',
       videoUrl: `${SAMPLELIB}/sample-10s.mp4`,
       durationSeconds: 10,
+      publishedAt: daysAgo(3),
       format: VideoFormat.SHORT,
     },
     {
@@ -174,6 +187,7 @@ async function main() {
       title: 'Respirer dehors',
       videoUrl: `${SAMPLELIB}/sample-15s.mp4`,
       durationSeconds: 15,
+      publishedAt: daysAgo(1),
       format: VideoFormat.SHORT,
     },
     {
@@ -182,6 +196,7 @@ async function main() {
       title: 'Vingt secondes au grand air',
       videoUrl: `${SAMPLELIB}/sample-20s.mp4`,
       durationSeconds: 20,
+      publishedAt: daysAgo(0),
       format: VideoFormat.SHORT,
     },
   ];
