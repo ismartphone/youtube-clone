@@ -24,6 +24,7 @@ import { PrismaUserRepository } from './infrastructure/prisma-user.repository.js
 import { RedisRefreshTokenStore } from './infrastructure/redis-refresh-token.store.js';
 import { AuthController } from './interfaces/http/auth.controller.js';
 import {
+  AdminGuard,
   JwtAuthGuard,
   OptionalJwtAuthGuard,
 } from './interfaces/http/jwt-auth.guard.js';
@@ -90,10 +91,11 @@ import {
       inject: [USER_REPOSITORY],
     },
     JwtAuthGuard,
+    AdminGuard,
     OptionalJwtAuthGuard,
   ],
   // Pour protéger les routes d'autres modules : importer AuthModule, puis @UseGuards(JwtAuthGuard)
-  // (ou OptionalJwtAuthGuard pour une route ouverte aux visiteurs).
-  exports: [TOKEN_SERVICE, JwtAuthGuard, OptionalJwtAuthGuard],
+  // (OptionalJwtAuthGuard pour une route ouverte aux visiteurs, AdminGuard pour le back-office).
+  exports: [TOKEN_SERVICE, JwtAuthGuard, OptionalJwtAuthGuard, AdminGuard],
 })
 export class AuthModule {}

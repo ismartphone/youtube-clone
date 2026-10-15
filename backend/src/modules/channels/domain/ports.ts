@@ -17,4 +17,6 @@ export interface ChannelRepository {
   isFollowing(userId: string, channelId: string): Promise<boolean>;
   // Chaînes suivies, de l'abonnement le plus récent au plus ancien.
   findFollowedBy(userId: string): Promise<ChannelSummary[]>;
+  // Toutes les chaînes, par nom (choix de la chaîne d'une vidéo dans le back-office).
+  findAll(): Promise<ChannelSummary[]>;
 }

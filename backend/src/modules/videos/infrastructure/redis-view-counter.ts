@@ -44,6 +44,17 @@ export class RedisViewCounter
     return counts;
   }
 
+  async pendingTotal(): Promise<number> {
+    const [pending, flushing] = await Promise.all([
+      this.redis.hvals(PENDING_KEY),
+      this.redis.hvals(FLUSHING_KEY),
+    ]);
+    return [...pending, ...flushing].reduce(
+      (sum, count) => sum + Number(count),
+      0,
+    );
+  }
+
   onModuleInit() {
     this.timer = setInterval(() => void this.flush(), FLUSH_INTERVAL_MS);
   }

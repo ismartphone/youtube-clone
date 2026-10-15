@@ -17,7 +17,7 @@ const CHANNEL_SUMMARY_SELECT = {
   avatarUrl: true,
 } satisfies Prisma.ChannelSelect;
 
-const VIDEO_SELECT = {
+export const VIDEO_SELECT = {
   id: true,
   title: true,
   description: true,

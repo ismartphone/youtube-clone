@@ -94,4 +94,11 @@ export class PrismaChannelRepository implements ChannelRepository {
     });
     return follows.map((follow) => follow.channel);
   }
+
+  findAll(): Promise<ChannelSummary[]> {
+    return this.prisma.channel.findMany({
+      orderBy: { name: 'asc' },
+      select: CHANNEL_SUMMARY_SELECT,
+    });
+  }
 }

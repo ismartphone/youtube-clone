@@ -5,9 +5,11 @@ import { VideosModule } from '../videos/videos.module.js';
 import { CreateChannelUseCase } from './application/create-channel.use-case.js';
 import { FollowChannelUseCase } from './application/follow-channel.use-case.js';
 import { GetFollowStatusUseCase } from './application/get-follow-status.use-case.js';
+import { ListChannelsUseCase } from './application/list-channels.use-case.js';
 import { ListSubscriptionsUseCase } from './application/list-subscriptions.use-case.js';
 import { CHANNEL_REPOSITORY, type ChannelRepository } from './domain/ports.js';
 import { PrismaChannelRepository } from './infrastructure/prisma-channel.repository.js';
+import { AdminChannelsController } from './interfaces/http/admin-channels.controller.js';
 import { ChannelsController } from './interfaces/http/channels.controller.js';
 import { SubscriptionsController } from './interfaces/http/subscriptions.controller.js';
 
@@ -17,11 +19,16 @@ const USE_CASES = [
   GetFollowStatusUseCase,
   FollowChannelUseCase,
   ListSubscriptionsUseCase,
+  ListChannelsUseCase,
 ];
 
 @Module({
   imports: [AuthModule, VideosModule],
-  controllers: [ChannelsController, SubscriptionsController],
+  controllers: [
+    ChannelsController,
+    SubscriptionsController,
+    AdminChannelsController,
+  ],
   providers: [
     {
       provide: CHANNEL_REPOSITORY,

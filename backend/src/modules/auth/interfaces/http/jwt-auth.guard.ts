@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Inject,
   Injectable,
   UnauthorizedException,
@@ -43,6 +44,26 @@ export class JwtAuthGuard implements CanActivate {
     const user = await authenticate(request, this.tokens);
     if (!user) {
       throw new UnauthorizedException('Authentification requise');
+    }
+    request.user = user;
+    return true;
+  }
+}
+
+// Routes d'administration (back-office) : access token valide et rôle ADMIN.
+// Le rôle vient du token : un changement de rôle s'applique au prochain renouvellement.
+@Injectable()
+export class AdminGuard implements CanActivate {
+  constructor(@Inject(TOKEN_SERVICE) private readonly tokens: TokenService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const user = await authenticate(request, this.tokens);
+    if (!user) {
+      throw new UnauthorizedException('Authentification requise');
+    }
+    if (user.role !== 'ADMIN') {
+      throw new ForbiddenException('Accès réservé aux administrateurs');
     }
     request.user = user;
     return true;
