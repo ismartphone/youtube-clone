@@ -10,6 +10,7 @@ Rendu le 6 novembre 2026. Projet d'école, développé sous Windows.
 - Ne jamais ajouter de fonctionnalité, de dépendance ou d'écran qui n'a pas été demandé.
 - En cas de doute ou d'information manquante, poser la question au lieu de deviner.
 - Le sous-agent `adr-architecte` (`.claude/agents/`) est le seul à rédiger les ADR. Seul un humain passe un ADR en « Accepté ».
+- Passer un ADR en Accepté signifie modifier son fichier ET l'index `docs/adr/README.md`. Les deux doivent toujours concorder.
 - Pas d'hybride : l'application mobile est 100 % native (contrainte du sujet).
 
 ## Structure
@@ -65,3 +66,4 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 - Un commit par unité de travail, message en français à l'impératif.
 - Vérifier que le projet compile avant d'annoncer qu'une tâche est terminée
   (`gradlew.bat assembleDebug` pour Android, `npm run build` pour le backend et le back-office).
+
