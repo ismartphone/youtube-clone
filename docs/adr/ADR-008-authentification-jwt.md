@@ -1,7 +1,7 @@
 # ADR-008 — Authentification par JWT avec access token court et refresh token
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Le sujet impose une authentification. Il faut choisir comment les utilisateurs se connectent à l'API et comment cette connexion est conservée.

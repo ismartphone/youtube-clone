@@ -12,3 +12,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-006](ADR-006-analytics-posthog.md) | Mesures d'audience et test A/B avec PostHog | Accepté |
 | [ADR-007](ADR-007-offre-premium.md) | Offre Premium avec paiement simulé par Google Play Billing | Accepté |
 | [ADR-008](ADR-008-authentification-jwt.md) | Authentification par JWT avec access token court et refresh token | Accepté |
+| [ADR-009](ADR-009-stockage-tokens-backoffice.md) | Stockage des tokens du back-office en localStorage | Proposé |
