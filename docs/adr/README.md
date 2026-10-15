@@ -13,4 +13,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-007](ADR-007-offre-premium.md) | Offre Premium avec paiement simulé par Google Play Billing | Accepté |
 | [ADR-008](ADR-008-authentification-jwt.md) | Authentification par JWT avec access token court et refresh token | Accepté |
 | [ADR-009](ADR-009-stockage-tokens-backoffice.md) | Stockage des tokens du back-office en localStorage | Accepté |
-| [ADR-010](ADR-010-websocket-salles-compteurs.md) | Authentification, salles par vidéo et diffusion des compteurs sur la connexion WebSocket | Proposé |
+| [ADR-010](ADR-010-websocket-salles-compteurs.md) | Authentification, salles par vidéo et diffusion des compteurs sur la connexion WebSocket | Accepté |

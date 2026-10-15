@@ -1,7 +1,7 @@
 # ADR-010 — Authentification, salles par vidéo et diffusion des compteurs sur la connexion WebSocket
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 ADR-004 a choisi une passerelle WebSocket NestJS pour diffuser en temps réel les commentaires et les compteurs (vues, « j'aime »). Il laisse à traiter l'authentification de la connexion WebSocket et les reconnexions côté application, et ne précise ni comment un client reçoit les événements d'une seule vidéo, ni comment le compteur de « j'aime » passe par Redis.
