@@ -1,13 +1,12 @@
 package com.youtubeclone.app.presentation.home
 
-import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.youtubeclone.app.R
-import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.usecase.GetVideosUseCase
+import com.youtubeclone.app.presentation.common.UiError
+import com.youtubeclone.app.presentation.common.toUiError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -19,8 +18,7 @@ import kotlinx.coroutines.launch
 sealed interface HomeUiState {
     data object Loading : HomeUiState
     data object Empty : HomeUiState
-    // Message à afficher, avec le code HTTP éventuel comme argument de la chaîne.
-    data class Error(@StringRes val messageRes: Int, val code: Int? = null) : HomeUiState
+    data class Error(val error: UiError) : HomeUiState
     data class Success(val videos: List<Video>) : HomeUiState
 }
 
@@ -46,14 +44,8 @@ class HomeViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                e.toErrorState()
+                HomeUiState.Error(e.toUiError())
             }
         }
-    }
-
-    private fun Exception.toErrorState(): HomeUiState.Error = when (this) {
-        DataError.Network -> HomeUiState.Error(R.string.error_network)
-        is DataError.Server -> HomeUiState.Error(R.string.error_server, code)
-        else -> HomeUiState.Error(R.string.error_unexpected)
     }
 }

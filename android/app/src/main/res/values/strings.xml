@@ -9,5 +9,7 @@
     <string name="retry">Réessayer</string>
     <string name="error_network">Impossible de joindre le serveur. Vérifiez votre connexion.</string>
     <string name="error_server">Le serveur a rencontré une erreur (%1$d).</string>
+    <string name="error_video_not_found">Cette vidéo n\'existe pas ou a été supprimée.</string>
+    <string name="watch_premium_only">Vidéo réservée aux membres Premium.</string>
     <string name="error_unexpected">Une erreur inattendue est survenue.</string>
 </resources>

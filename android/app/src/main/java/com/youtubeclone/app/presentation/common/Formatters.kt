@@ -1,5 +1,7 @@
 package com.youtubeclone.app.presentation.common
 
+import java.time.Duration
+import java.time.Instant
 import java.util.Locale
 
 /** Durée au format YouTube : 4:05, ou 1:02:30 au-delà d'une heure. */
@@ -27,3 +29,21 @@ private fun abbreviate(value: Double): String {
     val rounded = String.format(Locale.FRANCE, "%.1f", value)
     return rounded.removeSuffix(",0")
 }
+
+/** Date relative en français, comme sur YouTube : « il y a 3 jours », « il y a 2 mois ». */
+fun formatRelativeDate(date: Instant, now: Instant = Instant.now()): String {
+    val elapsed = Duration.between(date, now)
+    val days = elapsed.toDays()
+    return when {
+        elapsed.toMinutes() < 1 -> "à l'instant"
+        elapsed.toHours() < 1 -> ago(elapsed.toMinutes(), "minute", "minutes")
+        days < 1 -> ago(elapsed.toHours(), "heure", "heures")
+        days < 7 -> ago(days, "jour", "jours")
+        days < 30 -> ago(days / 7, "semaine", "semaines")
+        days < 365 -> ago(days / 30, "mois", "mois")
+        else -> ago(days / 365, "an", "ans")
+    }
+}
+
+private fun ago(count: Long, singular: String, plural: String) =
+    "il y a $count ${if (count < 2) singular else plural}"

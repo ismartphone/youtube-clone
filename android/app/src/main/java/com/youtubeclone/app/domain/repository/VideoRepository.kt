@@ -14,4 +14,6 @@ interface VideoRepository {
     ): VideoPage
 
     suspend fun getVideoDetail(id: String): VideoDetail
+
+    suspend fun recordView(id: String)
 }

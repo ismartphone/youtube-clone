@@ -29,6 +29,10 @@ class VideoRepositoryImpl @Inject constructor(
         api.getVideo(id).toDomain()
     }
 
+    override suspend fun recordView(id: String) = call {
+        api.recordView(id)
+    }
+
     // Traduit les exceptions réseau en erreurs du domaine, pour que les couches au-dessus
     // ne dépendent pas de Retrofit.
     private suspend fun <T> call(block: suspend () -> T): T =

@@ -27,6 +27,7 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.library.LibraryScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
+import com.youtubeclone.app.presentation.watch.WatchScreen
 import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
 
@@ -34,6 +35,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object HomeRoute
 @Serializable data object ShortsRoute
 @Serializable data object LibraryRoute
+@Serializable data class WatchRoute(val videoId: String)
 
 private enum class Tab(
     val route: Any,
@@ -51,11 +53,13 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
+    // L'écran de lecture occupe tout l'écran, sans barre d'onglets.
+    val showBottomBar = currentDestination?.hasRoute(WatchRoute::class) != true
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
+            if (showBottomBar) NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 Tab.entries.forEach { tab ->
                     val selected = currentDestination?.hierarchy?.any { it.hasRoute(tab.routeClass) } == true
                     NavigationBarItem(
@@ -87,9 +91,12 @@ fun AppNavigation() {
             startDestination = HomeRoute,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable<HomeRoute> { HomeScreen() }
+            composable<HomeRoute> {
+                HomeScreen(onVideoClick = { videoId -> navController.navigate(WatchRoute(videoId)) })
+            }
             composable<ShortsRoute> { ShortsScreen() }
             composable<LibraryRoute> { LibraryScreen() }
+            composable<WatchRoute> { WatchScreen() }
         }
     }
 }
