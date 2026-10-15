@@ -1,6 +1,7 @@
 // Données fictives de développement. Lancement : npx prisma db seed
 // Le script vide d'abord les tables : ne jamais l'exécuter sur une base de production.
 import 'dotenv/config';
+import * as argon2 from 'argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   PrismaClient,
@@ -16,8 +17,12 @@ const prisma = new PrismaClient({
 const TEST_VIDEOS = 'https://test-videos.co.uk/vids';
 const SAMPLELIB = 'https://samplelib.com/preview/mp4';
 
-// Aucune bibliothèque de hachage n'est encore choisie : ces comptes ne permettent pas de se connecter.
-const PLACEHOLDER_PASSWORD_HASH = 'seed-placeholder-not-a-real-hash';
+// Mot de passe commun aux comptes de démonstration, haché comme à l'inscription (argon2id).
+const SEED_PASSWORD = 'Youtube2026!';
+
+function hashPassword() {
+  return argon2.hash(SEED_PASSWORD, { type: argon2.argon2id });
+}
 
 // Date de publication relative au jour du seed, pour garder un catalogue récent.
 function daysAgo(days: number) {
@@ -52,7 +57,7 @@ async function main() {
   const studio = await prisma.user.create({
     data: {
       email: 'studio@example.com',
-      passwordHash: PLACEHOLDER_PASSWORD_HASH,
+      passwordHash: await hashPassword(),
       displayName: 'Studio Libre',
       role: Role.CREATOR,
       channel: {
@@ -69,7 +74,7 @@ async function main() {
   const explorer = await prisma.user.create({
     data: {
       email: 'explorer@example.com',
-      passwordHash: PLACEHOLDER_PASSWORD_HASH,
+      passwordHash: await hashPassword(),
       displayName: 'Carnet de Route',
       role: Role.CREATOR,
       channel: {
@@ -87,13 +92,13 @@ async function main() {
     data: [
       {
         email: 'viewer@example.com',
-        passwordHash: PLACEHOLDER_PASSWORD_HASH,
+        passwordHash: await hashPassword(),
         displayName: 'Camille Spectatrice',
         role: Role.USER,
       },
       {
         email: 'admin@example.com',
-        passwordHash: PLACEHOLDER_PASSWORD_HASH,
+        passwordHash: await hashPassword(),
         displayName: 'Administrateur',
         role: Role.ADMIN,
       },
