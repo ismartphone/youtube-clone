@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* Thème sombre du back-office, accordé à l'application (rouge YouTube). */
+:root {
+  --background: #0f0f0f;
+  --surface: #1c1c1c;
+  --surface-hover: #272727;
+  --border: #303030;
+  --foreground: #f1f1f1;
+  --muted: #aaaaaa;
+  --accent: #ff0000;
+  --accent-hover: #cc0000;
+  --danger: #ff6b6b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

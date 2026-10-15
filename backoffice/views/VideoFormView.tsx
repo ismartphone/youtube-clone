@@ -1,0 +1,153 @@
+import Link from "next/link";
+import type { RemoteData } from "@/controllers/useRemoteData";
+import { VIDEO_FORMATS, type CategoryWithCount, type ChannelSummary } from "@/models/catalog";
+import type { VideoFormErrors, VideoFormValues } from "@/models/videoForm";
+import { Button, ErrorBanner, Field, Loading, PageHeader, Select, TextArea, TextInput } from "./ui";
+
+interface FormData {
+  channels: ChannelSummary[];
+  categories: CategoryWithCount[];
+}
+
+export function VideoFormView({
+  isEdit,
+  state,
+  onRetry,
+  values,
+  onChange,
+  errors,
+  submitError,
+  submitting,
+  onSubmit,
+}: {
+  isEdit: boolean;
+  state: RemoteData<FormData>;
+  onRetry: () => void;
+  values: VideoFormValues;
+  onChange: <K extends keyof VideoFormValues>(field: K, value: VideoFormValues[K]) => void;
+  errors: VideoFormErrors;
+  submitError: string | null;
+  submitting: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <>
+      <PageHeader title={isEdit ? "Modifier la vidéo" : "Ajouter une vidéo"} />
+      {state.status === "loading" && <Loading />}
+      {state.status === "error" && <ErrorBanner message={state.message} onRetry={onRetry} />}
+      {state.status === "success" && (
+        <form
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+          className="flex max-w-2xl flex-col gap-5"
+        >
+          <Field id="title" label="Titre" error={errors.title}>
+            <TextInput id="title" value={values.title} onChange={(v) => onChange("title", v)} error={errors.title} />
+          </Field>
+          <Field id="description" label="Description (facultative)" error={errors.description}>
+            <TextArea
+              id="description"
+              value={values.description}
+              onChange={(v) => onChange("description", v)}
+              error={errors.description}
+            />
+          </Field>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field id="channelId" label="Chaîne" error={errors.channelId}>
+              <Select
+                id="channelId"
+                value={values.channelId}
+                onChange={(v) => onChange("channelId", v)}
+                error={errors.channelId}
+                options={[
+                  { value: "", label: "Choisir une chaîne" },
+                  ...state.data.channels.map((c) => ({ value: c.id, label: `${c.name} (@${c.handle})` })),
+                ]}
+              />
+            </Field>
+            <Field id="categoryId" label="Catégorie">
+              <Select
+                id="categoryId"
+                value={values.categoryId}
+                onChange={(v) => onChange("categoryId", v)}
+                options={[
+                  { value: "", label: "Aucune catégorie" },
+                  ...state.data.categories.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
+            </Field>
+            <Field id="format" label="Format">
+              <Select
+                id="format"
+                value={values.format}
+                onChange={(v) => onChange("format", v as VideoFormValues["format"])}
+                options={VIDEO_FORMATS}
+              />
+            </Field>
+            <Field
+              id="durationSeconds"
+              label="Durée (secondes)"
+              error={errors.durationSeconds}
+              hint="Affichée sur la miniature dans l'application."
+            >
+              <TextInput
+                id="durationSeconds"
+                inputMode="numeric"
+                value={values.durationSeconds}
+                onChange={(v) => onChange("durationSeconds", v)}
+                error={errors.durationSeconds}
+              />
+            </Field>
+          </div>
+          <Field id="videoUrl" label="URL de la vidéo (MP4)" error={errors.videoUrl}>
+            <TextInput
+              id="videoUrl"
+              type="url"
+              placeholder="https://…/video.mp4"
+              value={values.videoUrl}
+              onChange={(v) => onChange("videoUrl", v)}
+              error={errors.videoUrl}
+            />
+          </Field>
+          <Field id="thumbnailUrl" label="URL de la miniature" error={errors.thumbnailUrl}>
+            <TextInput
+              id="thumbnailUrl"
+              type="url"
+              placeholder="https://…/miniature.jpg"
+              value={values.thumbnailUrl}
+              onChange={(v) => onChange("thumbnailUrl", v)}
+              error={errors.thumbnailUrl}
+            />
+          </Field>
+          <label className="flex items-start gap-3 text-sm">
+            <input
+              type="checkbox"
+              checked={values.isPremium}
+              onChange={(event) => onChange("isPremium", event.target.checked)}
+              className="mt-0.5 size-4 accent-accent"
+            />
+            <span>
+              <span className="font-medium">Vidéo exclusive Premium</span>
+              <span className="block text-muted">L&apos;API ne donne son URL qu&apos;aux membres Premium.</span>
+            </span>
+          </label>
+          {submitError && <ErrorBanner message={submitError} />}
+          <div className="flex gap-3">
+            <Button type="submit" disabled={submitting}>
+              {submitting ? "Enregistrement…" : isEdit ? "Enregistrer" : "Ajouter la vidéo"}
+            </Button>
+            <Link
+              href="/videos"
+              className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
+            >
+              Annuler
+            </Link>
+          </div>
+        </form>
+      )}
+    </>
+  );
+}
