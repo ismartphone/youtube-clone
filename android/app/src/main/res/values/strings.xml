@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">android</string>
+    <string name="app_name">YouTube Clone</string>
 
     <string name="tab_home">Accueil</string>
     <string name="tab_shorts">Shorts</string>
