@@ -1,7 +1,7 @@
 # ADR-007 — Offre Premium avec paiement simulé par Google Play Billing
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Il faut proposer une offre payante dans l'application et choisir comment la payer.
