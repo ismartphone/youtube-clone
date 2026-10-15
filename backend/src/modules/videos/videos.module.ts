@@ -53,6 +53,7 @@ import {
   AdminStatsController,
   AdminVideosController,
 } from './interfaces/http/admin.controllers.js';
+import { CategoriesController } from './interfaces/http/categories.controller.js';
 import { FeedController } from './interfaces/http/feed.controller.js';
 import { VideosController } from './interfaces/http/videos.controller.js';
 
@@ -77,6 +78,7 @@ const CATEGORY_USE_CASES = [
   controllers: [
     VideosController,
     FeedController,
+    CategoriesController,
     AdminVideosController,
     AdminCategoriesController,
     AdminStatsController,
