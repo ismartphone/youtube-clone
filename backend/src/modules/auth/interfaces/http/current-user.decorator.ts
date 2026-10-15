@@ -7,3 +7,9 @@ export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext): AuthenticatedUser =>
     context.switchToHttp().getRequest<AuthenticatedRequest>().user,
 );
+
+// Utilisateur de la requête derrière OptionalJwtAuthGuard : undefined pour un visiteur.
+export const OptionalCurrentUser = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): AuthenticatedUser | undefined =>
+    context.switchToHttp().getRequest<Partial<AuthenticatedRequest>>().user,
+);

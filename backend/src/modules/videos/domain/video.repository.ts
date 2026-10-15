@@ -5,6 +5,8 @@ export const VIDEO_REPOSITORY = Symbol('VIDEO_REPOSITORY');
 export interface VideoFilter {
   format?: VideoFormat;
   categoryId?: string;
+  // Ne garde que les vidéos des chaînes suivies par cet utilisateur (FOLLOW).
+  followedBy?: string;
 }
 
 export interface Pagination {

@@ -88,7 +88,7 @@ async function main() {
     include: { channel: true },
   });
 
-  await prisma.user.createMany({
+  const [viewer] = await prisma.user.createManyAndReturn({
     data: [
       {
         email: 'viewer@example.com',
@@ -107,6 +107,14 @@ async function main() {
 
   const studioChannelId = studio.channel!.id;
   const explorerChannelId = explorer.channel!.id;
+
+  // Abonnements gratuits (FOLLOW) de démonstration. Camille suit Studio Libre mais pas
+  // Carnet de Route, pour pouvoir montrer le bouton S'abonner. Admin ne suit personne.
+  const follows = [
+    { userId: viewer.id, channelId: studioChannelId },
+    { userId: studio.id, channelId: explorerChannelId },
+  ];
+  await prisma.follow.createMany({ data: follows });
 
   const videos = [
     {
@@ -214,7 +222,7 @@ async function main() {
   });
 
   console.log(
-    `Seed terminé : 3 catégories, 4 utilisateurs, 2 chaînes, ${videos.length} vidéos.`,
+    `Seed terminé : 3 catégories, 4 utilisateurs, 2 chaînes, ${follows.length} abonnements, ${videos.length} vidéos.`,
   );
 }
 

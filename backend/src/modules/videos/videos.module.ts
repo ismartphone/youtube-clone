@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../../shared/infrastructure/infrastructure.module.js';
 import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
+import { AuthModule } from '../auth/auth.module.js';
 import { GetChannelUseCase } from './application/get-channel.use-case.js';
 import { GetVideoUseCase } from './application/get-video.use-case.js';
 import { ListVideosUseCase } from './application/list-videos.use-case.js';
@@ -13,7 +14,7 @@ import {
 import { VIEW_COUNTER, type ViewCounter } from './domain/view-counter.js';
 import { PrismaVideoRepository } from './infrastructure/prisma-video.repository.js';
 import { RedisViewCounter } from './infrastructure/redis-view-counter.js';
-import { ChannelsController } from './interfaces/http/channels.controller.js';
+import { FeedController } from './interfaces/http/feed.controller.js';
 import { VideosController } from './interfaces/http/videos.controller.js';
 
 // Les cas d'usage ne dépendent que des ports du domaine : c'est ici qu'on branche les adaptateurs.
@@ -25,7 +26,8 @@ const USE_CASES = [
 ];
 
 @Module({
-  controllers: [VideosController, ChannelsController],
+  imports: [AuthModule],
+  controllers: [VideosController, FeedController],
   providers: [
     {
       provide: VIDEO_REPOSITORY,
@@ -45,5 +47,7 @@ const USE_CASES = [
       inject: [VIDEO_REPOSITORY, VIEW_COUNTER],
     })),
   ],
+  // La page de chaîne (module channels) affiche les vidéos de la chaîne.
+  exports: [GetChannelUseCase],
 })
 export class VideosModule {}

@@ -46,6 +46,9 @@ export class PrismaVideoRepository implements VideoRepository {
     const where: Prisma.VideoWhereInput = {
       format: filter.format,
       categoryId: filter.categoryId,
+      channel: filter.followedBy
+        ? { followers: { some: { userId: filter.followedBy } } }
+        : undefined,
     };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.video.findMany({

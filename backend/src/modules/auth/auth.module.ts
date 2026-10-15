@@ -23,7 +23,10 @@ import { JwtTokenService } from './infrastructure/jwt-token.service.js';
 import { PrismaUserRepository } from './infrastructure/prisma-user.repository.js';
 import { RedisRefreshTokenStore } from './infrastructure/redis-refresh-token.store.js';
 import { AuthController } from './interfaces/http/auth.controller.js';
-import { JwtAuthGuard } from './interfaces/http/jwt-auth.guard.js';
+import {
+  JwtAuthGuard,
+  OptionalJwtAuthGuard,
+} from './interfaces/http/jwt-auth.guard.js';
 
 // Les cas d'usage ne dépendent que des ports du domaine : c'est ici qu'on branche les adaptateurs.
 @Module({
@@ -87,8 +90,10 @@ import { JwtAuthGuard } from './interfaces/http/jwt-auth.guard.js';
       inject: [USER_REPOSITORY],
     },
     JwtAuthGuard,
+    OptionalJwtAuthGuard,
   ],
-  // Pour protéger les routes d'autres modules : importer AuthModule, puis @UseGuards(JwtAuthGuard).
-  exports: [TOKEN_SERVICE, JwtAuthGuard],
+  // Pour protéger les routes d'autres modules : importer AuthModule, puis @UseGuards(JwtAuthGuard)
+  // (ou OptionalJwtAuthGuard pour une route ouverte aux visiteurs).
+  exports: [TOKEN_SERVICE, JwtAuthGuard, OptionalJwtAuthGuard],
 })
 export class AuthModule {}
