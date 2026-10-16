@@ -1,5 +1,17 @@
 package com.youtubeclone.app.presentation.watch
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,9 +33,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -32,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -57,6 +74,8 @@ import com.youtubeclone.app.presentation.common.formatCompactCount
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.theme.LocalReduceMotion
+import com.youtubeclone.app.presentation.theme.Motion
 
 @Composable
 fun WatchScreen(
@@ -213,13 +232,37 @@ private fun VideoInfo(
 // Bouton qui bascule : icône rouge quand la vidéo est aimée, avec le nombre de « j'aime ».
 @Composable
 private fun LikeButton(stats: LiveStats, onClick: () -> Unit) {
+    val reduceMotion = LocalReduceMotion.current
     val stateText = stringResource(if (stats.isLiked) R.string.watch_liked else R.string.watch_not_liked)
+
+    // Rebond bref de l'icône à chaque clic (supprimé avec les animations réduites).
+    val iconScale = remember { Animatable(1f) }
+    var clicks by remember { mutableIntStateOf(0) }
+    LaunchedEffect(clicks) {
+        if (clicks == 0 || reduceMotion) return@LaunchedEffect
+        iconScale.animateTo(LIKE_BOUNCE_SCALE, tween(Motion.SHORT_MS / 2, easing = Motion.Easing))
+        iconScale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
+    }
+    val tint by animateColorAsState(
+        targetValue = if (stats.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+        animationSpec = tween(if (reduceMotion) Motion.REDUCED_FADE_MS else Motion.SHORT_MS),
+        label = "likeTint",
+    )
+    val buttonColor = MaterialTheme.colorScheme.surfaceVariant
+    val contentColor = MaterialTheme.colorScheme.onBackground
+
     FilledTonalButton(
-        onClick = onClick,
+        onClick = {
+            clicks++
+            onClick()
+        },
         enabled = !stats.likePending,
+        // Pendant l'appel au serveur, le bouton garde son apparence : pas de clignotement gris.
         colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = MaterialTheme.colorScheme.onBackground,
+            containerColor = buttonColor,
+            contentColor = contentColor,
+            disabledContainerColor = buttonColor,
+            disabledContentColor = contentColor,
         ),
         modifier = Modifier.semantics {
             role = Role.Switch
@@ -229,12 +272,36 @@ private fun LikeButton(stats: LiveStats, onClick: () -> Unit) {
         Icon(
             painter = painterResource(R.drawable.ic_like),
             contentDescription = stringResource(R.string.watch_like),
-            tint = if (stats.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.size(18.dp),
+            tint = tint,
+            modifier = Modifier
+                .size(18.dp)
+                .graphicsLayer {
+                    scaleX = iconScale.value
+                    scaleY = iconScale.value
+                },
         )
-        Text(text = formatCompactCount(stats.likeCount), modifier = Modifier.padding(start = 8.dp))
+        // Le compteur change avec un fondu vertical : il monte quand il augmente, descend sinon.
+        AnimatedContent(
+            targetState = stats.likeCount,
+            transitionSpec = {
+                if (reduceMotion) {
+                    fadeIn(tween(Motion.REDUCED_FADE_MS)) togetherWith fadeOut(tween(Motion.REDUCED_FADE_MS))
+                } else {
+                    val direction = if (targetState > initialState) 1 else -1
+                    val spec = tween<IntOffset>(Motion.FADE_MS, easing = Motion.Easing)
+                    (slideInVertically(spec) { height -> height * direction } + fadeIn(tween(Motion.FADE_MS))) togetherWith
+                        (slideOutVertically(spec) { height -> -height * direction } + fadeOut(tween(Motion.FADE_MS)))
+                }.using(SizeTransform(clip = false))
+            },
+            label = "likeCount",
+            modifier = Modifier.padding(start = 8.dp),
+        ) { count ->
+            Text(text = formatCompactCount(count))
+        }
     }
 }
+
+private const val LIKE_BOUNCE_SCALE = 1.3f
 
 // Avatar et nom ouvrent la page de la chaîne ; le bouton S'abonner apparaît une fois l'état connu.
 @Composable

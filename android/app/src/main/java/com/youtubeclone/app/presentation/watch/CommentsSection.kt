@@ -1,5 +1,11 @@
 package com.youtubeclone.app.presentation.watch
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -17,6 +23,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +38,8 @@ import com.youtubeclone.app.domain.model.Comment
 import com.youtubeclone.app.domain.model.CommentAuthor
 import com.youtubeclone.app.presentation.common.asText
 import com.youtubeclone.app.presentation.common.formatRelativeDate
+import com.youtubeclone.app.presentation.theme.LocalReduceMotion
+import com.youtubeclone.app.presentation.theme.Motion
 
 /**
  * Commentaires sous le lecteur : nombre, champ de saisie, puis la liste.
@@ -99,7 +109,12 @@ fun CommentsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             else -> {
-                state.comments.forEach { comment -> CommentItem(comment) }
+                state.comments.forEach { comment ->
+                    // key : chaque commentaire garde son état d'apparition quand la liste change.
+                    key(comment.id) {
+                        AnimatedCommentItem(comment, animateIn = comment.id in state.arrivedCommentIds)
+                    }
+                }
                 if (state.hasMore) {
                     TextButton(onClick = onLoadMore, enabled = !state.isLoadingMore) {
                         Text(stringResource(R.string.comments_load_more))
@@ -173,5 +188,25 @@ private fun AuthorAvatar(author: CommentAuthor) {
                 color = MaterialTheme.colorScheme.onBackground,
             )
         }
+    }
+}
+
+// Un commentaire arrivé pendant qu'on regarde glisse depuis le haut en s'ouvrant, au lieu
+// d'apparaître d'un coup. Ceux de la liste chargée au départ s'affichent directement.
+@Composable
+private fun AnimatedCommentItem(comment: Comment, animateIn: Boolean) {
+    val reduceMotion = LocalReduceMotion.current
+    val visibility = remember { MutableTransitionState(!animateIn).apply { targetState = true } }
+    AnimatedVisibility(
+        visibleState = visibility,
+        enter = if (reduceMotion) {
+            fadeIn(tween(Motion.REDUCED_FADE_MS))
+        } else {
+            expandVertically(tween(Motion.FADE_MS, easing = Motion.Easing), expandFrom = Alignment.Top) +
+                slideInVertically(tween(Motion.FADE_MS, easing = Motion.Easing)) { height -> -height / 2 } +
+                fadeIn(tween(Motion.FADE_MS))
+        },
+    ) {
+        CommentItem(comment)
     }
 }

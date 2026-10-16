@@ -2,6 +2,9 @@ package com.youtubeclone.app.presentation.navigation
 
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -13,7 +16,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -33,6 +38,8 @@ import com.youtubeclone.app.presentation.library.LibraryScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
 import com.youtubeclone.app.presentation.subscriptions.SubscriptionsScreen
+import com.youtubeclone.app.presentation.theme.LocalReduceMotion
+import com.youtubeclone.app.presentation.theme.Motion
 import com.youtubeclone.app.presentation.watch.WatchScreen
 import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
@@ -76,6 +83,10 @@ fun AppNavigation() {
     val currentDestination = backStackEntry?.destination
     // L'écran de lecture et les formulaires de compte occupent tout l'écran, sans barre d'onglets.
     val showBottomBar = FULL_SCREEN_ROUTES.none { currentDestination?.hasRoute(it) == true }
+    val reduceMotion = LocalReduceMotion.current
+    val transitions = remember(reduceMotion) {
+        NavTransitions(tabRoutes = Tab.entries.map { it.routeClass }, reduceMotion = reduceMotion)
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -93,13 +104,10 @@ fun AppNavigation() {
                                 restoreState = true
                             }
                         },
-                        icon = { Icon(painterResource(tab.icon), contentDescription = null) },
-                        label = { Text(stringResource(tab.label)) },
+                        icon = { TabIcon(tab, selected) },
+                        label = { TabLabel(tab, selected) },
+                        // Couleurs gérées par TabIcon et TabLabel, pour animer le passage du gris au blanc.
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MaterialTheme.colorScheme.onBackground,
-                            selectedTextColor = MaterialTheme.colorScheme.onBackground,
-                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                             indicatorColor = MaterialTheme.colorScheme.surfaceVariant,
                         ),
                     )
@@ -111,6 +119,10 @@ fun AppNavigation() {
             navController = navController,
             startDestination = HomeRoute,
             modifier = Modifier.padding(innerPadding),
+            enterTransition = transitions.enter,
+            exitTransition = transitions.exit,
+            popEnterTransition = transitions.popEnter,
+            popExitTransition = transitions.popExit,
         ) {
             val openVideo = { videoId: String -> navController.navigate(WatchRoute(videoId)) }
             val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
@@ -160,4 +172,41 @@ fun AppNavigation() {
             }
         }
     }
+}
+
+// Onglet sélectionné : l'icône grossit légèrement (sauf animations réduites), et la couleur
+// passe du gris au blanc en fondu.
+private const val SELECTED_ICON_SCALE = 1.12f
+
+@Composable
+private fun tabColor(selected: Boolean) = animateColorAsState(
+    targetValue = if (selected) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
+    animationSpec = tween(Motion.FADE_MS, easing = Motion.Easing),
+    label = "tabColor",
+)
+
+@Composable
+private fun TabIcon(tab: Tab, selected: Boolean) {
+    val color by tabColor(selected)
+    val growWhenSelected = !LocalReduceMotion.current
+    val scale by animateFloatAsState(
+        targetValue = if (selected && growWhenSelected) SELECTED_ICON_SCALE else 1f,
+        animationSpec = tween(Motion.FADE_MS, easing = Motion.Easing),
+        label = "tabIconScale",
+    )
+    Icon(
+        painter = painterResource(tab.icon),
+        contentDescription = null,
+        tint = color,
+        modifier = Modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        },
+    )
+}
+
+@Composable
+private fun TabLabel(tab: Tab, selected: Boolean) {
+    val color by tabColor(selected)
+    Text(stringResource(tab.label), color = color)
 }

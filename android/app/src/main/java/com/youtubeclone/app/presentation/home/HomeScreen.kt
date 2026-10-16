@@ -4,7 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -14,8 +14,10 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.common.ErrorState
-import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.MessageState
+import com.youtubeclone.app.presentation.common.VideoListSkeleton
+import com.youtubeclone.app.presentation.common.rememberStaggeredAppearance
+import com.youtubeclone.app.presentation.common.staggeredAppearance
 
 @Composable
 fun HomeScreen(
@@ -43,19 +45,25 @@ private fun HomeContent(
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
-        HomeUiState.Loading -> LoadingState(modifier)
+        HomeUiState.Loading -> VideoListSkeleton(modifier)
         HomeUiState.Empty -> MessageState(stringResource(R.string.home_empty), modifier)
         is HomeUiState.Error -> ErrorState(uiState.error, onRetry, modifier)
-        is HomeUiState.Success -> LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            items(uiState.videos, key = { it.id }) { video ->
-                VideoCard(
-                    video = video,
-                    onChannelClick = { onChannelClick(video.channel.id) },
-                    modifier = Modifier.clickable { onVideoClick(video.id) },
-                )
+        is HomeUiState.Success -> {
+            // Nouvelle liste chargée : ses premières cartes apparaissent l'une après l'autre.
+            val appearance = rememberStaggeredAppearance(uiState)
+            LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                itemsIndexed(uiState.videos, key = { _, video -> video.id }) { index, video ->
+                    VideoCard(
+                        video = video,
+                        onChannelClick = { onChannelClick(video.channel.id) },
+                        modifier = Modifier
+                            .staggeredAppearance(appearance, video.id, index)
+                            .clickable { onVideoClick(video.id) },
+                    )
+                }
             }
         }
     }

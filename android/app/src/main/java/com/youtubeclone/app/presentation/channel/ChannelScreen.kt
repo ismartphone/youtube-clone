@@ -25,9 +25,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.presentation.common.ChannelAvatar
-import com.youtubeclone.app.presentation.common.ErrorToast
+import com.youtubeclone.app.presentation.common.ChannelPageSkeleton
 import com.youtubeclone.app.presentation.common.ErrorState
-import com.youtubeclone.app.presentation.common.LoadingState
+import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.home.VideoCard
 
@@ -44,7 +44,7 @@ fun ChannelScreen(
     ErrorToast(viewModel.follow.errors)
 
     when (val state = uiState) {
-        ChannelUiState.Loading -> LoadingState(modifier)
+        ChannelUiState.Loading -> ChannelPageSkeleton(modifier)
         is ChannelUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
         is ChannelUiState.Success -> LazyColumn(
             modifier = modifier.fillMaxSize(),

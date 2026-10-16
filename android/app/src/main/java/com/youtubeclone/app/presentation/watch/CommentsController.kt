@@ -26,6 +26,8 @@ data class CommentsUiState(
     val isLoadingMore: Boolean = false,
     val draft: String = "",
     val isPosting: Boolean = false,
+    /** Commentaires arrivés pendant qu'on regarde (en direct ou publiés ici) : ils apparaissent animés. */
+    val arrivedCommentIds: Set<String> = emptySet(),
 ) {
     val hasMore: Boolean get() = comments.size < total
     val canPost: Boolean get() = draft.isNotBlank() && !isPosting
@@ -127,7 +129,11 @@ class CommentsController(
             if (state.comments.any { it.id == comment.id }) {
                 state
             } else {
-                state.copy(comments = listOf(comment) + state.comments, total = state.total + 1)
+                state.copy(
+                    comments = listOf(comment) + state.comments,
+                    total = state.total + 1,
+                    arrivedCommentIds = state.arrivedCommentIds + comment.id,
+                )
             }
         }
     }

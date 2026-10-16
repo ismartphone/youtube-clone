@@ -15,6 +15,7 @@
     <string name="shorts_comments">Commentaires</string>
     <string name="shorts_share">Partager</string>
     <string name="retry">Réessayer</string>
+    <string name="loading">Chargement en cours</string>
     <string name="error_network">Impossible de joindre le serveur. Vérifiez votre connexion.</string>
     <string name="error_server">Le serveur a rencontré une erreur (%1$d).</string>
     <string name="error_video_not_found">Cette vidéo n\'existe pas ou a été supprimée.</string>

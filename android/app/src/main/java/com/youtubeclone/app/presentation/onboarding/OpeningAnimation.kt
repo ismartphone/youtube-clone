@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.common.AppLogo
+import com.youtubeclone.app.presentation.theme.LocalReduceMotion
+import com.youtubeclone.app.presentation.theme.Motion
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -71,29 +73,37 @@ fun OpeningAnimation(
     val wordmarkProgress = remember { Animatable(0f) }
     val overlayAlpha = remember { Animatable(1f) }
 
+    val reduceMotion = LocalReduceMotion.current
     val currentIsAppReady by rememberUpdatedState(isAppReady)
     val currentOnFinished by rememberUpdatedState(onFinished)
     var wordWidthPx by remember { mutableIntStateOf(0) }
     val gapPx = with(LocalDensity.current) { WORDMARK_GAP.toPx() }
 
     LaunchedEffect(Unit) {
-        coroutineScope {
-            launch {
-                logoScale.animateTo(
-                    targetValue = 1f,
-                    animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
-                )
+        if (reduceMotion) {
+            // Animations réduites : le mot-symbole complet apparaît en simple fondu, sans mouvement.
+            logoScale.snapTo(1f)
+            wordmarkProgress.snapTo(1f)
+            logoAlpha.animateTo(1f, tween(Motion.REDUCED_FADE_MS))
+        } else {
+            coroutineScope {
+                launch {
+                    logoScale.animateTo(
+                        targetValue = 1f,
+                        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
+                    )
+                }
+                launch { logoAlpha.animateTo(1f, tween(APPEAR_MS)) }
             }
-            launch { logoAlpha.animateTo(1f, tween(APPEAR_MS)) }
+            delay(PAUSE_MS)
+            wordmarkProgress.animateTo(1f, tween(COMPOSE_MS, easing = FastOutSlowInEasing))
         }
-        delay(PAUSE_MS)
-        wordmarkProgress.animateTo(1f, tween(COMPOSE_MS, easing = FastOutSlowInEasing))
         delay(HOLD_MS)
         // Préférences lues et premier écran chargé : si c'est plus long que l'animation, on attend.
         withTimeoutOrNull(MAX_EXTRA_WAIT_MS) {
             snapshotFlow { currentIsAppReady }.first { it }
         }
-        overlayAlpha.animateTo(0f, tween(FADE_OUT_MS))
+        overlayAlpha.animateTo(0f, tween(if (reduceMotion) Motion.REDUCED_FADE_MS else FADE_OUT_MS))
         currentOnFinished()
     }
 
