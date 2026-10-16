@@ -87,6 +87,14 @@ fun AppNavigation() {
     val transitions = remember(reduceMotion) {
         NavTransitions(tabRoutes = Tab.entries.map { it.routeClass }, reduceMotion = reduceMotion)
     }
+    // Un seul exemplaire de chaque onglet, état conservé entre les onglets.
+    val openTab = { route: Any ->
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -96,14 +104,7 @@ fun AppNavigation() {
                     val selected = currentDestination?.hierarchy?.any { it.hasRoute(tab.routeClass) } == true
                     NavigationBarItem(
                         selected = selected,
-                        onClick = {
-                            navController.navigate(tab.route) {
-                                // Un seul exemplaire de chaque onglet, état conservé entre les onglets.
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                        onClick = { openTab(tab.route) },
                         icon = { TabIcon(tab, selected) },
                         label = { TabLabel(tab, selected) },
                         // Couleurs gérées par TabIcon et TabLabel, pour animer le passage du gris au blanc.
@@ -129,7 +130,14 @@ fun AppNavigation() {
             val openLogin = { navController.navigate(LoginRoute) }
 
             composable<HomeRoute> {
-                HomeScreen(onVideoClick = openVideo, onChannelClick = openChannel)
+                HomeScreen(
+                    onVideoClick = openVideo,
+                    onChannelClick = openChannel,
+                    onAccountClick = { openTab(YouRoute) },
+                    // La recherche n'est pas encore développée (périmètre « Ensuite ») : l'icône est
+                    // en place, l'écran de recherche viendra s'y brancher.
+                    onSearchClick = {},
+                )
             }
             composable<ShortsRoute> { ShortsScreen() }
             composable<SubscriptionsRoute> {

@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.home.VideoCardSpacing
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 
 // Squelettes de chargement : la forme du contenu à venir, en gris, qui pulse doucement.
@@ -66,12 +67,16 @@ private fun VideoCardSkeleton() {
                 .aspectRatio(16f / 9f),
             shape = RoundedCornerShape(0.dp),
         )
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+        // Même disposition que VideoCard : avatar rond, puis titre et ligne d'informations.
+        Row(
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SkeletonBlock(Modifier.fillMaxWidth(0.85f).height(16.dp))
-            SkeletonBlock(Modifier.fillMaxWidth(0.5f).height(12.dp))
+            SkeletonBlock(Modifier.size(36.dp), shape = CircleShape)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                SkeletonBlock(Modifier.fillMaxWidth(0.85f).height(16.dp))
+                SkeletonBlock(Modifier.fillMaxWidth(0.5f).height(12.dp))
+            }
         }
     }
 }
@@ -86,7 +91,7 @@ fun VideoListSkeleton(modifier: Modifier = Modifier, count: Int = 3) {
             .fillMaxSize()
             .graphicsLayer { this.alpha = alpha }
             .semantics { contentDescription = description },
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(VideoCardSpacing),
     ) {
         repeat(count) { VideoCardSkeleton() }
     }
@@ -102,7 +107,7 @@ fun ChannelPageSkeleton(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .graphicsLayer { this.alpha = alpha }
             .semantics { contentDescription = description },
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(VideoCardSpacing),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

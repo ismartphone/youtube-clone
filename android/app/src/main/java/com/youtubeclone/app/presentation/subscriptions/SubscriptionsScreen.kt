@@ -24,6 +24,7 @@ import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.MessageState
 import com.youtubeclone.app.presentation.home.VideoCard
+import com.youtubeclone.app.presentation.home.VideoCardSpacing
 
 /** Onglet Abonnements : vidéos des chaînes suivies (GET /me/feed). */
 @Composable
@@ -43,7 +44,7 @@ fun SubscriptionsScreen(
         is SubscriptionsUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
         is SubscriptionsUiState.Success -> LazyColumn(
             modifier = modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(VideoCardSpacing),
         ) {
             items(state.videos, key = { it.id }) { video ->
                 VideoCard(

@@ -30,6 +30,7 @@ import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.home.VideoCard
+import com.youtubeclone.app.presentation.home.VideoCardSpacing
 
 @Composable
 fun ChannelScreen(
@@ -48,7 +49,7 @@ fun ChannelScreen(
         is ChannelUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
         is ChannelUiState.Success -> LazyColumn(
             modifier = modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(VideoCardSpacing),
         ) {
             item {
                 ChannelHeader(
@@ -72,7 +73,12 @@ fun ChannelScreen(
                 }
             }
             items(state.page.videos, key = { it.id }) { video ->
-                VideoCard(video = video, modifier = Modifier.clickable { onVideoClick(video.id) })
+                // Page de la chaîne : son avatar n'est pas répété sur chaque carte.
+                VideoCard(
+                    video = video,
+                    showChannelAvatar = false,
+                    modifier = Modifier.clickable { onVideoClick(video.id) },
+                )
             }
         }
     }

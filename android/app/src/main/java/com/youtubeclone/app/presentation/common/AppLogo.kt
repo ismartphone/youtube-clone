@@ -11,23 +11,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.R
 
-/** Logo dessiné : rectangle rouge arrondi avec le triangle de lecture blanc. */
+/**
+ * Logo dessiné : rectangle rouge arrondi avec le triangle de lecture blanc.
+ * Ses proportions (80 x 56, coins de 16, triangle de 36) suivent la hauteur demandée.
+ */
 @Composable
-fun AppLogo(modifier: Modifier = Modifier) {
+fun AppLogo(modifier: Modifier = Modifier, height: Dp = 56.dp) {
     Box(
         modifier = modifier
-            .size(width = 80.dp, height = 56.dp)
-            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)),
+            .size(width = height * 80 / 56, height = height)
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(height * 16 / 56)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_play),
             contentDescription = null,
             tint = Color.White,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(height * 36 / 56),
         )
     }
 }

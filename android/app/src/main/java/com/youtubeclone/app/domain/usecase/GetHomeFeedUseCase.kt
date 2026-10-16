@@ -7,17 +7,18 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
 /**
- * Fil d'accueil : vidéos classiques (les Shorts ont leur onglet), de la plus récente à la plus ancienne,
- * avec d'abord celles des centres d'intérêt choisis.
+ * Fil d'accueil : vidéos classiques (les Shorts ont leur onglet), de la plus récente à la plus ancienne.
+ * Sans filtre, les vidéos des centres d'intérêt choisis passent en premier ; avec un filtre de
+ * catégorie, seules les vidéos de cette catégorie sont affichées.
  */
 class GetHomeFeedUseCase @Inject constructor(
     private val getVideos: GetVideosUseCase,
     private val preferences: PreferencesRepository,
 ) {
-    suspend operator fun invoke(): List<Video> {
-        val interests = preferences.interests.first()
-        val videos = getVideos(format = VideoFormat.LONG).items
-        return videos.withInterestsFirst(interests)
+    suspend operator fun invoke(categoryId: String? = null): List<Video> {
+        val videos = getVideos(format = VideoFormat.LONG, categoryId = categoryId).items
+        if (categoryId != null) return videos
+        return videos.withInterestsFirst(preferences.interests.first())
     }
 }
 
