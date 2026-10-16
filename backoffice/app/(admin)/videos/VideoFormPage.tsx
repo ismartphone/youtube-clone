@@ -17,6 +17,9 @@ export function VideoFormPage({ videoId }: { videoId?: string }) {
       submitError={form.submitError}
       submitting={form.submitting}
       onSubmit={form.submit}
+      regenerating={form.regenerating}
+      thumbnailMessage={form.thumbnailMessage}
+      onRegenerate={form.regenerate}
     />
   );
 }

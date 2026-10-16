@@ -1,5 +1,6 @@
 package com.youtubeclone.app.data.remote.dto
 
+import com.youtubeclone.app.data.remote.resolveMediaUrl
 import com.youtubeclone.app.domain.model.Category
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.LikeStatus
@@ -21,7 +22,7 @@ fun CategoryDto.toDomain() = Category(id = id, name = name)
 fun VideoSummaryDto.toDomain() = Video(
     id = id,
     title = title,
-    thumbnailUrl = thumbnailUrl,
+    thumbnailUrl = resolveMediaUrl(thumbnailUrl),
     durationSeconds = durationSeconds,
     format = VideoFormat.valueOf(format),
     isPremium = isPremium,
@@ -35,7 +36,7 @@ fun VideoDetailDto.toDomain() = VideoDetail(
     video = Video(
         id = id,
         title = title,
-        thumbnailUrl = thumbnailUrl,
+        thumbnailUrl = resolveMediaUrl(thumbnailUrl),
         durationSeconds = durationSeconds,
         format = VideoFormat.valueOf(format),
         isPremium = isPremium,
@@ -45,7 +46,8 @@ fun VideoDetailDto.toDomain() = VideoDetail(
         category = category?.toDomain(),
     ),
     description = description,
-    videoUrl = videoUrl,
+    // Vidéo hébergée chez nous : chemin relatif, complété comme les miniatures.
+    videoUrl = videoUrl?.let(::resolveMediaUrl),
     likeStatus = LikeStatus(likeCount = likeCount, isLiked = isLiked),
 )
 

@@ -2,7 +2,9 @@ import type { CategorySummary, Video, VideoFormat } from './video.js';
 
 // Administration du catalogue, réservée au back-office (ADR-005).
 // La base ne stocke que les URL des fichiers : pas d'import pour l'instant, les URL sont saisies à la main.
+// Sans URL de miniature, le serveur en génère une à partir de la vidéo (ThumbnailGenerator).
 
+// Vidéo telle qu'enregistrée : la miniature est toujours renseignée.
 export interface VideoInput {
   title: string;
   description: string | null;
@@ -15,8 +17,19 @@ export interface VideoInput {
   durationSeconds: number;
 }
 
-// Modification partielle : un champ absent n'est pas modifié, null efface description ou catégorie.
-export type VideoPatch = Partial<VideoInput>;
+// Vidéo envoyée par l'administrateur : thumbnailUrl null demande une miniature générée.
+export type VideoDraft = Omit<VideoInput, 'thumbnailUrl'> & {
+  thumbnailUrl: string | null;
+};
+
+// Modification partielle : un champ absent n'est pas modifié, null efface description ou catégorie,
+// et thumbnailUrl null demande une miniature générée.
+export type VideoPatch = Partial<Omit<VideoInput, 'thumbnailUrl'>> & {
+  thumbnailUrl?: string | null;
+};
+
+// Modification écrite en base, miniature déjà résolue.
+export type VideoChanges = Partial<VideoInput>;
 
 export interface CategoryWithCount extends CategorySummary {
   videoCount: number;
@@ -38,7 +51,7 @@ export const CATALOG_STATS = Symbol('CATALOG_STATS');
 export interface VideoCatalog {
   create(input: VideoInput): Promise<Video>;
   // Renvoie null si la vidéo n'existe pas.
-  update(id: string, patch: VideoPatch): Promise<Video | null>;
+  update(id: string, changes: VideoChanges): Promise<Video | null>;
   // Renvoie false si la vidéo n'existe pas.
   delete(id: string): Promise<boolean>;
 }

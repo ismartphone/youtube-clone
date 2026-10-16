@@ -26,7 +26,7 @@ export interface VideoPayload {
   format: VideoFormat;
   isPremium: boolean;
   videoUrl: string;
-  thumbnailUrl: string;
+  thumbnailUrl: string | null; // null : le serveur génère une image extraite de la vidéo
   durationSeconds: number;
 }
 
@@ -58,6 +58,16 @@ export function videoToFormValues(video: VideoDetail): VideoFormValues {
   };
 }
 
+// Chemin des miniatures générées par le serveur (voir mediaUrl dans models/media.ts).
+function isGeneratedThumbnail(value: string): boolean {
+  return /^\/media\/thumbnails\/[0-9a-f-]{36}\.jpg$/.test(value);
+}
+
+// Vidéo hébergée chez nous (ADR-002) : chemin relatif vers le stockage du serveur.
+function isLocalVideo(value: string): boolean {
+  return /^\/media\/videos\/[\w.-]+\.mp4$/.test(value);
+}
+
 function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
@@ -78,10 +88,14 @@ export function validateVideoForm(values: VideoFormValues): VideoFormErrors {
   }
   if (!values.channelId) errors.channelId = "Choisissez une chaîne.";
 
-  if (!isHttpUrl(values.videoUrl.trim())) {
-    errors.videoUrl = "Saisissez une URL complète, commençant par http:// ou https://.";
+  const video = values.videoUrl.trim();
+  if (!isHttpUrl(video) && !isLocalVideo(video)) {
+    errors.videoUrl =
+      "Saisissez une URL complète (http:// ou https://) ou le chemin d'une vidéo stockée sur le serveur (/media/videos/…).";
   }
-  if (!isHttpUrl(values.thumbnailUrl.trim())) {
+  // Facultative : vide, le serveur la génère. Une miniature déjà générée garde son chemin relatif.
+  const thumbnail = values.thumbnailUrl.trim();
+  if (thumbnail && !isHttpUrl(thumbnail) && !isGeneratedThumbnail(thumbnail)) {
     errors.thumbnailUrl = "Saisissez une URL complète, commençant par http:// ou https://.";
   }
 
@@ -102,7 +116,7 @@ export function toVideoPayload(values: VideoFormValues): VideoPayload {
     format: values.format,
     isPremium: values.isPremium,
     videoUrl: values.videoUrl.trim(),
-    thumbnailUrl: values.thumbnailUrl.trim(),
+    thumbnailUrl: values.thumbnailUrl.trim() || null,
     durationSeconds: Number(values.durationSeconds),
   };
 }

@@ -13,6 +13,8 @@ import {
   Patch,
   Post,
   Query,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 import { AdminGuard } from '../../../auth/interfaces/http/jwt-auth.guard.js';
@@ -21,6 +23,7 @@ import { DeleteVideoUseCase } from '../../application/delete-video.use-case.js';
 import { GetCatalogStatsUseCase } from '../../application/get-catalog-stats.use-case.js';
 import { GetVideoUseCase } from '../../application/get-video.use-case.js';
 import { ListVideosUseCase } from '../../application/list-videos.use-case.js';
+import { RegenerateThumbnailUseCase } from '../../application/regenerate-thumbnail.use-case.js';
 import {
   CreateCategoryUseCase,
   DeleteCategoryUseCase,
@@ -32,6 +35,10 @@ import {
   UnknownCategoryError,
   UnknownChannelError,
 } from '../../domain/catalog.errors.js';
+import {
+  ThumbnailGenerationError,
+  ThumbnailUnavailableError,
+} from '../../domain/thumbnail-generator.js';
 import { ADMIN_VIEWER } from '../../domain/video.js';
 import {
   CreateCategoryBody,
@@ -44,12 +51,20 @@ import { presentVideoDetail, presentVideoSummary } from './video.presenter.js';
 // Routes du back-office (ADR-005) : réservées au rôle ADMIN.
 
 // Référence inconnue dans le corps de la requête : erreur de saisie, pas ressource absente.
-function translateReferenceError(error: unknown): never {
+// Miniature : FFmpeg absent (503, le service est indisponible) ou image impossible à extraire
+// de cette vidéo (422, l'URL ou le fichier pose problème).
+function translateCatalogError(error: unknown): never {
   if (
     error instanceof UnknownChannelError ||
     error instanceof UnknownCategoryError
   ) {
     throw new BadRequestException(error.message);
+  }
+  if (error instanceof ThumbnailUnavailableError) {
+    throw new ServiceUnavailableException(error.message);
+  }
+  if (error instanceof ThumbnailGenerationError) {
+    throw new UnprocessableEntityException(error.message);
   }
   throw error;
 }
@@ -63,6 +78,7 @@ export class AdminVideosController {
     private readonly createVideo: CreateVideoUseCase,
     private readonly updateVideo: UpdateVideoUseCase,
     private readonly deleteVideo: DeleteVideoUseCase,
+    private readonly regenerateThumbnail: RegenerateThumbnailUseCase,
   ) {}
 
   // Toutes les vidéos, Shorts compris, de la plus récente à la plus ancienne.
@@ -90,7 +106,7 @@ export class AdminVideosController {
     try {
       return presentVideoDetail(await this.createVideo.execute(body));
     } catch (error) {
-      translateReferenceError(error);
+      translateCatalogError(error);
     }
   }
 
@@ -103,7 +119,7 @@ export class AdminVideosController {
     try {
       video = await this.updateVideo.execute(id, body);
     } catch (error) {
-      translateReferenceError(error);
+      translateCatalogError(error);
     }
     if (!video) {
       throw new NotFoundException('Vidéo introuvable');
@@ -117,6 +133,23 @@ export class AdminVideosController {
     if (!(await this.deleteVideo.execute(id))) {
       throw new NotFoundException('Vidéo introuvable');
     }
+  }
+
+  // Bouton « Régénérer la miniature » : nouvelle image extraite à 10 % de la durée.
+  @Post(':id/thumbnail')
+  @HttpCode(HttpStatus.OK)
+  async regenerate(@Param('id', ParseUUIDPipe) id: string) {
+    let thumbnailUrl: string | null;
+    try {
+      thumbnailUrl = await this.regenerateThumbnail.execute(id);
+    } catch (error) {
+      translateCatalogError(error);
+    }
+    const video = thumbnailUrl && (await this.getVideo.execute(id, ADMIN_VIEWER));
+    if (!video) {
+      throw new NotFoundException('Vidéo introuvable');
+    }
+    return presentVideoDetail(video);
   }
 }
 

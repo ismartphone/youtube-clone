@@ -15,6 +15,7 @@ import {
   getVideo,
   listCategories,
   listChannels,
+  regenerateThumbnail,
   updateVideo,
 } from "@/services/catalogService";
 import { errorMessage, useRemoteData } from "./useRemoteData";
@@ -63,5 +64,39 @@ export function useVideoFormController(videoId?: string) {
     }
   }
 
-  return { state, reload, values, change, errors, submitError, submitting, submit, isEdit: !!videoId };
+  // Bouton « Régénérer la miniature » (modification seulement). La nouvelle miniature est déjà
+  // enregistrée par le serveur ; le champ du formulaire est mis à jour sans toucher au reste.
+  const [regenerating, setRegenerating] = useState(false);
+  const [thumbnailMessage, setThumbnailMessage] = useState<{ text: string; isError: boolean } | null>(null);
+
+  async function regenerate() {
+    if (!videoId || regenerating) return;
+    setRegenerating(true);
+    setThumbnailMessage(null);
+    try {
+      const video = await regenerateThumbnail(videoId);
+      setEdited({ ...values, thumbnailUrl: video.thumbnailUrl });
+      setErrors((current) => ({ ...current, thumbnailUrl: undefined }));
+      setThumbnailMessage({ text: "Nouvelle miniature générée.", isError: false });
+    } catch (error) {
+      setThumbnailMessage({ text: errorMessage(error), isError: true });
+    } finally {
+      setRegenerating(false);
+    }
+  }
+
+  return {
+    state,
+    reload,
+    values,
+    change,
+    errors,
+    submitError,
+    submitting,
+    submit,
+    isEdit: !!videoId,
+    regenerating,
+    thumbnailMessage,
+    regenerate,
+  };
 }

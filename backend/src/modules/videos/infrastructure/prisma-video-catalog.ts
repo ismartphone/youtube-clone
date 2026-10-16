@@ -7,7 +7,7 @@ import {
 import type {
   VideoCatalog,
   VideoInput,
-  VideoPatch,
+  VideoChanges,
 } from '../domain/catalog.js';
 import type { Video } from '../domain/video.js';
 import { VIDEO_SELECT } from './prisma-video.repository.js';
@@ -23,12 +23,12 @@ export class PrismaVideoCatalog implements VideoCatalog {
     return this.prisma.video.create({ data: input, select: VIDEO_SELECT });
   }
 
-  async update(id: string, patch: VideoPatch): Promise<Video | null> {
-    await this.checkReferences(patch);
+  async update(id: string, changes: VideoChanges): Promise<Video | null> {
+    await this.checkReferences(changes);
     try {
       return await this.prisma.video.update({
         where: { id },
-        data: patch,
+        data: changes,
         select: VIDEO_SELECT,
       });
     } catch (error) {
@@ -49,7 +49,7 @@ export class PrismaVideoCatalog implements VideoCatalog {
 
   // Vérifie les références avant d'écrire, pour renvoyer une erreur claire
   // plutôt qu'une violation de clé étrangère.
-  private async checkReferences({ channelId, categoryId }: VideoPatch) {
+  private async checkReferences({ channelId, categoryId }: VideoChanges) {
     const [channel, category] = await Promise.all([
       channelId
         ? this.prisma.channel.findUnique({

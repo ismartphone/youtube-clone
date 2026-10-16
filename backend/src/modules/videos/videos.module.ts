@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
 import type { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../../shared/infrastructure/infrastructure.module.js';
+import {
+  ffmpegCommand,
+  mediaDirectory,
+} from '../../shared/infrastructure/media.config.js';
 import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
 import { AuthModule } from '../auth/auth.module.js';
 import {
@@ -24,6 +28,7 @@ import {
   ListCategoriesUseCase,
 } from './application/manage-categories.use-case.js';
 import { RecordViewUseCase } from './application/record-view.use-case.js';
+import { RegenerateThumbnailUseCase } from './application/regenerate-thumbnail.use-case.js';
 import { UpdateVideoUseCase } from './application/update-video.use-case.js';
 import {
   CATALOG_STATS,
@@ -35,6 +40,10 @@ import {
 } from './domain/catalog.js';
 import { VIDEO_COUNTERS, type VideoCounters } from './domain/counters.js';
 import {
+  THUMBNAIL_GENERATOR,
+  type ThumbnailGenerator,
+} from './domain/thumbnail-generator.js';
+import {
   LIKE_REPOSITORY,
   type LikeRepository,
 } from './domain/like.repository.js';
@@ -42,6 +51,7 @@ import {
   VIDEO_REPOSITORY,
   type VideoRepository,
 } from './domain/video.repository.js';
+import { FfmpegThumbnailGenerator } from './infrastructure/ffmpeg-thumbnail-generator.js';
 import { PrismaCatalogStats } from './infrastructure/prisma-catalog-stats.js';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category.repository.js';
 import { PrismaLikeRepository } from './infrastructure/prisma-like.repository.js';
@@ -64,8 +74,6 @@ const LIKE_COUNTER = Symbol('LIKE_COUNTER');
 
 // Les cas d'usage ne dépendent que des ports du domaine : c'est ici qu'on branche les adaptateurs.
 const READ_USE_CASES = [ListVideosUseCase, GetVideoUseCase, GetChannelUseCase];
-
-const CATALOG_USE_CASES = [CreateVideoUseCase, UpdateVideoUseCase];
 
 const CATEGORY_USE_CASES = [
   ListCategoriesUseCase,
@@ -171,17 +179,48 @@ const CATEGORY_USE_CASES = [
       useFactory: (likes: LikeRepository) => new GetLikeStatusUseCase(likes),
       inject: [LIKE_REPOSITORY],
     },
-    ...CATALOG_USE_CASES.map((UseCase) => ({
-      provide: UseCase,
-      useFactory: (catalog: VideoCatalog, counters: VideoCounters) =>
-        new UseCase(catalog, counters),
-      inject: [VIDEO_CATALOG, VIDEO_COUNTERS],
-    })),
     {
-      provide: DeleteVideoUseCase,
-      useFactory: (catalog: VideoCatalog) => new DeleteVideoUseCase(catalog),
-      inject: [VIDEO_CATALOG],
+      // FFmpeg est cherché au démarrage (onModuleInit) ; absent, seule la génération est refusée.
+      provide: THUMBNAIL_GENERATOR,
+      useFactory: () =>
+        new FfmpegThumbnailGenerator({
+          command: ffmpegCommand(),
+          mediaDir: mediaDirectory(),
+        }),
     },
+    {
+      provide: CreateVideoUseCase,
+      useFactory: (
+        catalog: VideoCatalog,
+        counters: VideoCounters,
+        thumbnails: ThumbnailGenerator,
+      ) => new CreateVideoUseCase(catalog, counters, thumbnails),
+      inject: [VIDEO_CATALOG, VIDEO_COUNTERS, THUMBNAIL_GENERATOR],
+    },
+    {
+      provide: UpdateVideoUseCase,
+      useFactory: (
+        videos: VideoRepository,
+        catalog: VideoCatalog,
+        counters: VideoCounters,
+        thumbnails: ThumbnailGenerator,
+      ) => new UpdateVideoUseCase(videos, catalog, counters, thumbnails),
+      inject: [
+        VIDEO_REPOSITORY,
+        VIDEO_CATALOG,
+        VIDEO_COUNTERS,
+        THUMBNAIL_GENERATOR,
+      ],
+    },
+    ...[DeleteVideoUseCase, RegenerateThumbnailUseCase].map((UseCase) => ({
+      provide: UseCase,
+      useFactory: (
+        videos: VideoRepository,
+        catalog: VideoCatalog,
+        thumbnails: ThumbnailGenerator,
+      ) => new UseCase(videos, catalog, thumbnails),
+      inject: [VIDEO_REPOSITORY, VIDEO_CATALOG, THUMBNAIL_GENERATOR],
+    })),
     ...CATEGORY_USE_CASES.map((UseCase) => ({
       provide: UseCase,
       useFactory: (categories: CategoryRepository) => new UseCase(categories),

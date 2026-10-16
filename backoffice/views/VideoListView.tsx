@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { RemoteData } from "@/controllers/useRemoteData";
 import { pageCount, type Page, type Video } from "@/models/catalog";
 import { formatDuration, formatNumber } from "@/models/format";
+import { mediaUrl } from "@/models/media";
 import { Button, ErrorBanner, Loading, PageHeader, Pagination } from "./ui";
 
 export function VideoListView({
@@ -66,7 +67,7 @@ export function VideoListView({
                       <div className="flex items-center gap-3">
                         {/* URL saisies à la main, de n'importe quel domaine : pas d'optimisation Next.js. */}
                         <Image
-                          src={video.thumbnailUrl}
+                          src={mediaUrl(video.thumbnailUrl)}
                           alt=""
                           width={112}
                           height={63}

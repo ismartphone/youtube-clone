@@ -1,6 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { RemoteData } from "@/controllers/useRemoteData";
 import { VIDEO_FORMATS, type CategoryWithCount, type ChannelSummary } from "@/models/catalog";
+import { mediaUrl } from "@/models/media";
 import type { VideoFormErrors, VideoFormValues } from "@/models/videoForm";
 import { Button, ErrorBanner, Field, Loading, PageHeader, Select, TextArea, TextInput } from "./ui";
 
@@ -19,6 +21,9 @@ export function VideoFormView({
   submitError,
   submitting,
   onSubmit,
+  regenerating,
+  thumbnailMessage,
+  onRegenerate,
 }: {
   isEdit: boolean;
   state: RemoteData<FormData>;
@@ -29,6 +34,9 @@ export function VideoFormView({
   submitError: string | null;
   submitting: boolean;
   onSubmit: () => void;
+  regenerating: boolean;
+  thumbnailMessage: { text: string; isError: boolean } | null;
+  onRegenerate: () => void;
 }) {
   return (
     <>
@@ -102,7 +110,12 @@ export function VideoFormView({
               />
             </Field>
           </div>
-          <Field id="videoUrl" label="URL de la vidéo (MP4)" error={errors.videoUrl}>
+          <Field
+            id="videoUrl"
+            label="URL de la vidéo (MP4)"
+            error={errors.videoUrl}
+            hint="URL complète, ou /media/videos/… pour une vidéo stockée sur le serveur."
+          >
             <TextInput
               id="videoUrl"
               type="url"
@@ -112,7 +125,12 @@ export function VideoFormView({
               error={errors.videoUrl}
             />
           </Field>
-          <Field id="thumbnailUrl" label="URL de la miniature" error={errors.thumbnailUrl}>
+          <Field
+            id="thumbnailUrl"
+            label="URL de la miniature (facultative)"
+            error={errors.thumbnailUrl}
+            hint="Laissez vide pour que le serveur extraie une image de la vidéo, à 10 % de sa durée."
+          >
             <TextInput
               id="thumbnailUrl"
               type="url"
@@ -122,6 +140,34 @@ export function VideoFormView({
               error={errors.thumbnailUrl}
             />
           </Field>
+          {isEdit && (
+            <div className="flex flex-wrap items-center gap-4">
+              {values.thumbnailUrl && (
+                // URL saisie à la main ou générée par le serveur : pas d'optimisation Next.js.
+                <Image
+                  src={mediaUrl(values.thumbnailUrl)}
+                  alt="Miniature actuelle"
+                  width={160}
+                  height={90}
+                  unoptimized
+                  className="h-[90px] w-40 rounded-md bg-surface-hover object-cover"
+                />
+              )}
+              <div className="flex flex-col items-start gap-2">
+                <Button variant="secondary" disabled={regenerating} onClick={onRegenerate}>
+                  {regenerating ? "Génération…" : "Régénérer la miniature"}
+                </Button>
+                {thumbnailMessage && (
+                  <p
+                    role={thumbnailMessage.isError ? "alert" : "status"}
+                    className={`text-sm ${thumbnailMessage.isError ? "text-danger" : "text-muted"}`}
+                  >
+                    {thumbnailMessage.text}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
           <label className="flex items-start gap-3 text-sm">
             <input
               type="checkbox"

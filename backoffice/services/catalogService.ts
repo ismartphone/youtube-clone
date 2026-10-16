@@ -51,3 +51,8 @@ export function createCategory(name: string): Promise<Category> {
 export function deleteCategory(id: string): Promise<void> {
   return apiRequest(`/admin/categories/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
+
+// Nouvelle miniature extraite de la vidéo à 10 % de sa durée.
+export function regenerateThumbnail(id: string): Promise<VideoDetail> {
+  return apiRequest(`/admin/videos/${encodeURIComponent(id)}/thumbnail`, { method: "POST" });
+}

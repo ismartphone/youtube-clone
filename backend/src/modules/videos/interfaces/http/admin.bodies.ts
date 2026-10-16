@@ -11,6 +11,7 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { VIDEO_FORMATS, type VideoFormat } from '../../domain/video.js';
 
@@ -34,6 +35,28 @@ const URL_OPTIONS = {
   require_protocol: true,
   require_tld: false,
 };
+
+// Miniature déjà générée par le serveur : chemin relatif, renvoyé tel quel par le formulaire.
+const GENERATED_THUMBNAIL = /^\/media\/thumbnails\/[0-9a-f-]{36}\.jpg$/;
+
+// Seule une URL externe est validée ; absente, null ou déjà générée, elle est acceptée telle quelle.
+function isExternalThumbnail(body: { thumbnailUrl?: unknown }): boolean {
+  const value = body.thumbnailUrl;
+  return (
+    value !== undefined &&
+    value !== null &&
+    !(typeof value === 'string' && GENERATED_THUMBNAIL.test(value))
+  );
+}
+
+// Vidéo hébergée chez nous (ADR-002) : chemin relatif vers le stockage local, servi sous /media.
+const LOCAL_VIDEO = /^\/media\/videos\/[\w.-]+\.mp4$/;
+
+// Une vidéo est soit une URL http(s), soit un fichier de notre stockage.
+function isExternalVideo(body: { videoUrl?: unknown }): boolean {
+  const value = body.videoUrl;
+  return !(typeof value === 'string' && LOCAL_VIDEO.test(value));
+}
 
 // 12 heures : borne large, juste pour refuser les valeurs absurdes.
 const MAX_DURATION_SECONDS = 12 * 60 * 60;
@@ -64,12 +87,15 @@ export class CreateVideoBody {
   isPremium: boolean;
 
   @Transform(trim)
+  @ValidateIf(isExternalVideo)
   @IsUrl(URL_OPTIONS)
   videoUrl: string;
 
-  @Transform(trim)
+  // Facultative : absente ou vide, le serveur génère une image extraite de la vidéo.
+  @Transform(trimOrNull)
+  @ValidateIf(isExternalThumbnail)
   @IsUrl(URL_OPTIONS)
-  thumbnailUrl: string;
+  thumbnailUrl: string | null = null;
 
   @IsInt()
   @Min(1)
@@ -107,15 +133,19 @@ export class UpdateVideoBody {
   @IsBoolean()
   isPremium?: boolean;
 
-  @IsOptional()
   @Transform(trim)
+  @ValidateIf(
+    (body: { videoUrl?: unknown }) =>
+      body.videoUrl !== undefined && isExternalVideo(body),
+  )
   @IsUrl(URL_OPTIONS)
   videoUrl?: string;
 
-  @IsOptional()
-  @Transform(trim)
+  // Absente : inchangée. Vide ou null : le serveur génère une nouvelle image.
+  @Transform(trimOrNull)
+  @ValidateIf(isExternalThumbnail)
   @IsUrl(URL_OPTIONS)
-  thumbnailUrl?: string;
+  thumbnailUrl?: string | null;
 
   @IsOptional()
   @IsInt()

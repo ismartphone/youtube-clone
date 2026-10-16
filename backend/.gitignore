@@ -6,3 +6,6 @@ node_modules
 
 # Build
 /dist
+
+# Fichiers générés par le serveur (miniatures), voir MEDIA_DIR
+/storage
