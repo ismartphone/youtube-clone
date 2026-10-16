@@ -19,6 +19,9 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+# Captures de référence Mobbin : gardées en local, jamais redistribuées.
+# Leur index est versionné dans docs/maquettes-reference.md.
+android/maquettes/
 
 # Éditeurs et système
 .idea/
