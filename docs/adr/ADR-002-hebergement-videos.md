@@ -38,7 +38,7 @@ Les vidéos proviennent de Pexels et Pixabay, libres de droits pour un usage gra
 ### Positives
 - Lecteur 100 % natif avec ExoPlayer.
 - Back-office réellement utile, puisque c'est lui qui gère le catalogue.
-- MP4 progressif simple à produire et à servir, sans étape de transcodage.
+- MP4 progressif simple à produire et à servir, sans transcodage à l'exécution : le serveur sert le fichier tel quel. La préparation hors ligne des fichiers de démonstration ne relève pas de cette décision.
 - Recherche sans infrastructure supplémentaire, directement dans la base via Prisma.
 
 ### Négatives
@@ -50,3 +50,4 @@ Les vidéos proviennent de Pexels et Pixabay, libres de droits pour un usage gra
 
 ## Liens
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est ce choix qui impose un lecteur natif, ExoPlayer, côté Android.
+- [ADR-011](ADR-011-ffmpeg-chemins-medias.md) : FFmpeg en dépendance système et chemins relatifs pour les fichiers hébergés ; le réencodage qu'il prévoit avec `npm run seed:videos` est une préparation hors ligne des vidéos de démonstration, qui ne remet pas en cause l'absence de transcodage à l'exécution.

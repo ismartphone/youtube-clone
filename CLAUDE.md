@@ -48,7 +48,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 - `FOLLOW` = abonnement **gratuit** à une chaîne. `PREMIUM_SUBSCRIPTION` = abonnement **payant**. Ne jamais confondre les deux.
 - `VIDEO.format` vaut `SHORT` ou `LONG` : Shorts et vidéos classiques partagent la même table.
 - `VIDEO.isPremium` marque les vidéos exclusives. L'accès est **toujours vérifié côté serveur**, jamais seulement dans l'application.
-- La base ne stocke que l'URL des fichiers vidéo, jamais les fichiers eux-mêmes.
+- La base ne stocke que l'URL ou le chemin relatif des fichiers, jamais les fichiers eux-mêmes.
 
 ## Périmètre
 

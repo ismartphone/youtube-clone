@@ -1,7 +1,7 @@
 # ADR-011 — FFmpeg en dépendance système et chemins relatifs pour les fichiers hébergés
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Le back-office publie les vidéos (ADR-005), qui sont hébergées sur notre propre backend (ADR-002). Deux besoins apparaissent.
@@ -23,6 +23,10 @@ FFmpeg est installé à part, et non comme paquet npm : par exemple `winget inst
 FFmpeg sert à deux usages :
 - générer les miniatures : une image extraite à 10 % de la durée, recadrée en 1280x720 (720x1280 pour un Short) et enregistrée en JPEG dans le stockage local. La génération a lieu quand une vidéo est créée ou modifiée sans miniature depuis le back-office, par le bouton « Régénérer la miniature » et par la commande `npm run thumbnails:regenerate` ;
 - préparer les vidéos de démonstration du seed, avec la commande `npm run seed:videos` : téléchargement depuis Pexels, vérification par ffprobe et réencodage en 720p.
+
+Ce réencodage est une préparation hors ligne de données de démonstration. Il est distinct de l'absence de transcodage à l'exécution posée par l'ADR-002, où le serveur sert les fichiers tels quels : l'ADR-002 n'est donc pas contredit.
+
+La commande `seed:videos` prépare des données de démonstration et n'est pas un chemin d'entrée au catalogue. Aucune route exposée ne permet d'envoyer une vidéo : l'ADR-005 n'est donc pas contredit.
 
 ### Absence de FFmpeg
 Si FFmpeg est absent au démarrage, le serveur démarre quand même et écrit une erreur explicite dans les journaux. Seule la génération de miniatures est refusée, avec une réponse 503 et un message clair.
@@ -66,8 +70,8 @@ Ce choix vient de ce qu'en développement l'émulateur et le navigateur ne joign
 - La position de l'image est fixe (10 % de la durée) : « Régénérer la miniature » redonne la même image tant que la vidéo ne change pas.
 
 ## Liens
-- [ADR-002](ADR-002-hebergement-videos.md) : hébergement des vidéos sur notre propre backend ; c'est ce stockage, dossier local en développement puis Cloudflare R2 avec CDN au déploiement, qui contient les fichiers dont cet ADR fixe l'adresse en base, et dont les vidéos viennent de Pexels.
-- [ADR-005](ADR-005-ajout-videos-backoffice.md) : ajout des vidéos uniquement depuis le back-office ; c'est à la création ou à la modification d'une vidéo depuis le back-office que la miniature est générée.
+- [ADR-002](ADR-002-hebergement-videos.md) : hébergement des vidéos sur notre propre backend ; c'est ce stockage, dossier local en développement puis Cloudflare R2 avec CDN au déploiement, qui contient les fichiers dont cet ADR fixe l'adresse en base, et dont les vidéos viennent de Pexels. Le réencodage du seed est une préparation hors ligne, qui ne contredit pas l'absence de transcodage à l'exécution posée par cet ADR.
+- [ADR-005](ADR-005-ajout-videos-backoffice.md) : ajout des vidéos uniquement depuis le back-office ; c'est à la création ou à la modification d'une vidéo depuis le back-office que la miniature est générée. La commande `npm run seed:videos` prépare des données de démonstration et n'ouvre pas d'autre entrée au catalogue.
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; c'est ce backend qui appelle FFmpeg et sert les fichiers en statique sous `/media`.
 - [ADR-009](ADR-009-stockage-tokens-backoffice.md) : stockage des tokens du back-office ; c'est cet ADR qui définit le relais `/api` de Next.js, par lequel le back-office complète les chemins relatifs.
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est cette application qui complète les chemins relatifs avec son adresse d'API.
