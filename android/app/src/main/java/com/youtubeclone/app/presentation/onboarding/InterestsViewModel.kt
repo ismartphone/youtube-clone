@@ -37,6 +37,7 @@ class InterestsViewModel @Inject constructor(
     private val getCategories: GetCategoriesUseCase,
     private val observeInterests: ObserveInterestsUseCase,
     private val saveInterests: SaveInterestsUseCase,
+    private val firstScreenReadiness: FirstScreenReadiness,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InterestsUiState())
@@ -65,6 +66,8 @@ class InterestsViewModel @Inject constructor(
                 CategoriesState.Error(e.toUiError())
             }
             _uiState.update { it.copy(categories = categories) }
+            // Au premier lancement, cet écran suit l'animation d'ouverture : elle peut s'effacer.
+            firstScreenReadiness.markReady()
         }
     }
 

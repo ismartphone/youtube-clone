@@ -4,4 +4,12 @@
     <style name="Theme.Android" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/background_dark</item>
     </style>
+
+    <!-- Écran de démarrage natif (core-splashscreen) : fond sombre, sans icône. Il s'efface
+         dès la première image de Compose, qui joue l'animation d'ouverture. -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/background_dark</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_empty</item>
+        <item name="postSplashScreenTheme">@style/Theme.Android</item>
+    </style>
 </resources>

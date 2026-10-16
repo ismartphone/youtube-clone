@@ -7,6 +7,7 @@ import com.youtubeclone.app.domain.usecase.GetHomeFeedUseCase
 import com.youtubeclone.app.domain.usecase.ObserveInterestsUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
+import com.youtubeclone.app.presentation.onboarding.FirstScreenReadiness
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -27,6 +28,7 @@ sealed interface HomeUiState {
 class HomeViewModel @Inject constructor(
     private val getHomeFeed: GetHomeFeedUseCase,
     observeInterests: ObserveInterestsUseCase,
+    private val firstScreenReadiness: FirstScreenReadiness,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -54,6 +56,8 @@ class HomeViewModel @Inject constructor(
             } catch (e: Exception) {
                 HomeUiState.Error(e.toUiError())
             }
+            // Premier chargement terminé, réussi ou non : l'animation d'ouverture peut s'effacer.
+            firstScreenReadiness.markReady()
         }
     }
 }
