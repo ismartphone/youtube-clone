@@ -8,14 +8,15 @@ import {
   Role,
   VideoFormat,
 } from '../src/generated/prisma/client.js';
+import { LOCAL_SEED_VIDEOS, localVideoUrl } from './seed-videos.js';
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env['DATABASE_URL'] }),
 });
 
-// Fichiers MP4 de test publics, à remplacer par les vidéos Pexels et Pixabay du stockage local (ADR-002).
+// Fichiers MP4 de test publics (test-videos.co.uk, Blender), à remplacer à terme par des vidéos
+// du stockage local.
 const TEST_VIDEOS = 'https://test-videos.co.uk/vids';
-const SAMPLELIB = 'https://samplelib.com/preview/mp4';
 
 // Mot de passe commun aux comptes de démonstration, haché comme à l'inscription (argon2id).
 const SEED_PASSWORD = 'Youtube2026!';
@@ -30,6 +31,7 @@ function daysAgo(days: number) {
 }
 
 // Miniature de remplacement au format de la vidéo : paysage pour LONG, portrait pour SHORT.
+// Après le seed, « npm run thumbnails:regenerate » les remplace par une image extraite de chaque vidéo.
 function thumbnail(title: string, format: VideoFormat) {
   const size = format === VideoFormat.SHORT ? '720x1280' : '1280x720';
   return `https://placehold.co/${size}.jpg?text=${encodeURIComponent(title)}`;
@@ -170,9 +172,9 @@ async function main() {
       channelId: explorerChannelId,
       categoryId: voyage.id,
       title: 'Une demi-minute en ville',
-      description: 'Petite balade urbaine sans commentaire.',
-      videoUrl: `${SAMPLELIB}/sample-30s.mp4`,
-      durationSeconds: 30,
+      description: 'La ville défile derrière la vitre du train.',
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.city),
+      durationSeconds: Math.round(LOCAL_SEED_VIDEOS.city.clipSeconds),
       publishedAt: daysAgo(6),
       format: VideoFormat.LONG,
     },
@@ -180,17 +182,17 @@ async function main() {
       channelId: explorerChannelId,
       categoryId: voyage.id,
       title: 'Cinq secondes de voyage',
-      videoUrl: `${SAMPLELIB}/sample-5s.mp4`,
-      durationSeconds: 5,
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.travel),
+      durationSeconds: Math.round(LOCAL_SEED_VIDEOS.travel.clipSeconds),
       publishedAt: daysAgo(4),
-      format: VideoFormat.SHORT,
+      format: VideoFormat.LONG,
     },
     {
       channelId: explorerChannelId,
       categoryId: voyage.id,
       title: 'Instantané de rue',
-      videoUrl: `${SAMPLELIB}/sample-10s.mp4`,
-      durationSeconds: 10,
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.street),
+      durationSeconds: Math.round(LOCAL_SEED_VIDEOS.street.clipSeconds),
       publishedAt: daysAgo(3),
       format: VideoFormat.SHORT,
     },
@@ -198,19 +200,19 @@ async function main() {
       channelId: explorerChannelId,
       categoryId: nature.id,
       title: 'Respirer dehors',
-      videoUrl: `${SAMPLELIB}/sample-15s.mp4`,
-      durationSeconds: 15,
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.breathe),
+      durationSeconds: Math.round(LOCAL_SEED_VIDEOS.breathe.clipSeconds),
       publishedAt: daysAgo(1),
       format: VideoFormat.SHORT,
     },
     {
       channelId: explorerChannelId,
       categoryId: nature.id,
-      title: 'Vingt secondes au grand air',
-      videoUrl: `${SAMPLELIB}/sample-20s.mp4`,
-      durationSeconds: 20,
+      title: 'Quelques secondes au grand air',
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.outdoors),
+      durationSeconds: Math.round(LOCAL_SEED_VIDEOS.outdoors.clipSeconds),
       publishedAt: daysAgo(0),
-      format: VideoFormat.SHORT,
+      format: VideoFormat.LONG,
     },
   ];
 
