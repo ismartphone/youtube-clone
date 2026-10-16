@@ -1,5 +1,9 @@
 package com.youtubeclone.app.presentation.watch
 
+import android.content.Intent
+import android.widget.Toast
+import androidx.annotation.DrawableRes
+import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
@@ -17,39 +21,57 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -57,12 +79,15 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.annotation.OptIn
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
+import com.youtubeclone.app.domain.model.Comment
+import com.youtubeclone.app.domain.model.CommentAuthor
+import com.youtubeclone.app.domain.model.LikeStatus
+import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.presentation.channel.FollowButton
 import com.youtubeclone.app.presentation.channel.FollowUiState
@@ -74,11 +99,22 @@ import com.youtubeclone.app.presentation.common.formatCompactCount
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.home.previewVideo
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
+import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
+import java.time.Instant
+
+// Écran de lecture d'après les maquettes (android/maquettes/lecture-01, -36 et -54, captures iOS) :
+// lecteur collé en haut, titre, actions, chaîne, aperçu des commentaires, puis vidéos suggérées.
+// On reprend la mise en page et la hiérarchie, avec les conventions Android et Material.
+
+private val ActionChipHeight = 36.dp
+private val PillShape = RoundedCornerShape(50)
 
 @Composable
 fun WatchScreen(
+    onVideoClick: (videoId: String) -> Unit,
     onChannelClick: (channelId: String) -> Unit,
     onLoginRequired: () -> Unit,
     modifier: Modifier = Modifier,
@@ -89,6 +125,7 @@ fun WatchScreen(
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val commentsState by viewModel.comments.state.collectAsStateWithLifecycle()
+    val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     ErrorToast(viewModel.follow.errors)
     ErrorToast(viewModel.errors)
     ErrorToast(viewModel.comments.errors)
@@ -105,39 +142,99 @@ fun WatchScreen(
         }
     }
 
+    val context = LocalContext.current
+    val shareChooserTitle = stringResource(R.string.watch_share_chooser)
+    var showComments by rememberSaveable { mutableStateOf(false) }
+
     // Visiteur : la connexion est demandée au moment d'agir.
     fun requireLogin(action: () -> Unit) = if (isLoggedIn) action() else onLoginRequired()
 
     when (val state = uiState) {
         WatchUiState.Loading -> LoadingState(modifier)
         is WatchUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
-        is WatchUiState.Success -> Column(
-            modifier = modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+        is WatchUiState.Success -> {
+            val video = state.detail.video
+            WatchContent(
+                detail = state.detail,
+                stats = stats,
+                followState = followState,
+                comments = commentsState,
+                suggestions = suggestions,
+                player = { PlayerArea(state.detail, viewModel.player) },
+                onChannelClick = { onChannelClick(video.channel.id) },
+                onFollowClick = { requireLogin(viewModel.follow::toggle) },
+                onLikeClick = { requireLogin(viewModel::toggleLike) },
+                // Il n'y a pas encore d'adresse web publique des vidéos : on partage le titre et la chaîne.
+                onShareClick = {
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, video.title)
+                        putExtra(Intent.EXTRA_TEXT, "${video.title} · ${video.channel.name}")
+                    }
+                    context.startActivity(Intent.createChooser(intent, shareChooserTitle))
+                },
+                // Je n'aime pas, Télécharger et Enregistrer : pas encore de fonctionnalité derrière
+                // (pas d'API ; playlists hors périmètre). Les boutons suivent la maquette.
+                onUnavailableClick = {
+                    Toast.makeText(context, R.string.watch_soon, Toast.LENGTH_SHORT).show()
+                },
+                onCommentsClick = { showComments = true },
+                onSuggestionClick = onVideoClick,
+                modifier = modifier,
+            )
+            if (showComments) {
+                CommentsSheet(onDismiss = { showComments = false }) {
+                    CommentsSection(
+                        state = commentsState,
+                        isLoggedIn = isLoggedIn,
+                        onDraftChange = viewModel.comments::onDraftChange,
+                        onPost = viewModel.comments::post,
+                        onLoginRequired = {
+                            showComments = false
+                            onLoginRequired()
+                        },
+                        onLoadMore = viewModel.comments::loadMore,
+                        onRetry = viewModel.comments::loadFirstPage,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WatchContent(
+    detail: VideoDetail,
+    stats: LiveStats?,
+    followState: FollowUiState?,
+    comments: CommentsUiState,
+    suggestions: List<Video>,
+    player: @Composable () -> Unit,
+    onChannelClick: () -> Unit,
+    onFollowClick: () -> Unit,
+    onLikeClick: () -> Unit,
+    onShareClick: () -> Unit,
+    onUnavailableClick: () -> Unit,
+    onCommentsClick: () -> Unit,
+    onSuggestionClick: (videoId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.fillMaxSize()) {
+        // Lecteur collé en haut, toujours visible pendant le défilement.
+        player()
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            PlayerBox(state.detail, viewModel.player)
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                VideoInfo(
-                    detail = state.detail,
-                    stats = stats,
-                    followState = followState,
-                    onChannelClick = { onChannelClick(state.detail.video.channel.id) },
-                    onFollowClick = { requireLogin(viewModel.follow::toggle) },
-                    onLikeClick = { requireLogin(viewModel::toggleLike) },
-                )
-                CommentsSection(
-                    state = commentsState,
-                    isLoggedIn = isLoggedIn,
-                    onDraftChange = viewModel.comments::onDraftChange,
-                    onPost = viewModel.comments::post,
-                    onLoginRequired = onLoginRequired,
-                    onLoadMore = viewModel.comments::loadMore,
-                    onRetry = viewModel.comments::loadFirstPage,
-                    modifier = Modifier.padding(top = 8.dp),
+            item(key = "title") { TitleBlock(detail, viewCount = stats?.viewCount ?: detail.video.viewCount) }
+            item(key = "channel") { ChannelRow(detail.video.channel, followState, onChannelClick, onFollowClick) }
+            item(key = "actions") { ActionsRow(stats, onLikeClick, onShareClick, onUnavailableClick) }
+            item(key = "comments") { CommentsTeaser(comments, onCommentsClick) }
+            items(suggestions, key = { it.id }) { video ->
+                SuggestedVideoCard(
+                    video = video,
+                    modifier = Modifier.clickable { onSuggestionClick(video.id) },
                 )
             }
         }
@@ -145,7 +242,7 @@ fun WatchScreen(
 }
 
 @Composable
-private fun PlayerBox(detail: VideoDetail, player: Player) {
+private fun PlayerArea(detail: VideoDetail, player: Player) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -186,52 +283,143 @@ private fun VideoPlayer(player: Player, modifier: Modifier = Modifier) {
     )
 }
 
+// Titre sur deux lignes au plus, puis « vues · date » en gris. « …plus » déplie la description.
 @Composable
-private fun VideoInfo(
-    detail: VideoDetail,
-    stats: LiveStats?,
-    followState: FollowUiState?,
-    onChannelClick: () -> Unit,
-    onFollowClick: () -> Unit,
-    onLikeClick: () -> Unit,
-) {
+private fun TitleBlock(detail: VideoDetail, viewCount: Int) {
     val video = detail.video
-    // Compteur de vues en direct ; celui du chargement tant que les statistiques ne sont pas là.
-    val viewCount = stats?.viewCount ?: video.viewCount
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = video.title,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+    var expanded by rememberSaveable(video.id) { mutableStateOf(false) }
+    Column(
+        modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = video.title,
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontSize = 18.sp,
+                lineHeight = 24.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "${formatViewCount(viewCount)} · ${formatRelativeDate(video.publishedAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            if (detail.description != null) {
+                Text(
+                    text = stringResource(if (expanded) R.string.watch_less else R.string.watch_more),
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .clickable { expanded = !expanded }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
         }
-        ChannelRow(video.channel, followState, onChannelClick, onFollowClick)
-        if (stats != null) {
-            LikeButton(stats, onLikeClick)
-        }
-        detail.description?.let { description ->
+        if (expanded && detail.description != null) {
             Text(
-                text = description,
+                text = detail.description,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.medium)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(12.dp),
             )
         }
     }
 }
 
-// Bouton qui bascule : icône rouge quand la vidéo est aimée, avec le nombre de « j'aime ».
+// Avatar, nom et abonnés ouvrent la chaîne ; S'abonner à droite, une fois l'état connu.
 @Composable
-private fun LikeButton(stats: LiveStats, onClick: () -> Unit) {
+private fun ChannelRow(
+    channel: Channel,
+    followState: FollowUiState?,
+    onChannelClick: () -> Unit,
+    onFollowClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onChannelClick),
+        ) {
+            ChannelAvatar(channel, Modifier.size(32.dp))
+            Text(
+                text = channel.name,
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (followState != null) {
+                Text(
+                    text = formatFollowerCount(followState.followerCount),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        }
+        if (followState != null && followState.canFollow) {
+            FollowButton(state = followState, onClick = onFollowClick)
+        }
+    }
+}
+
+// Actions défilantes : J'aime / Je n'aime pas, Partager, Télécharger, Enregistrer.
+@Composable
+private fun ActionsRow(
+    stats: LiveStats?,
+    onLikeClick: () -> Unit,
+    onShareClick: () -> Unit,
+    onUnavailableClick: () -> Unit,
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (stats != null) {
+            item(key = "like") { LikeDislikeChip(stats, onLikeClick, onDislikeClick = onUnavailableClick) }
+        }
+        item(key = "share") { ActionChip(R.drawable.ic_share, stringResource(R.string.watch_share), onShareClick) }
+        item(key = "download") { ActionChip(R.drawable.ic_download, stringResource(R.string.watch_download), onUnavailableClick) }
+        item(key = "save") { ActionChip(R.drawable.ic_save, stringResource(R.string.watch_save), onUnavailableClick) }
+    }
+}
+
+@Composable
+private fun ActionChip(@DrawableRes icon: Int, label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .height(ActionChipHeight)
+            .clip(PillShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
+    }
+}
+
+// Une seule pastille, séparée par un trait : J'aime avec son compteur, puis Je n'aime pas.
+@Composable
+private fun LikeDislikeChip(stats: LiveStats, onLikeClick: () -> Unit, onDislikeClick: () -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     val stateText = stringResource(if (stats.isLiked) R.string.watch_liked else R.string.watch_not_liked)
 
@@ -248,100 +436,192 @@ private fun LikeButton(stats: LiveStats, onClick: () -> Unit) {
         animationSpec = tween(if (reduceMotion) Motion.REDUCED_FADE_MS else Motion.SHORT_MS),
         label = "likeTint",
     )
-    val buttonColor = MaterialTheme.colorScheme.surfaceVariant
-    val contentColor = MaterialTheme.colorScheme.onBackground
 
-    FilledTonalButton(
-        onClick = {
-            clicks++
-            onClick()
-        },
-        enabled = !stats.likePending,
-        // Pendant l'appel au serveur, le bouton garde son apparence : pas de clignotement gris.
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = buttonColor,
-            contentColor = contentColor,
-            disabledContainerColor = buttonColor,
-            disabledContentColor = contentColor,
-        ),
-        modifier = Modifier.semantics {
-            role = Role.Switch
-            stateDescription = stateText
-        },
+    Row(
+        modifier = Modifier
+            .height(ActionChipHeight)
+            .clip(PillShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_like),
-            contentDescription = stringResource(R.string.watch_like),
-            tint = tint,
+        Row(
             modifier = Modifier
-                .size(18.dp)
-                .graphicsLayer {
-                    scaleX = iconScale.value
-                    scaleY = iconScale.value
+                .fillMaxHeight()
+                .clickable(enabled = !stats.likePending) {
+                    clicks++
+                    onLikeClick()
+                }
+                .semantics {
+                    role = Role.Switch
+                    stateDescription = stateText
+                }
+                .padding(start = 14.dp, end = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_like),
+                contentDescription = stringResource(R.string.watch_like),
+                tint = tint,
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer {
+                        scaleX = iconScale.value
+                        scaleY = iconScale.value
+                    },
+            )
+            // Le compteur change avec un fondu vertical : il monte quand il augmente, descend sinon.
+            AnimatedContent(
+                targetState = stats.likeCount,
+                transitionSpec = {
+                    if (reduceMotion) {
+                        fadeIn(tween(Motion.REDUCED_FADE_MS)) togetherWith fadeOut(tween(Motion.REDUCED_FADE_MS))
+                    } else {
+                        val direction = if (targetState > initialState) 1 else -1
+                        val spec = tween<IntOffset>(Motion.FADE_MS, easing = Motion.Easing)
+                        (slideInVertically(spec) { height -> height * direction } + fadeIn(tween(Motion.FADE_MS))) togetherWith
+                            (slideOutVertically(spec) { height -> -height * direction } + fadeOut(tween(Motion.FADE_MS)))
+                    }.using(SizeTransform(clip = false))
                 },
+                label = "likeCount",
+            ) { count ->
+                Text(formatCompactCount(count), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
+            }
+        }
+        Box(
+            Modifier
+                .width(1.dp)
+                .height(20.dp)
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)),
         )
-        // Le compteur change avec un fondu vertical : il monte quand il augmente, descend sinon.
-        AnimatedContent(
-            targetState = stats.likeCount,
-            transitionSpec = {
-                if (reduceMotion) {
-                    fadeIn(tween(Motion.REDUCED_FADE_MS)) togetherWith fadeOut(tween(Motion.REDUCED_FADE_MS))
-                } else {
-                    val direction = if (targetState > initialState) 1 else -1
-                    val spec = tween<IntOffset>(Motion.FADE_MS, easing = Motion.Easing)
-                    (slideInVertically(spec) { height -> height * direction } + fadeIn(tween(Motion.FADE_MS))) togetherWith
-                        (slideOutVertically(spec) { height -> -height * direction } + fadeOut(tween(Motion.FADE_MS)))
-                }.using(SizeTransform(clip = false))
-            },
-            label = "likeCount",
-            modifier = Modifier.padding(start = 8.dp),
-        ) { count ->
-            Text(text = formatCompactCount(count))
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .clickable(onClick = onDislikeClick)
+                .padding(start = 12.dp, end = 14.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_dislike),
+                contentDescription = stringResource(R.string.watch_dislike),
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }
 
 private const val LIKE_BOUNCE_SCALE = 1.3f
 
-// Avatar et nom ouvrent la page de la chaîne ; le bouton S'abonner apparaît une fois l'état connu.
+// Bloc Commentaires replié : « Commentaires N » et le premier commentaire. Il ouvre la liste.
 @Composable
-private fun ChannelRow(
-    channel: Channel,
-    followState: FollowUiState?,
-    onChannelClick: () -> Unit,
-    onFollowClick: () -> Unit,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+private fun CommentsTeaser(state: CommentsUiState, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 12.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onClick)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .weight(1f)
-                .clickable(onClick = onChannelClick),
-        ) {
-            ChannelAvatar(channel, Modifier.size(36.dp))
-            Column {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = stringResource(R.string.comments_title),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            if (!state.isLoading && state.error == null) {
                 Text(
-                    text = channel.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    text = formatCompactCount(state.total),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (followState != null) {
-                    Text(
-                        text = formatFollowerCount(followState.followerCount),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
             }
         }
-        if (followState != null && followState.canFollow) {
-            FollowButton(state = followState, onClick = onFollowClick)
+        val first = state.comments.firstOrNull()
+        if (first != null) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                AuthorAvatar(first.author, size = 24.dp)
+                Text(
+                    text = first.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        } else if (!state.isLoading) {
+            Text(
+                text = stringResource(R.string.comments_placeholder),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
+    }
+}
+
+// Liste complète des commentaires, dans une feuille du bas (Material).
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CommentsSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(),
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+        ) {
+            content()
+        }
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0F0F0F, heightDp = 900)
+@Composable
+private fun WatchContentPreview() {
+    YoutubeCloneTheme {
+        val video = previewVideo("1", "Sintel, la bande-annonce du court métrage d'animation libre de la fondation Blender", "Studio Libre", 12_400, 3)
+        WatchContent(
+            detail = VideoDetail(
+                video = video,
+                description = "Une jeune femme part à la recherche de son dragon.",
+                videoUrl = null,
+                likeStatus = LikeStatus(likeCount = 780, isLiked = false),
+            ),
+            stats = LiveStats(viewCount = 12_400, likeCount = 780, isLiked = false),
+            followState = FollowUiState(followerCount = 15_800, isFollowing = false),
+            comments = CommentsUiState(
+                comments = listOf(
+                    Comment(
+                        id = "c1",
+                        videoId = "1",
+                        content = "Toujours aussi beau, des années après.",
+                        createdAt = Instant.now(),
+                        author = CommentAuthor(id = "a", displayName = "Camille", avatarUrl = null),
+                    ),
+                ),
+                total = 316,
+                isLoading = false,
+            ),
+            suggestions = listOf(
+                previewVideo("2", "Le ballet des méduses", "Studio Libre", 2_300, 7),
+                previewVideo("3", "Une demi-minute en ville", "Carnet de Route", 980, 12),
+            ),
+            player = { Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black)) },
+            onChannelClick = {},
+            onFollowClick = {},
+            onLikeClick = {},
+            onShareClick = {},
+            onUnavailableClick = {},
+            onCommentsClick = {},
+            onSuggestionClick = {},
+        )
     }
 }

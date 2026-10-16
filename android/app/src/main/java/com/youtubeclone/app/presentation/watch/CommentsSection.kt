@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
@@ -168,9 +169,9 @@ private fun CommentItem(comment: Comment) {
 
 // Photo de l'auteur, ou à défaut l'initiale de son nom.
 @Composable
-private fun AuthorAvatar(author: CommentAuthor) {
+internal fun AuthorAvatar(author: CommentAuthor, size: Dp = 32.dp) {
     val modifier = Modifier
-        .size(32.dp)
+        .size(size)
         .clip(CircleShape)
         .background(MaterialTheme.colorScheme.surfaceVariant)
     if (author.avatarUrl != null) {

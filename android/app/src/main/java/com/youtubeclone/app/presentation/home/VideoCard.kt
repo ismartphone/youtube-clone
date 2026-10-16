@@ -55,7 +55,7 @@ fun VideoCard(
     showChannelAvatar: Boolean = true,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Thumbnail(video)
+        VideoThumbnail(video, Modifier.fillMaxWidth())
         Row(
             modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -105,12 +105,12 @@ fun VideoCard(
     }
 }
 
-// Miniature 16/9 pleine largeur, durée en bas à droite sur fond noir translucide.
+// Miniature 16/9, durée en bas à droite sur fond noir translucide. La largeur vient de [modifier]
+// (pleine largeur dans le fil, colonne de gauche dans les vidéos suggérées).
 @Composable
-private fun Thumbnail(video: Video) {
+internal fun VideoThumbnail(video: Video, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .aspectRatio(16f / 9f)
             .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {

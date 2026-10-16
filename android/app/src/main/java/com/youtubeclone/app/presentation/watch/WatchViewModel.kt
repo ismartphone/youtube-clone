@@ -10,9 +10,11 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.LiveVideoEvent
+import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetCommentsUseCase
+import com.youtubeclone.app.domain.usecase.GetSuggestedVideosUseCase
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveLiveVideoUseCase
@@ -66,6 +68,7 @@ class WatchViewModel @Inject constructor(
     setFollowing: SetFollowingUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
     getComments: GetCommentsUseCase,
+    private val getSuggestedVideos: GetSuggestedVideosUseCase,
     postComment: PostCommentUseCase,
 ) : ViewModel() {
 
@@ -76,6 +79,10 @@ class WatchViewModel @Inject constructor(
 
     private val _stats = MutableStateFlow<LiveStats?>(null)
     val stats: StateFlow<LiveStats?> = _stats.asStateFlow()
+
+    // Vidéos suggérées sous la vidéo ; liste vide tant qu'elles ne sont pas chargées.
+    private val _suggestions = MutableStateFlow<List<Video>>(emptyList())
+    val suggestions: StateFlow<List<Video>> = _suggestions.asStateFlow()
 
     private val _errors = MutableSharedFlow<UiError>(extraBufferCapacity = 1)
     val errors: SharedFlow<UiError> = _errors.asSharedFlow()
@@ -125,6 +132,7 @@ class WatchViewModel @Inject constructor(
                 val detail = getVideoDetail(videoId)
                 detail.videoUrl?.let(::startPlayback)
                 showStats(detail)
+                loadSuggestions(detail.video)
                 loadFollowStatus(detail.video.channel.id)
                 WatchUiState.Success(detail)
             } catch (e: CancellationException) {
@@ -187,6 +195,19 @@ class WatchViewModel @Inject constructor(
             likeCount = detail.likeStatus.likeCount,
             isLiked = detail.likeStatus.isLiked,
         )
+    }
+
+    // Suggestions sous la vidéo. Un échec laisse simplement la liste vide : la lecture continue.
+    private fun loadSuggestions(current: Video) {
+        viewModelScope.launch {
+            _suggestions.value = try {
+                getSuggestedVideos(current)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
     }
 
     // Relit les compteurs sans relancer la lecture. Un échec garde les valeurs affichées.

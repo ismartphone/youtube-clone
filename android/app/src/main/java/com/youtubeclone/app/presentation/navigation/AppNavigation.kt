@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -145,7 +146,7 @@ fun AppNavigation() {
             }
             composable<LibraryRoute> { LibraryScreen() }
             composable<WatchRoute> {
-                WatchScreen(onChannelClick = openChannel, onLoginRequired = openLogin)
+                WatchScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginRequired = openLogin)
             }
             composable<ChannelRoute> {
                 ChannelScreen(onVideoClick = openVideo, onLoginRequired = openLogin)
@@ -216,5 +217,6 @@ private fun TabIcon(tab: Tab, selected: Boolean) {
 @Composable
 private fun TabLabel(tab: Tab, selected: Boolean) {
     val color by tabColor(selected)
-    Text(stringResource(tab.label), color = color)
+    // Une seule ligne : un libellé trop long est tronqué plutôt que de décaler la barre.
+    Text(stringResource(tab.label), color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }

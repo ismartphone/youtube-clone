@@ -62,6 +62,14 @@
     <string name="watch_like">J\'aime</string>
     <string name="watch_liked">Aimée</string>
     <string name="watch_not_liked">Pas encore aimée</string>
+    <string name="watch_dislike">Je n\'aime pas</string>
+    <string name="watch_share">Partager</string>
+    <string name="watch_share_chooser">Partager la vidéo</string>
+    <string name="watch_download">Télécharger</string>
+    <string name="watch_save">Enregistrer</string>
+    <string name="watch_soon">Bientôt disponible</string>
+    <string name="watch_more">…plus</string>
+    <string name="watch_less">Moins</string>
 
     <string name="comments_title">Commentaires</string>
     <string name="comments_placeholder">Ajouter un commentaire…</string>
