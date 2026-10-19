@@ -3,6 +3,7 @@ package com.youtubeclone.app.data.repository
 import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.apiCall
 import com.youtubeclone.app.data.remote.dto.toDomain
+import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.domain.model.FollowChange
 import com.youtubeclone.app.domain.model.FollowStatus
@@ -24,6 +25,9 @@ class ChannelRepositoryImpl @Inject constructor(
 
     override suspend fun getChannelPage(channelId: String): ChannelPage =
         apiCall(json) { api.getChannel(channelId) }.toDomain()
+
+    override suspend fun getOwnChannel(): Channel? =
+        apiCall(json) { api.getOwnChannel() }.channel?.toDomain()
 
     override suspend fun setFollowing(channelId: String, follow: Boolean): FollowStatus {
         val status = apiCall(json) {

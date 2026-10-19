@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -29,6 +30,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
@@ -36,6 +38,8 @@ import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
 import com.youtubeclone.app.presentation.library.LibraryScreen
+import com.youtubeclone.app.presentation.profile.YouList
+import com.youtubeclone.app.presentation.profile.YouListScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
 import com.youtubeclone.app.presentation.subscriptions.SubscriptionsScreen
@@ -56,6 +60,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object SubscriptionsRoute
 @Serializable data class WatchRoute(val videoId: String)
 @Serializable data class ChannelRoute(val channelId: String)
+// Nom d'une valeur de YouList : historique, vidéos aimées ou vos vidéos.
+@Serializable data class YouListRoute(val list: String)
 
 private val FULL_SCREEN_ROUTES = listOf(
     WatchRoute::class,
@@ -156,7 +162,13 @@ fun AppNavigation() {
                     onLoginClick = { navController.navigate(LoginRoute) },
                     onRegisterClick = { navController.navigate(RegisterRoute) },
                     onEditInterests = { navController.navigate(InterestsRoute) },
+                    onChannelClick = openChannel,
+                    onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
+                    onSubscriptionsClick = { openTab(SubscriptionsRoute) },
                 )
+            }
+            composable<YouListRoute> { entry ->
+                YouListScreen(list = YouList.valueOf(entry.toRoute<YouListRoute>().list))
             }
             // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
             // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute).
@@ -217,6 +229,13 @@ private fun TabIcon(tab: Tab, selected: Boolean) {
 @Composable
 private fun TabLabel(tab: Tab, selected: Boolean) {
     val color by tabColor(selected)
-    // Une seule ligne : un libellé trop long est tronqué plutôt que de décaler la barre.
-    Text(stringResource(tab.label), color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    // 10sp : « Abonnements » tient entier. Une seule ligne, tronquée en dernier recours
+    // (police agrandie dans les réglages d'accessibilité).
+    Text(
+        text = stringResource(tab.label),
+        color = color,
+        fontSize = 10.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }

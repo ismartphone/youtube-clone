@@ -45,10 +45,26 @@
     <string name="register_submit">Créer mon compte</string>
     <string name="register_to_login">Déjà un compte ? Se connecter</string>
 
-    <string name="you_logged_out_title">Vous n\'êtes pas connecté</string>
-    <string name="you_logged_out_message">Connectez-vous pour retrouver votre profil.</string>
+    <string name="you_logged_out_title">Profitez de vos vidéos préférées</string>
+    <string name="you_logged_out_message">Connectez-vous pour retrouver votre historique, vos vidéos aimées et vos abonnements.</string>
     <string name="you_create_account">Créer un compte</string>
     <string name="you_logout">Se déconnecter</string>
+    <string name="you_view_channel">Voir la chaîne</string>
+    <string name="you_history">Historique</string>
+    <string name="you_your_videos">Vos vidéos</string>
+    <string name="you_liked_videos">Vidéos aimées</string>
+    <string name="you_playlists">Playlists</string>
+    <string name="you_playlists_empty_title">Aucune playlist</string>
+    <string name="you_playlists_empty_message">Vos playlists apparaîtront ici.</string>
+    <string name="you_settings">Paramètres</string>
+    <string name="you_help">Aide</string>
+    <string name="you_soon">Bientôt disponible</string>
+    <string name="you_history_empty_title">Votre historique arrive bientôt</string>
+    <string name="you_history_empty_message">Les vidéos que vous regardez apparaîtront ici.</string>
+    <string name="you_liked_empty_title">Vos vidéos aimées arrivent bientôt</string>
+    <string name="you_liked_empty_message">Les vidéos que vous aimez apparaîtront ici.</string>
+    <string name="you_videos_empty_title">Vous n\'avez pas encore de chaîne</string>
+    <string name="you_videos_empty_message">Les vidéos de votre chaîne apparaîtront ici.</string>
 
 
     <string name="channel_follow">S\'abonner</string>

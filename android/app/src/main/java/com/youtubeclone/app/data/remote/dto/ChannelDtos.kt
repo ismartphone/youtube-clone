@@ -26,6 +26,11 @@ data class ChannelPageDto(
     val videos: List<VideoSummaryDto>,
 )
 
+@Serializable
+data class OwnChannelDto(
+    val channel: ChannelSummaryDto? = null,
+)
+
 fun FollowStatusDto.toDomain() = FollowStatus(followerCount = followerCount, isFollowing = isFollowing)
 
 fun ChannelPageDto.toDomain() = ChannelPage(

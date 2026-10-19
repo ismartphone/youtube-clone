@@ -2,8 +2,10 @@ package com.youtubeclone.app.presentation.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
+import com.youtubeclone.app.domain.usecase.GetOwnChannelUseCase
 import com.youtubeclone.app.domain.usecase.LogoutUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
@@ -12,6 +14,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,13 +24,15 @@ sealed interface YouUiState {
     data object Loading : YouUiState
     data object LoggedOut : YouUiState
     data class Error(val error: UiError) : YouUiState
-    data class LoggedIn(val user: User) : YouUiState
+    /** [channel] : chaîne de l'utilisateur, null s'il n'en a pas (ou si elle n'a pas pu être lue). */
+    data class LoggedIn(val user: User, val channel: Channel?) : YouUiState
 }
 
 @HiltViewModel
 class YouViewModel @Inject constructor(
     observeSession: ObserveSessionUseCase,
     private val getCurrentUser: GetCurrentUserUseCase,
+    private val getOwnChannel: GetOwnChannelUseCase,
     private val logout: LogoutUseCase,
 ) : ViewModel() {
 
@@ -49,11 +54,23 @@ class YouViewModel @Inject constructor(
         loadJob?.cancel()
         _uiState.value = YouUiState.Loading
         loadJob = viewModelScope.launch {
+            // La chaîne est lue en parallèle du profil. Son échec ne bloque pas l'onglet :
+            // le lien « Voir la chaîne » est simplement masqué.
+            val channel = async {
+                try {
+                    getOwnChannel()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    null
+                }
+            }
             _uiState.value = try {
-                YouUiState.LoggedIn(getCurrentUser())
+                YouUiState.LoggedIn(getCurrentUser(), channel.await())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                channel.cancel()
                 YouUiState.Error(e.toUiError())
             }
         }

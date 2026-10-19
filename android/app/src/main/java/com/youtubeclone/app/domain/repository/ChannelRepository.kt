@@ -1,5 +1,6 @@
 package com.youtubeclone.app.domain.repository
 
+import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.domain.model.FollowChange
 import com.youtubeclone.app.domain.model.FollowStatus
@@ -11,6 +12,9 @@ interface ChannelRepository {
     val followChanges: Flow<FollowChange>
 
     suspend fun getChannelPage(channelId: String): ChannelPage
+
+    /** Chaîne de l'utilisateur connecté, ou null s'il n'en a pas. Exige une session ouverte. */
+    suspend fun getOwnChannel(): Channel?
 
     /** S'abonne (true) ou se désabonne (false). Exige une session ouverte. */
     suspend fun setFollowing(channelId: String, follow: Boolean): FollowStatus
