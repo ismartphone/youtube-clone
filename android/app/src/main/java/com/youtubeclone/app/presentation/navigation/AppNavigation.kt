@@ -15,6 +15,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -85,9 +86,16 @@ private enum class Tab(
     You(YouRoute, YouRoute::class, R.string.tab_you, R.drawable.ic_tab_you),
 }
 
+/** [openLoginAtStart] : ouvre la connexion au-dessus du fil d'accueil, puis appelle [onLoginOpened]. */
 @Composable
-fun AppNavigation() {
+fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit = {}) {
     val navController = rememberNavController()
+    LaunchedEffect(openLoginAtStart) {
+        if (openLoginAtStart) {
+            navController.navigate(LoginRoute)
+            onLoginOpened()
+        }
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
     // L'écran de lecture et les formulaires de compte occupent tout l'écran, sans barre d'onglets.
@@ -183,6 +191,8 @@ fun AppNavigation() {
                     onRegisterClick = {
                         navController.navigate(RegisterRoute) { popUpTo<LoginRoute> { inclusive = true } }
                     },
+                    // Visiteur : retour à l'écran d'où venait la demande, ou au fil d'accueil.
+                    onContinueAsVisitor = { navController.popBackStack() },
                 )
             }
             composable<RegisterRoute> {
@@ -191,6 +201,7 @@ fun AppNavigation() {
                     onLoginClick = {
                         navController.navigate(LoginRoute) { popUpTo<RegisterRoute> { inclusive = true } }
                     },
+                    onContinueAsVisitor = { navController.popBackStack() },
                 )
             }
             composable<InterestsRoute> {

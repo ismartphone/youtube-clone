@@ -78,11 +78,8 @@ class InterestsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Enregistre la sélection, même vide : le choix est facultatif. Au premier lancement,
-     * marque aussi l'écran d'accueil comme vu ; l'application passe alors au fil d'accueil.
-     */
-    fun save(completesOnboarding: Boolean) {
+    /** Enregistre la sélection, même vide : le choix est facultatif. */
+    fun save() {
         val current = _uiState.value
         if (current.isSaving) return
         // Une catégorie supprimée depuis le dernier choix n'est pas conservée.
@@ -90,7 +87,7 @@ class InterestsViewModel @Inject constructor(
         val selected = if (known != null) current.selected intersect known else current.selected
         _uiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
-            saveInterests(selected, completesOnboarding)
+            saveInterests(selected)
             _uiState.update { it.copy(isSaving = false, isSaved = true) }
         }
     }

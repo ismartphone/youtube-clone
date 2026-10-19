@@ -13,8 +13,8 @@ interface PreferencesRepository {
     /** Identifiants des catégories choisies comme centres d'intérêt, éventuellement vide. */
     val interests: Flow<Set<String>>
 
-    /** Enregistre les centres d'intérêt et marque l'écran d'accueil comme vu, en une seule écriture. */
-    suspend fun completeOnboarding(interests: Set<String>)
+    /** Marque l'écran d'accueil comme vu. */
+    suspend fun completeOnboarding()
 
     suspend fun setInterests(interests: Set<String>)
 }

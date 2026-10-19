@@ -25,12 +25,17 @@ fun AppRoot(viewModel: AppStartViewModel = hiltViewModel()) {
     val isAppReady by viewModel.isAppReady.collectAsStateWithLifecycle()
     // Jouée une fois par lancement : ni une rotation ni un retour de l'arrière-plan ne la rejouent.
     var openingDone by rememberSaveable { mutableStateOf(false) }
+    // « Se connecter » sur l'écran d'accueil : la connexion s'ouvre au-dessus du fil, une seule fois.
+    var loginRequested by rememberSaveable { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
         when (state) {
             AppStartState.Loading -> Unit // préférences en cours de lecture, sous l'animation
-            AppStartState.Onboarding -> OnboardingScreen()
-            AppStartState.Ready -> AppNavigation()
+            AppStartState.Onboarding -> OnboardingScreen(onLoginClick = { loginRequested = true })
+            AppStartState.Ready -> AppNavigation(
+                openLoginAtStart = loginRequested,
+                onLoginOpened = { loginRequested = false },
+            )
         }
         if (!openingDone) {
             OpeningAnimation(isAppReady = isAppReady, onFinished = { openingDone = true })

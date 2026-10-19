@@ -1,7 +1,6 @@
 package com.youtubeclone.app.presentation.onboarding
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -26,34 +24,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
-import com.youtubeclone.app.presentation.common.AppLogo
 import com.youtubeclone.app.presentation.common.asText
 
-
-/** Écran d'accueil du tout premier lancement. « Commencer » l'enregistre comme vu. */
-@Composable
-fun OnboardingScreen(viewModel: InterestsViewModel = hiltViewModel()) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    InterestsContent(
-        state = state,
-        title = R.string.onboarding_title,
-        message = R.string.onboarding_message,
-        footer = R.string.onboarding_footer,
-        submitLabel = R.string.onboarding_start,
-        onToggle = viewModel::toggle,
-        onRetry = viewModel::loadCategories,
-        onSubmit = { viewModel.save(completesOnboarding = true) },
-        showLogo = true,
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.background)
-            .safeDrawingPadding(),
-    )
-}
 
 /** Modification des centres d'intérêt, depuis l'onglet « Vous ». */
 @Composable
@@ -70,12 +46,10 @@ fun InterestsScreen(
         state = state,
         title = R.string.interests_title,
         message = R.string.interests_message,
-        footer = null,
         submitLabel = R.string.interests_save,
         onToggle = viewModel::toggle,
         onRetry = viewModel::loadCategories,
-        onSubmit = { viewModel.save(completesOnboarding = false) },
-        showLogo = false,
+        onSubmit = viewModel::save,
         modifier = modifier,
     )
 }
@@ -85,12 +59,10 @@ private fun InterestsContent(
     state: InterestsUiState,
     @StringRes title: Int,
     @StringRes message: Int,
-    @StringRes footer: Int?,
     @StringRes submitLabel: Int,
     onToggle: (String) -> Unit,
     onRetry: () -> Unit,
     onSubmit: () -> Unit,
-    showLogo: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -101,7 +73,6 @@ private fun InterestsContent(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (showLogo) AppLogo()
             Text(
                 text = stringResource(title),
                 style = MaterialTheme.typography.headlineMedium,
@@ -115,28 +86,15 @@ private fun InterestsContent(
             CategoryChips(state, onToggle, onRetry)
         }
         // Bouton toujours visible en bas, même avec beaucoup de catégories.
-        Column(
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Button(
+            onClick = onSubmit,
+            enabled = !state.isSaving,
+            modifier = Modifier
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .fillMaxWidth()
+                .height(48.dp),
         ) {
-            footer?.let {
-                Text(
-                    text = stringResource(it),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            Button(
-                onClick = onSubmit,
-                enabled = !state.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-            ) {
-                Text(stringResource(submitLabel))
-            }
+            Text(stringResource(submitLabel))
         }
     }
 }

@@ -44,6 +44,7 @@
     <string name="register_title">Créer un compte</string>
     <string name="register_submit">Créer mon compte</string>
     <string name="register_to_login">Déjà un compte ? Se connecter</string>
+    <string name="auth_continue_as_visitor">Continuer sans compte</string>
 
     <string name="you_logged_out_title">Profitez de vos vidéos préférées</string>
     <string name="you_logged_out_message">Connectez-vous pour retrouver votre historique, vos vidéos aimées et vos abonnements.</string>
@@ -96,9 +97,7 @@
     <string name="comments_empty">Aucun commentaire pour le moment.</string>
     <string name="comments_load_more">Afficher plus de commentaires</string>
 
-    <string name="onboarding_title">Bienvenue</string>
-    <string name="onboarding_message">Choisissez ce qui vous intéresse : les vidéos de ces catégories apparaîtront en premier dans votre fil d\'accueil. C\'est facultatif.</string>
-    <string name="onboarding_footer">Vous pourrez modifier ces choix dans l\'onglet « Vous ».</string>
+    <string name="onboarding_tagline">Vidéos, Shorts et chaînes : regardez ce qui vous plaît, avec ou sans compte.</string>
     <string name="onboarding_start">Commencer</string>
     <string name="interests_title">Centres d\'intérêt</string>
     <string name="interests_message">Les vidéos de ces catégories apparaissent en premier dans votre fil d\'accueil.</string>

@@ -37,11 +37,8 @@ class PreferencesRepositoryImpl @Inject constructor(
     override val interests: Flow<Set<String>> =
         preferences.map { it[INTERESTS] ?: emptySet() }.distinctUntilChanged()
 
-    override suspend fun completeOnboarding(interests: Set<String>) {
-        dataStore.edit {
-            it[INTERESTS] = interests
-            it[ONBOARDING_COMPLETED] = true
-        }
+    override suspend fun completeOnboarding() {
+        dataStore.edit { it[ONBOARDING_COMPLETED] = true }
     }
 
     override suspend fun setInterests(interests: Set<String>) {
