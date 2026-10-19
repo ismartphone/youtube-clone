@@ -15,3 +15,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-009](ADR-009-stockage-tokens-backoffice.md) | Stockage des tokens du back-office en localStorage | Accepté |
 | [ADR-010](ADR-010-websocket-salles-compteurs.md) | Authentification, salles par vidéo et diffusion des compteurs sur la connexion WebSocket | Accepté |
 | [ADR-011](ADR-011-ffmpeg-chemins-medias.md) | FFmpeg en dépendance système et chemins relatifs pour les fichiers hébergés | Accepté |
+
