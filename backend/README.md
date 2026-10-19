@@ -31,7 +31,7 @@
 $ npm install
 ```
 
-Après un clone, lancer `npm run seed:videos` : les vidéos de démonstration du seed sont hébergées dans `storage/` (non versionné), cette commande les télécharge depuis Pexels, les vérifie et les réencode (FFmpeg requis).
+Après un clone, lancer `npm run seed:videos` : les vidéos de démonstration du seed sont hébergées dans `storage/` (non versionné), cette commande les télécharge depuis Pexels, les vérifie et les réencode (FFmpeg requis). Lancer ensuite `npm run seed:banners`, qui tire de ces vidéos les bannières des chaînes du seed.
 
 ## Compile and run the project
 

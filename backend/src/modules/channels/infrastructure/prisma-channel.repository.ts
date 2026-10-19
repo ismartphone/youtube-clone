@@ -13,6 +13,7 @@ const CHANNEL_SUMMARY_SELECT = {
   name: true,
   handle: true,
   avatarUrl: true,
+  bannerUrl: true,
 } satisfies Prisma.ChannelSelect;
 
 // Code Prisma d'une violation de contrainte d'unicité.
@@ -100,6 +101,18 @@ export class PrismaChannelRepository implements ChannelRepository {
       select: { channel: { select: CHANNEL_SUMMARY_SELECT } },
     });
     return follows.map((follow) => follow.channel);
+  }
+
+  async updateBanner(
+    channelId: string,
+    bannerUrl: string | null,
+  ): Promise<ChannelSummary | null> {
+    const [channel] = await this.prisma.channel.updateManyAndReturn({
+      where: { id: channelId },
+      data: { bannerUrl },
+      select: CHANNEL_SUMMARY_SELECT,
+    });
+    return channel ?? null;
   }
 
   findAll(): Promise<ChannelSummary[]> {

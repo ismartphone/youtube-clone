@@ -179,7 +179,7 @@ private fun ChannelHeader(
         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Banner()
+        Banner(page.bannerUrl)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -213,16 +213,26 @@ private fun ChannelHeader(
     }
 }
 
-// Le modèle de données ne prévoit pas de bannière de chaîne : la place est tenue par un aplat sobre.
+// Bannière de la chaîne, recadrée au format du bandeau. Sans bannière (ou tant qu'elle se charge),
+// la place est tenue par un aplat sobre.
 @Composable
-private fun Banner() {
+private fun Banner(bannerUrl: String?) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(BANNER_RATIO)
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant),
-    )
+    ) {
+        if (bannerUrl != null) {
+            AsyncImage(
+                model = bannerUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+    }
 }
 
 private const val BANNER_RATIO = 3.6f
@@ -344,6 +354,7 @@ private fun TabEmptyState(tab: ChannelTab) {
 
 private fun previewChannelPage(videos: List<Video>) = ChannelPage(
     channel = Channel(id = "c", name = "Studio Libre", handle = "studiolibre", avatarUrl = null),
+    bannerUrl = null,
     description = "Courts métrages d'animation libres, making-of et extraits en haute définition. " +
         "Une nouvelle vidéo chaque semaine, et des Shorts entre deux.",
     followStatus = FollowStatus(followerCount = 15_800, isFollowing = false),

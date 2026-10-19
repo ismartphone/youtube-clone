@@ -85,6 +85,7 @@ export class PrismaVideoRepository implements VideoRepository {
       select: {
         ...CHANNEL_SUMMARY_SELECT,
         description: true,
+        bannerUrl: true,
         createdAt: true,
         videos: {
           select: VIDEO_SELECT,

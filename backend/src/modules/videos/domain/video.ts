@@ -33,6 +33,7 @@ export interface Video {
 
 export interface Channel extends ChannelSummary {
   description: string | null;
+  bannerUrl: string | null;
   createdAt: Date;
   videos: Video[];
 }

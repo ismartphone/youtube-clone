@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Tableau de bord" },
   { href: "/videos", label: "Vidéos" },
   { href: "/categories", label: "Catégories" },
+  { href: "/channels", label: "Chaînes" },
 ];
 
 /** Cadre des pages d'administration : navigation, administrateur connecté, déconnexion. */

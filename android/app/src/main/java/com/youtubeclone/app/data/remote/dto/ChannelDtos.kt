@@ -1,5 +1,6 @@
 package com.youtubeclone.app.data.remote.dto
 
+import com.youtubeclone.app.data.remote.resolveMediaUrl
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.domain.model.FollowStatus
@@ -19,6 +20,7 @@ data class ChannelPageDto(
     val name: String,
     val handle: String,
     val avatarUrl: String? = null,
+    val bannerUrl: String? = null,
     val description: String? = null,
     val followerCount: Int,
     val isFollowing: Boolean,
@@ -35,6 +37,7 @@ fun FollowStatusDto.toDomain() = FollowStatus(followerCount = followerCount, isF
 
 fun ChannelPageDto.toDomain() = ChannelPage(
     channel = Channel(id = id, name = name, handle = handle, avatarUrl = avatarUrl),
+    bannerUrl = bannerUrl?.let(::resolveMediaUrl),
     description = description,
     followStatus = FollowStatus(followerCount = followerCount, isFollowing = isFollowing),
     isOwner = isOwner,

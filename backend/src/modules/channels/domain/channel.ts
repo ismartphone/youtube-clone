@@ -5,6 +5,7 @@ export interface ChannelSummary {
   name: string;
   handle: string;
   avatarUrl: string | null;
+  bannerUrl: string | null;
 }
 
 export interface NewChannel {

@@ -21,4 +21,6 @@ export interface ChannelRepository {
   findFollowedBy(userId: string): Promise<ChannelSummary[]>;
   // Toutes les chaînes, par nom (choix de la chaîne d'une vidéo dans le back-office).
   findAll(): Promise<ChannelSummary[]>;
+  // null efface la bannière. Renvoie null si la chaîne n'existe pas.
+  updateBanner(channelId: string, bannerUrl: string | null): Promise<ChannelSummary | null>;
 }

@@ -40,6 +40,11 @@ export function listChannels(): Promise<ChannelSummary[]> {
   return apiRequest("/admin/channels");
 }
 
+// null efface la bannière.
+export function updateChannelBanner(id: string, bannerUrl: string | null): Promise<ChannelSummary> {
+  return apiRequest(`/admin/channels/${encodeURIComponent(id)}`, { method: "PATCH", body: { bannerUrl } });
+}
+
 export function listCategories(): Promise<CategoryWithCount[]> {
   return apiRequest("/admin/categories");
 }

@@ -8,6 +8,7 @@ import {
   Role,
   VideoFormat,
 } from '../src/generated/prisma/client.js';
+import { seedBannerUrl } from './seed-banners.js';
 import { LOCAL_SEED_VIDEOS, localVideoUrl } from './seed-videos.js';
 
 const prisma = new PrismaClient({
@@ -67,6 +68,7 @@ async function main() {
           name: 'Studio Libre',
           handle: 'studiolibre',
           description: "Extraits de films d'animation sous licence libre.",
+          bannerUrl: seedBannerUrl('studiolibre'),
         },
       },
     },
@@ -84,6 +86,7 @@ async function main() {
           name: 'Carnet de Route',
           handle: 'carnetderoute',
           description: 'Balades en ville et en pleine nature.',
+          bannerUrl: seedBannerUrl('carnetderoute'),
         },
       },
     },

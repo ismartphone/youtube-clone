@@ -51,6 +51,8 @@ model Channel {
   handle      String   @unique
   description String?
   avatarUrl   String?
+  // Bannière en haut de la page de chaîne : URL ou chemin relatif (/media/banners/...).
+  bannerUrl   String?
   createdAt   DateTime @default(now())
 
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)

@@ -14,6 +14,7 @@ export function presentChannelSummary(channel: ChannelSummary) {
     name: channel.name,
     handle: channel.handle,
     avatarUrl: channel.avatarUrl,
+    bannerUrl: channel.bannerUrl,
   };
 }
 

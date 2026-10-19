@@ -8,6 +8,7 @@ import { GetFollowStatusUseCase } from './application/get-follow-status.use-case
 import { GetOwnChannelUseCase } from './application/get-own-channel.use-case.js';
 import { ListChannelsUseCase } from './application/list-channels.use-case.js';
 import { ListSubscriptionsUseCase } from './application/list-subscriptions.use-case.js';
+import { UpdateChannelBannerUseCase } from './application/update-channel-banner.use-case.js';
 import { CHANNEL_REPOSITORY, type ChannelRepository } from './domain/ports.js';
 import { PrismaChannelRepository } from './infrastructure/prisma-channel.repository.js';
 import { AdminChannelsController } from './interfaces/http/admin-channels.controller.js';
@@ -22,6 +23,7 @@ const USE_CASES = [
   ListSubscriptionsUseCase,
   ListChannelsUseCase,
   GetOwnChannelUseCase,
+  UpdateChannelBannerUseCase,
 ];
 
 @Module({
