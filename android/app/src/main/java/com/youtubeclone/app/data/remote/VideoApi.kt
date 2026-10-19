@@ -37,4 +37,17 @@ interface VideoApi {
         @Query("page") page: Int,
         @Query("pageSize") pageSize: Int,
     ): VideoPageDto
+
+    // Routes protégées : de la vidéo regardée, ou aimée, le plus récemment à la plus ancienne.
+    @GET("me/history")
+    suspend fun getWatchHistory(
+        @Query("page") page: Int,
+        @Query("pageSize") pageSize: Int,
+    ): VideoPageDto
+
+    @GET("me/liked")
+    suspend fun getLikedVideos(
+        @Query("page") page: Int,
+        @Query("pageSize") pageSize: Int,
+    ): VideoPageDto
 }

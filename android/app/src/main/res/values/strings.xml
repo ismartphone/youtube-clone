@@ -53,16 +53,13 @@
     <string name="you_history">Historique</string>
     <string name="you_your_videos">Vos vidéos</string>
     <string name="you_liked_videos">Vidéos aimées</string>
-    <string name="you_playlists">Playlists</string>
-    <string name="you_playlists_empty_title">Aucune playlist</string>
-    <string name="you_playlists_empty_message">Vos playlists apparaîtront ici.</string>
     <string name="you_settings">Paramètres</string>
     <string name="you_help">Aide</string>
     <string name="you_soon">Bientôt disponible</string>
-    <string name="you_history_empty_title">Votre historique arrive bientôt</string>
+    <string name="you_history_empty_title">Aucune vidéo regardée</string>
     <string name="you_history_empty_message">Les vidéos que vous regardez apparaîtront ici.</string>
-    <string name="you_liked_empty_title">Vos vidéos aimées arrivent bientôt</string>
-    <string name="you_liked_empty_message">Les vidéos que vous aimez apparaîtront ici.</string>
+    <string name="you_liked_empty_title">Aucune vidéo aimée</string>
+    <string name="you_liked_empty_message">Appuyez sur J\'aime sous une vidéo pour la retrouver ici.</string>
     <string name="you_videos_empty_title">Vous n\'avez pas encore de chaîne</string>
     <string name="you_videos_empty_message">Les vidéos de votre chaîne apparaîtront ici.</string>
 

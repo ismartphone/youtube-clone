@@ -53,8 +53,9 @@ import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
 // Onglet « Vous » d'après les maquettes (android/maquettes/profil-02, -05 et -13, captures iOS) :
-// en-tête du compte, raccourcis, playlists, puis réglages. Un visiteur voit une invitation à se
-// connecter à la place de l'en-tête. On reprend la mise en page, avec les conventions Material.
+// en-tête du compte, raccourcis, puis réglages. Un visiteur voit une invitation à se connecter
+// à la place de l'en-tête. On reprend la mise en page, avec les conventions Material.
+// Les playlists des maquettes sont hors périmètre (CLAUDE.md) : pas de section.
 
 /** Actions de l'onglet, regroupées pour garder des signatures lisibles. */
 class YouActions(
@@ -129,9 +130,6 @@ private fun YouContent(user: User?, channel: Channel?, actions: YouActions, modi
                 onLiked = { openList(YouList.Liked) },
                 onSubscriptions = actions.onSubscriptionsClick,
             )
-        }
-        if (user != null) {
-            item(key = "playlists") { PlaylistsSection() }
         }
         item(key = "settings") { SettingsList(isLoggedIn = user != null, actions = actions) }
     }
@@ -308,32 +306,6 @@ private fun Shortcuts(
                 )
             }
         }
-    }
-}
-
-// Les playlists sont hors périmètre (CLAUDE.md) : la section garde sa place dans la mise en page,
-// avec un état vide.
-@Composable
-private fun PlaylistsSection() {
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.you_playlists),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        EmptyStateMessage(
-            icon = R.drawable.ic_playlist,
-            title = stringResource(R.string.you_playlists_empty_title),
-            message = stringResource(R.string.you_playlists_empty_message),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(vertical = 24.dp, horizontal = 16.dp),
-        )
     }
 }
 

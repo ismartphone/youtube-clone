@@ -30,7 +30,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
@@ -38,7 +37,6 @@ import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
 import com.youtubeclone.app.presentation.library.LibraryScreen
-import com.youtubeclone.app.presentation.profile.YouList
 import com.youtubeclone.app.presentation.profile.YouListScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
@@ -167,9 +165,7 @@ fun AppNavigation() {
                     onSubscriptionsClick = { openTab(SubscriptionsRoute) },
                 )
             }
-            composable<YouListRoute> { entry ->
-                YouListScreen(list = YouList.valueOf(entry.toRoute<YouListRoute>().list))
-            }
+            composable<YouListRoute> { YouListScreen(onVideoClick = openVideo) }
             // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
             // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute).
             composable<LoginRoute> {
