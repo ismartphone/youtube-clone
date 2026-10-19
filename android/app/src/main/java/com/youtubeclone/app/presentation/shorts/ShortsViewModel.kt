@@ -10,11 +10,20 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
+import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
+import com.youtubeclone.app.domain.usecase.GetCommentsUseCase
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
 import com.youtubeclone.app.domain.usecase.GetVideosUseCase
+import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
+import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
+import com.youtubeclone.app.domain.usecase.PostCommentUseCase
 import com.youtubeclone.app.domain.usecase.RecordViewUseCase
+import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
+import com.youtubeclone.app.domain.usecase.SetLikedUseCase
+import com.youtubeclone.app.presentation.channel.FollowController
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
+import com.youtubeclone.app.presentation.watch.CommentsController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -22,8 +31,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -44,12 +56,27 @@ data class ShortsPlayback(
     val blockedReason: UiError? = null,
 )
 
+/** « J'aime » d'un Short, connu une fois son détail chargé. */
+data class ShortLikes(
+    val likeCount: Int,
+    val isLiked: Boolean,
+    /** Appel en cours : le bouton ignore les nouveaux appuis. */
+    val isPending: Boolean = false,
+)
+
 @HiltViewModel
 class ShortsViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val getVideos: GetVideosUseCase,
     private val getVideoDetail: GetVideoDetailUseCase,
     private val recordView: RecordViewUseCase,
+    private val setLiked: SetLikedUseCase,
+    private val getChannelPage: GetChannelPageUseCase,
+    private val getComments: GetCommentsUseCase,
+    private val postComment: PostCommentUseCase,
+    observeSession: ObserveSessionUseCase,
+    setFollowing: SetFollowingUseCase,
+    observeFollowChanges: ObserveFollowChangesUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ShortsUiState>(ShortsUiState.Loading)
@@ -57,6 +84,25 @@ class ShortsViewModel @Inject constructor(
 
     private val _playback = MutableStateFlow(ShortsPlayback())
     val playback: StateFlow<ShortsPlayback> = _playback.asStateFlow()
+
+    // « J'aime » par identifiant de vidéo, remplis au chargement des détails.
+    private val _likes = MutableStateFlow<Map<String, ShortLikes>>(emptyMap())
+    val likes: StateFlow<Map<String, ShortLikes>> = _likes.asStateFlow()
+
+    // Commentaires du Short visible : un contrôleur neuf à chaque changement de page.
+    private val _comments = MutableStateFlow<CommentsController?>(null)
+    val comments: StateFlow<CommentsController?> = _comments.asStateFlow()
+
+    // Bouton S'abonner : [follow] décrit la chaîne [followChannelId], null tant qu'elle n'est pas lue.
+    val follow = FollowController(viewModelScope, setFollowing, observeFollowChanges)
+    private val _followChannelId = MutableStateFlow<String?>(null)
+    val followChannelId: StateFlow<String?> = _followChannelId.asStateFlow()
+
+    private val _isLoggedIn = MutableStateFlow(false)
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+
+    private val _errors = MutableSharedFlow<UiError>(extraBufferCapacity = 1)
+    val errors: SharedFlow<UiError> = _errors.asSharedFlow()
 
     // Un seul lecteur pour toutes les pages, qui n'existe que lorsque l'onglet est affiché :
     // il est libéré quand on change d'onglet, puis recréé au retour.
@@ -73,9 +119,20 @@ class ShortsViewModel @Inject constructor(
     private val details = mutableMapOf<String, Deferred<VideoDetail>>()
     private val viewedIds = mutableSetOf<String>()
     private var playJob: Job? = null
+    private var followJob: Job? = null
 
     init {
         load()
+        // Connexion ou déconnexion : les états propres à l'utilisateur (j'aime, abonnement)
+        // sont relus pour le Short visible, sans relancer la lecture.
+        viewModelScope.launch {
+            var first = true
+            observeSession().collect { loggedIn ->
+                _isLoggedIn.value = loggedIn
+                if (!first) refreshUserState()
+                first = false
+            }
+        }
     }
 
     fun load() {
@@ -105,6 +162,9 @@ class ShortsViewModel @Inject constructor(
 
         _playback.value = ShortsPlayback(page = page)
         recordViewOnce(video.id)
+        _comments.value = CommentsController(viewModelScope, video.id, getComments, postComment)
+            .also { it.loadFirstPage() }
+        loadFollowStatus(video.channel.id)
 
         playJob?.cancel()
         currentUrl = null
@@ -129,6 +189,24 @@ class ShortsViewModel @Inject constructor(
             }
             // Préchargement du détail suivant, pour un glissement plus fluide.
             videos.getOrNull(page + 1)?.let { detailOf(it.id) }
+        }
+    }
+
+    /** Même route que l'écran de lecture. À n'appeler qu'avec une session ouverte. */
+    fun toggleLike(videoId: String) {
+        val current = _likes.value[videoId] ?: return
+        if (current.isPending) return
+        _likes.update { it + (videoId to current.copy(isPending = true)) }
+        viewModelScope.launch {
+            try {
+                val status = setLiked(videoId, like = !current.isLiked)
+                _likes.update { it + (videoId to ShortLikes(status.likeCount, status.isLiked)) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _likes.update { it + (videoId to current) }
+                _errors.tryEmit(e.toUiError())
+            }
         }
     }
 
@@ -175,11 +253,45 @@ class ShortsViewModel @Inject constructor(
 
     private fun detailOf(id: String): Deferred<VideoDetail> =
         details.getOrPut(id) {
-            viewModelScope.async { getVideoDetail(id) }.also { deferred ->
+            viewModelScope.async {
+                getVideoDetail(id).also { detail ->
+                    _likes.update {
+                        it + (id to ShortLikes(detail.likeStatus.likeCount, detail.likeStatus.isLiked))
+                    }
+                }
+            }.also { deferred ->
                 // Un échec n'est pas gardé en cache : il sera retenté au prochain passage.
                 deferred.invokeOnCompletion { error -> if (error != null) details.remove(id) }
             }
         }
+
+    // L'état d'abonnement vient de la page de chaîne. En cas d'échec, le bouton reste masqué.
+    private fun loadFollowStatus(channelId: String) {
+        if (_followChannelId.value == channelId) return
+        _followChannelId.value = null
+        followJob?.cancel()
+        followJob = viewModelScope.launch {
+            try {
+                val page = getChannelPage(channelId)
+                follow.show(channelId, page.followStatus, canFollow = !page.isOwner)
+                _followChannelId.value = channelId
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun refreshUserState() {
+        val videos = (_uiState.value as? ShortsUiState.Success)?.videos ?: return
+        val video = videos.getOrNull(_playback.value.page) ?: return
+        // Les détails gardés en mémoire contiennent l'ancien état « j'aime ».
+        details.clear()
+        _likes.value = emptyMap()
+        detailOf(video.id)
+        _followChannelId.value = null
+        loadFollowStatus(video.channel.id)
+    }
 
     // Une vue par vidéo, dès qu'elle devient visible. Un échec d'envoi est ignoré.
     private fun recordViewOnce(id: String) {

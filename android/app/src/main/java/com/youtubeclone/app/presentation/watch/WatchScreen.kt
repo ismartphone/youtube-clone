@@ -1,6 +1,5 @@
 package com.youtubeclone.app.presentation.watch
 
-import android.content.Intent
 import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.annotation.OptIn
@@ -29,22 +28,16 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -99,6 +92,7 @@ import com.youtubeclone.app.presentation.common.formatCompactCount
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.common.shareVideo
 import com.youtubeclone.app.presentation.home.previewVideo
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
@@ -143,7 +137,6 @@ fun WatchScreen(
     }
 
     val context = LocalContext.current
-    val shareChooserTitle = stringResource(R.string.watch_share_chooser)
     var showComments by rememberSaveable { mutableStateOf(false) }
 
     // Visiteur : la connexion est demandée au moment d'agir.
@@ -164,15 +157,7 @@ fun WatchScreen(
                 onChannelClick = { onChannelClick(video.channel.id) },
                 onFollowClick = { requireLogin(viewModel.follow::toggle) },
                 onLikeClick = { requireLogin(viewModel::toggleLike) },
-                // Il n'y a pas encore d'adresse web publique des vidéos : on partage le titre et la chaîne.
-                onShareClick = {
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_SUBJECT, video.title)
-                        putExtra(Intent.EXTRA_TEXT, "${video.title} · ${video.channel.name}")
-                    }
-                    context.startActivity(Intent.createChooser(intent, shareChooserTitle))
-                },
+                onShareClick = { shareVideo(context, video) },
                 // Je n'aime pas, Télécharger et Enregistrer : pas encore de fonctionnalité derrière
                 // (pas d'API ; playlists hors périmètre). Les boutons suivent la maquette.
                 onUnavailableClick = {
@@ -183,20 +168,13 @@ fun WatchScreen(
                 modifier = modifier,
             )
             if (showComments) {
-                CommentsSheet(onDismiss = { showComments = false }) {
-                    CommentsSection(
-                        state = commentsState,
-                        isLoggedIn = isLoggedIn,
-                        onDraftChange = viewModel.comments::onDraftChange,
-                        onPost = viewModel.comments::post,
-                        onLoginRequired = {
-                            showComments = false
-                            onLoginRequired()
-                        },
-                        onLoadMore = viewModel.comments::loadMore,
-                        onRetry = viewModel.comments::loadFirstPage,
-                    )
-                }
+                CommentsSheet(
+                    state = commentsState,
+                    controller = viewModel.comments,
+                    isLoggedIn = isLoggedIn,
+                    onLoginRequired = onLoginRequired,
+                    onDismiss = { showComments = false },
+                )
             }
         }
     }
@@ -558,27 +536,6 @@ private fun CommentsTeaser(state: CommentsUiState, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-        }
-    }
-}
-
-// Liste complète des commentaires, dans une feuille du bas (Material).
-@kotlin.OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CommentsSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
-        ) {
-            content()
         }
     }
 }

@@ -144,7 +144,7 @@ fun AppNavigation() {
                     onSearchClick = {},
                 )
             }
-            composable<ShortsRoute> { ShortsScreen() }
+            composable<ShortsRoute> { ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin) }
             composable<SubscriptionsRoute> {
                 SubscriptionsScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginClick = openLogin)
             }
