@@ -91,6 +91,7 @@ private enum class ChannelTab(
 @Composable
 fun ChannelScreen(
     onVideoClick: (videoId: String) -> Unit,
+    onShortClick: (videoId: String) -> Unit,
     onLoginRequired: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChannelViewModel = hiltViewModel(),
@@ -109,6 +110,7 @@ fun ChannelScreen(
             // Visiteur : la connexion est demandée au moment de s'abonner.
             onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
             onVideoClick = onVideoClick,
+            onShortClick = onShortClick,
             modifier = modifier,
         )
     }
@@ -122,6 +124,7 @@ private fun ChannelContent(
     followState: FollowUiState?,
     onFollowClick: () -> Unit,
     onVideoClick: (videoId: String) -> Unit,
+    onShortClick: (videoId: String) -> Unit,
     modifier: Modifier = Modifier,
     initialTab: ChannelTab = ChannelTab.Videos,
 ) {
@@ -153,9 +156,9 @@ private fun ChannelContent(
                         .padding(vertical = 6.dp),
                 )
             }
-            // Pas de lecteur Shorts propre à une chaîne : un Short s'ouvre sur l'écran de lecture.
+            // Un Short s'ouvre dans le lecteur vertical plein écran, sur ce Short.
             else -> items(items = tabVideos, key = { it.id }) { video ->
-                ShortTile(video, Modifier.clickable { onVideoClick(video.id) })
+                ShortTile(video, Modifier.clickable { onShortClick(video.id) })
             }
         }
     }
@@ -376,6 +379,7 @@ private fun ChannelContentPreview() {
             followState = FollowUiState(followerCount = 15_800, isFollowing = false),
             onFollowClick = {},
             onVideoClick = {},
+            onShortClick = {},
         )
     }
 }
@@ -389,6 +393,7 @@ private fun ChannelShortsEmptyPreview() {
             followState = FollowUiState(followerCount = 15_800, isFollowing = true),
             onFollowClick = {},
             onVideoClick = {},
+            onShortClick = {},
             initialTab = ChannelTab.Shorts,
         )
     }

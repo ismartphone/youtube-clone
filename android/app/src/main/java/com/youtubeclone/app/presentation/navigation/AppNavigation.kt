@@ -58,11 +58,15 @@ import kotlinx.serialization.Serializable
 @Serializable data object SubscriptionsRoute
 @Serializable data class WatchRoute(val videoId: String)
 @Serializable data class ChannelRoute(val channelId: String)
+// Lecteur Shorts plein écran ouvert sur un Short précis (depuis une page de chaîne).
+// Le nom du paramètre est lu par ShortsViewModel.
+@Serializable data class ShortsPlayerRoute(val startVideoId: String)
 // Nom d'une valeur de YouList : historique, vidéos aimées ou vos vidéos.
 @Serializable data class YouListRoute(val list: String)
 
 private val FULL_SCREEN_ROUTES = listOf(
     WatchRoute::class,
+    ShortsPlayerRoute::class,
     LoginRoute::class,
     RegisterRoute::class,
     InterestsRoute::class,
@@ -145,6 +149,7 @@ fun AppNavigation() {
                 )
             }
             composable<ShortsRoute> { ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin) }
+            composable<ShortsPlayerRoute> { ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin) }
             composable<SubscriptionsRoute> {
                 SubscriptionsScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginClick = openLogin)
             }
@@ -153,7 +158,11 @@ fun AppNavigation() {
                 WatchScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginRequired = openLogin)
             }
             composable<ChannelRoute> {
-                ChannelScreen(onVideoClick = openVideo, onLoginRequired = openLogin)
+                ChannelScreen(
+                    onVideoClick = openVideo,
+                    onShortClick = { videoId -> navController.navigate(ShortsPlayerRoute(videoId)) },
+                    onLoginRequired = openLogin,
+                )
             }
             composable<YouRoute> {
                 YouScreen(

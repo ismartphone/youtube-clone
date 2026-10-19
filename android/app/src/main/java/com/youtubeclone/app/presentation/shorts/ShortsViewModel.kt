@@ -1,6 +1,7 @@
 package com.youtubeclone.app.presentation.shorts
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -66,6 +67,7 @@ data class ShortLikes(
 
 @HiltViewModel
 class ShortsViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     @ApplicationContext context: Context,
     private val getVideos: GetVideosUseCase,
     private val getVideoDetail: GetVideoDetailUseCase,
@@ -78,6 +80,9 @@ class ShortsViewModel @Inject constructor(
     setFollowing: SetFollowingUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
 ) : ViewModel() {
+
+    // Short d'ouverture (ShortsPlayerRoute, depuis une page de chaîne) ; null pour l'onglet Shorts.
+    private val startVideoId: String? = savedStateHandle["startVideoId"]
 
     private val _uiState = MutableStateFlow<ShortsUiState>(ShortsUiState.Loading)
     val uiState: StateFlow<ShortsUiState> = _uiState.asStateFlow()
@@ -139,14 +144,22 @@ class ShortsViewModel @Inject constructor(
         _uiState.value = ShortsUiState.Loading
         viewModelScope.launch {
             _uiState.value = try {
-                val page = getVideos(format = VideoFormat.SHORT)
-                if (page.items.isEmpty()) ShortsUiState.Empty else ShortsUiState.Success(page.items)
+                val videos = startVideoId?.let { startWith(it) } ?: getVideos(format = VideoFormat.SHORT).items
+                if (videos.isEmpty()) ShortsUiState.Empty else ShortsUiState.Success(videos)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 ShortsUiState.Error(e.toUiError())
             }
         }
+    }
+
+    // Le Short demandé en première page, puis les autres Shorts du fil. Son détail est chargé
+    // tout de suite (il sert aussi à la lecture) : il peut ne pas figurer dans la première page du fil.
+    private suspend fun startWith(videoId: String): List<Video> {
+        val start = detailOf(videoId).await().video
+        val others = getVideos(format = VideoFormat.SHORT).items.filter { it.id != videoId }
+        return listOf(start) + others
     }
 
     /** La page visible commence à changer : la vidéo qui sort de l'écran se met en pause. */
