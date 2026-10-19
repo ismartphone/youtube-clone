@@ -32,6 +32,14 @@ fun formatFollowerCount(count: Int): String = when {
     else -> "${abbreviate(count / 1_000_000.0)} M d'abonnés"
 }
 
+/** Nombre de vidéos abrégé en français : 0 vidéo, 1 vidéo, 950 vidéos, 1,2 k vidéos, 3,4 M de vidéos. */
+fun formatVideoCount(count: Int): String = when {
+    count < 2 -> "$count vidéo"
+    count < 1_000 -> "$count vidéos"
+    count < 1_000_000 -> "${abbreviate(count / 1_000.0)} k vidéos"
+    else -> "${abbreviate(count / 1_000_000.0)} M de vidéos"
+}
+
 /** Nombre seul abrégé en français, pour un bouton : 950, 1,2 k, 3,4 M. */
 fun formatCompactCount(count: Int): String = when {
     count < 1_000 -> "$count"

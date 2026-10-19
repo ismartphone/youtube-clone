@@ -66,7 +66,12 @@
 
     <string name="channel_follow">S\'abonner</string>
     <string name="channel_following">Abonné</string>
-    <string name="channel_no_videos">Cette chaîne n\'a encore publié aucune vidéo.</string>
+    <string name="channel_tab_videos">Vidéos</string>
+    <string name="channel_tab_shorts">Shorts</string>
+    <string name="channel_videos_empty_title">Aucune vidéo</string>
+    <string name="channel_videos_empty_message">Cette chaîne n\'a pas encore publié de vidéo.</string>
+    <string name="channel_shorts_empty_title">Aucun Short</string>
+    <string name="channel_shorts_empty_message">Cette chaîne n\'a pas encore publié de Short.</string>
     <string name="error_channel_not_found">Cette chaîne n\'existe pas ou a été supprimée.</string>
 
     <string name="subscriptions_empty">Aucune vidéo de vos abonnements pour le moment.</string>
