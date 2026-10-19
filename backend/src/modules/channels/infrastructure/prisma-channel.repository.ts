@@ -86,6 +86,13 @@ export class PrismaChannelRepository implements ChannelRepository {
     return follow !== null;
   }
 
+  findOwnedBy(userId: string): Promise<ChannelSummary | null> {
+    return this.prisma.channel.findUnique({
+      where: { ownerId: userId },
+      select: CHANNEL_SUMMARY_SELECT,
+    });
+  }
+
   async findFollowedBy(userId: string): Promise<ChannelSummary[]> {
     const follows = await this.prisma.follow.findMany({
       where: { userId },

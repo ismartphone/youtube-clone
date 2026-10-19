@@ -5,6 +5,7 @@ import { VideosModule } from '../videos/videos.module.js';
 import { CreateChannelUseCase } from './application/create-channel.use-case.js';
 import { FollowChannelUseCase } from './application/follow-channel.use-case.js';
 import { GetFollowStatusUseCase } from './application/get-follow-status.use-case.js';
+import { GetOwnChannelUseCase } from './application/get-own-channel.use-case.js';
 import { ListChannelsUseCase } from './application/list-channels.use-case.js';
 import { ListSubscriptionsUseCase } from './application/list-subscriptions.use-case.js';
 import { CHANNEL_REPOSITORY, type ChannelRepository } from './domain/ports.js';
@@ -20,6 +21,7 @@ const USE_CASES = [
   FollowChannelUseCase,
   ListSubscriptionsUseCase,
   ListChannelsUseCase,
+  GetOwnChannelUseCase,
 ];
 
 @Module({
