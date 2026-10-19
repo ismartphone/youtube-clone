@@ -21,6 +21,10 @@ import {
   GetLikeStatusUseCase,
   LikeVideoUseCase,
 } from './application/like-video.use-case.js';
+import {
+  ListLikedVideosUseCase,
+  ListWatchHistoryUseCase,
+} from './application/list-personal-videos.use-case.js';
 import { ListVideosUseCase } from './application/list-videos.use-case.js';
 import {
   CreateCategoryUseCase,
@@ -51,12 +55,17 @@ import {
   VIDEO_REPOSITORY,
   type VideoRepository,
 } from './domain/video.repository.js';
+import {
+  WATCH_HISTORY_REPOSITORY,
+  type WatchHistoryRepository,
+} from './domain/watch-history.repository.js';
 import { FfmpegThumbnailGenerator } from './infrastructure/ffmpeg-thumbnail-generator.js';
 import { PrismaCatalogStats } from './infrastructure/prisma-catalog-stats.js';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category.repository.js';
 import { PrismaLikeRepository } from './infrastructure/prisma-like.repository.js';
 import { PrismaVideoCatalog } from './infrastructure/prisma-video-catalog.js';
 import { PrismaVideoRepository } from './infrastructure/prisma-video.repository.js';
+import { PrismaWatchHistoryRepository } from './infrastructure/prisma-watch-history.repository.js';
 import { RedisBufferedCounter } from './infrastructure/redis-buffered-counter.js';
 import {
   AdminCategoriesController,
@@ -151,13 +160,37 @@ const CATEGORY_USE_CASES = [
       inject: [VIDEO_REPOSITORY, VIDEO_COUNTERS],
     })),
     {
+      provide: WATCH_HISTORY_REPOSITORY,
+      useFactory: (prisma: PrismaService) =>
+        new PrismaWatchHistoryRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
       provide: RecordViewUseCase,
       useFactory: (
         videos: VideoRepository,
         counters: VideoCounters,
         publisher: VideoRoomPublisher,
-      ) => new RecordViewUseCase(videos, counters, publisher),
-      inject: [VIDEO_REPOSITORY, VIDEO_COUNTERS, VIDEO_ROOM_PUBLISHER],
+        history: WatchHistoryRepository,
+      ) => new RecordViewUseCase(videos, counters, publisher, history),
+      inject: [
+        VIDEO_REPOSITORY,
+        VIDEO_COUNTERS,
+        VIDEO_ROOM_PUBLISHER,
+        WATCH_HISTORY_REPOSITORY,
+      ],
+    },
+    {
+      provide: ListWatchHistoryUseCase,
+      useFactory: (history: WatchHistoryRepository, counters: VideoCounters) =>
+        new ListWatchHistoryUseCase(history, counters),
+      inject: [WATCH_HISTORY_REPOSITORY, VIDEO_COUNTERS],
+    },
+    {
+      provide: ListLikedVideosUseCase,
+      useFactory: (likes: LikeRepository, counters: VideoCounters) =>
+        new ListLikedVideosUseCase(likes, counters),
+      inject: [LIKE_REPOSITORY, VIDEO_COUNTERS],
     },
     {
       provide: LikeVideoUseCase,

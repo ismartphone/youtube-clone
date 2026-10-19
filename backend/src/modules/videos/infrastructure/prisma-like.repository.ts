@@ -1,5 +1,8 @@
 import type { PrismaService } from '../../../shared/infrastructure/prisma.service.js';
 import type { LikeRepository } from '../domain/like.repository.js';
+import type { Video } from '../domain/video.js';
+import type { Page, Pagination } from '../domain/video.repository.js';
+import { VIDEO_SELECT } from './prisma-video.repository.js';
 
 export class PrismaLikeRepository implements LikeRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -25,5 +28,22 @@ export class PrismaLikeRepository implements LikeRepository {
       select: { userId: true },
     });
     return like !== null;
+  }
+
+  async findLikedPage(
+    userId: string,
+    { page, pageSize }: Pagination,
+  ): Promise<Page<Video>> {
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.like.findMany({
+        where: { userId },
+        select: { video: { select: VIDEO_SELECT } },
+        orderBy: [{ createdAt: 'desc' }, { videoId: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.like.count({ where: { userId } }),
+    ]);
+    return { items: rows.map((row) => row.video), page, pageSize, total };
   }
 }

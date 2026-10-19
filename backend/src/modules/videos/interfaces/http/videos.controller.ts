@@ -69,10 +69,15 @@ export class VideosController {
     return presentVideoDetail(video, isLiked);
   }
 
+  // Ouverte aux visiteurs. Avec une session, la vidéo entre aussi dans l'historique de l'utilisateur.
   @Post(':id/view')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async view(@Param('id', ParseUUIDPipe) id: string) {
-    if (!(await this.recordView.execute(id))) {
+  @UseGuards(OptionalJwtAuthGuard)
+  async view(
+    @Param('id', ParseUUIDPipe) id: string,
+    @OptionalCurrentUser() user: AuthenticatedUser | undefined,
+  ) {
+    if (!(await this.recordView.execute(id, user?.id))) {
       throw new NotFoundException('Vidéo introuvable');
     }
   }
