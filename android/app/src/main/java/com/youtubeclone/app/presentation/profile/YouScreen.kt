@@ -20,15 +20,20 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,9 +52,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
+import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.presentation.common.ErrorState
+import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.LoadingState
+import com.youtubeclone.app.presentation.common.formatLongDate
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
 // Onglet « Vous » d'après les maquettes (android/maquettes/profil-02, -05 et -13, captures iOS) :
@@ -67,6 +75,8 @@ class YouActions(
     val onEditInterests: () -> Unit = {},
     val onUnavailableClick: () -> Unit = {},
     val onLogoutClick: () -> Unit = {},
+    val onPremiumClick: () -> Unit = {},
+    val onCancelPremium: () -> Unit = {},
 )
 
 @Composable
@@ -77,11 +87,14 @@ fun YouScreen(
     onChannelClick: (channelId: String) -> Unit,
     onListClick: (YouList) -> Unit,
     onSubscriptionsClick: () -> Unit,
+    onPremiumClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: YouViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val premium by viewModel.premium.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    ErrorToast(viewModel.premiumMessages)
     val actions = YouActions(
         onLoginClick = onLoginClick,
         onRegisterClick = onRegisterClick,
@@ -92,19 +105,27 @@ fun YouScreen(
         // Paramètres et Aide n'ont pas encore d'écran.
         onUnavailableClick = { Toast.makeText(context, R.string.you_soon, Toast.LENGTH_SHORT).show() },
         onLogoutClick = viewModel::onLogoutClick,
+        onPremiumClick = onPremiumClick,
+        onCancelPremium = viewModel::onCancelPremium,
     )
 
     when (val current = state) {
         YouUiState.Loading -> LoadingState(modifier)
         is YouUiState.Error -> ErrorState(current.error, onRetry = viewModel::load, modifier = modifier)
-        YouUiState.LoggedOut -> YouContent(user = null, channel = null, actions = actions, modifier = modifier)
-        is YouUiState.LoggedIn -> YouContent(current.user, current.channel, actions, modifier)
+        YouUiState.LoggedOut -> YouContent(user = null, channel = null, premium = null, actions = actions, modifier = modifier)
+        is YouUiState.LoggedIn -> YouContent(current.user, current.channel, premium, actions, modifier)
     }
 }
 
-/** [user] null : visiteur non connecté. */
+/** [user] null : visiteur non connecté. [premium] null : état Premium inconnu ou visiteur. */
 @Composable
-private fun YouContent(user: User?, channel: Channel?, actions: YouActions, modifier: Modifier = Modifier) {
+private fun YouContent(
+    user: User?,
+    channel: Channel?,
+    premium: PremiumStatus?,
+    actions: YouActions,
+    modifier: Modifier = Modifier,
+) {
     // Sans compte, les listes personnelles mènent à la connexion.
     fun openList(list: YouList) = if (user != null) actions.onListClick(list) else actions.onLoginClick()
 
@@ -131,6 +152,7 @@ private fun YouContent(user: User?, channel: Channel?, actions: YouActions, modi
                 onSubscriptions = actions.onSubscriptionsClick,
             )
         }
+        item(key = "premium") { PremiumCard(premium, actions.onPremiumClick, actions.onCancelPremium) }
         item(key = "settings") { SettingsList(isLoggedIn = user != null, actions = actions) }
     }
 }
@@ -347,22 +369,108 @@ private fun SettingsRow(@DrawableRes icon: Int, @StringRes label: Int, onClick: 
     }
 }
 
-@Preview(name = "Connecté", showBackground = true, backgroundColor = 0xFF0F0F0F, heightDp = 800)
+// Offre Premium : un encart pour la découvrir, ou l'état de l'abonnement avec sa date de fin
+// et l'annulation (fin immédiate, après confirmation).
+@Composable
+private fun PremiumCard(premium: PremiumStatus?, onPremiumClick: () -> Unit, onCancelPremium: () -> Unit) {
+    var confirmCancel by rememberSaveable { mutableStateOf(false) }
+    val isPremium = premium?.isPremium == true
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_premium),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(if (isPremium) R.string.premium_active else R.string.premium_name),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+                Text(
+                    text = premium?.expiresAt?.takeIf { isPremium }
+                        ?.let { stringResource(R.string.premium_active_until, formatLongDate(it)) }
+                        ?: stringResource(R.string.premium_card_pitch),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (isPremium) {
+            OutlinedButton(
+                onClick = { confirmCancel = true },
+                shape = CircleShape,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.premium_cancel))
+            }
+        } else {
+            Button(
+                onClick = onPremiumClick,
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.onBackground,
+                    contentColor = MaterialTheme.colorScheme.background,
+                ),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.premium_discover), fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+    if (confirmCancel) {
+        AlertDialog(
+            onDismissRequest = { confirmCancel = false },
+            title = { Text(stringResource(R.string.premium_cancel_confirm_title)) },
+            text = { Text(stringResource(R.string.premium_cancel_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmCancel = false
+                    onCancelPremium()
+                }) { Text(stringResource(R.string.premium_cancel_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmCancel = false }) { Text(stringResource(R.string.premium_cancel_keep)) }
+            },
+        )
+    }
+}
+
+@Preview(name = "Connecté", showBackground = true, backgroundColor = 0xFF0F0F0F, heightDp = 900)
 @Composable
 private fun YouContentLoggedInPreview() {
     YoutubeCloneTheme {
         YouContent(
             user = User(id = "u", email = "camille@example.com", displayName = "Camille", avatarUrl = null),
             channel = Channel(id = "c", name = "Carnet de Route", handle = "carnetderoute", avatarUrl = null),
+            premium = PremiumStatus(isPremium = true, expiresAt = java.time.Instant.parse("2026-11-23T17:00:00Z")),
             actions = YouActions(),
         )
     }
 }
 
-@Preview(name = "Visiteur", showBackground = true, backgroundColor = 0xFF0F0F0F, heightDp = 800)
+@Preview(name = "Visiteur", showBackground = true, backgroundColor = 0xFF0F0F0F, heightDp = 900)
 @Composable
 private fun YouContentVisitorPreview() {
     YoutubeCloneTheme {
-        YouContent(user = null, channel = null, actions = YouActions())
+        YouContent(user = null, channel = null, premium = null, actions = YouActions())
     }
 }

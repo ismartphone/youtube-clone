@@ -77,7 +77,7 @@ export class ChannelsController {
     @Param('id', ParseUUIDPipe) id: string,
     @OptionalCurrentUser() user: AuthenticatedUser | undefined,
   ) {
-    // Les vidéos viennent du module videos, où le statut Premium n'est pas encore géré.
+    // Les vidéos de la page sont des résumés, sans URL de fichier : le statut Premium n'y change rien.
     const [channel, status] = await Promise.all([
       this.getChannel.execute(id, ANONYMOUS_VIEWER),
       this.getFollowStatus.execute(id, user?.id),

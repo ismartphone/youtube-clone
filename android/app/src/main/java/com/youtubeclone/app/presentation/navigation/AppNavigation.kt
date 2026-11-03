@@ -31,6 +31,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
@@ -38,6 +39,7 @@ import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
 import com.youtubeclone.app.presentation.library.LibraryScreen
+import com.youtubeclone.app.presentation.premium.PaywallScreen
 import com.youtubeclone.app.presentation.profile.YouListScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
@@ -62,12 +64,15 @@ import kotlinx.serialization.Serializable
 // Lecteur Shorts plein écran ouvert sur un Short précis (depuis une page de chaîne).
 // Le nom du paramètre est lu par ShortsViewModel.
 @Serializable data class ShortsPlayerRoute(val startVideoId: String)
+// Offre Premium. [videoId] : vidéo exclusive refusée, rouverte une fois l'achat confirmé.
+@Serializable data class PaywallRoute(val videoId: String? = null)
 // Nom d'une valeur de YouList : historique, vidéos aimées ou vos vidéos.
 @Serializable data class YouListRoute(val list: String)
 
 private val FULL_SCREEN_ROUTES = listOf(
     WatchRoute::class,
     ShortsPlayerRoute::class,
+    PaywallRoute::class,
     LoginRoute::class,
     RegisterRoute::class,
     InterestsRoute::class,
@@ -145,6 +150,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             val openVideo = { videoId: String -> navController.navigate(WatchRoute(videoId)) }
             val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
             val openLogin = { navController.navigate(LoginRoute) }
+            val openPaywall = { navController.navigate(PaywallRoute()) }
 
             composable<HomeRoute> {
                 HomeScreen(
@@ -156,14 +162,42 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onSearchClick = {},
                 )
             }
-            composable<ShortsRoute> { ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin) }
-            composable<ShortsPlayerRoute> { ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin) }
+            composable<ShortsRoute> {
+                ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin, onPremiumClick = openPaywall)
+            }
+            composable<ShortsPlayerRoute> {
+                ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin, onPremiumClick = openPaywall)
+            }
+            composable<PaywallRoute> { entry ->
+                val videoId = entry.toRoute<PaywallRoute>().videoId
+                PaywallScreen(
+                    onClose = { navController.popBackStack() },
+                    onLoginRequired = openLogin,
+                    // Achat ouvert par une vidéo exclusive : elle est rouverte à la place du paywall.
+                    onPurchased = {
+                        if (videoId != null) {
+                            navController.navigate(WatchRoute(videoId)) { popUpTo<PaywallRoute> { inclusive = true } }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    },
+                )
+            }
             composable<SubscriptionsRoute> {
                 SubscriptionsScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginClick = openLogin)
             }
             composable<LibraryRoute> { LibraryScreen() }
             composable<WatchRoute> {
-                WatchScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginRequired = openLogin)
+                WatchScreen(
+                    onVideoClick = openVideo,
+                    onChannelClick = openChannel,
+                    onLoginRequired = openLogin,
+                    // Vidéo exclusive refusée par le serveur : le paywall prend la place de l'écran.
+                    onPremiumRequired = { videoId ->
+                        navController.navigate(PaywallRoute(videoId)) { popUpTo<WatchRoute> { inclusive = true } }
+                    },
+                    onRemoveAdsClick = openPaywall,
+                )
             }
             composable<ChannelRoute> {
                 ChannelScreen(
@@ -180,6 +214,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onChannelClick = openChannel,
                     onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
                     onSubscriptionsClick = { openTab(SubscriptionsRoute) },
+                    onPremiumClick = openPaywall,
                 )
             }
             composable<YouListRoute> { YouListScreen(onVideoClick = openVideo) }

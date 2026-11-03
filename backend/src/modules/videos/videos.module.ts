@@ -32,6 +32,7 @@ import {
   ListCategoriesUseCase,
 } from './application/manage-categories.use-case.js';
 import { RecordViewUseCase } from './application/record-view.use-case.js';
+import { ResolveViewerUseCase } from './application/resolve-viewer.use-case.js';
 import { RegenerateThumbnailUseCase } from './application/regenerate-thumbnail.use-case.js';
 import { UpdateVideoUseCase } from './application/update-video.use-case.js';
 import {
@@ -48,6 +49,10 @@ import {
   type ThumbnailGenerator,
 } from './domain/thumbnail-generator.js';
 import {
+  PREMIUM_ACCESS,
+  type PremiumAccess,
+} from './domain/premium-access.js';
+import {
   LIKE_REPOSITORY,
   type LikeRepository,
 } from './domain/like.repository.js';
@@ -63,6 +68,7 @@ import { FfmpegThumbnailGenerator } from './infrastructure/ffmpeg-thumbnail-gene
 import { PrismaCatalogStats } from './infrastructure/prisma-catalog-stats.js';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category.repository.js';
 import { PrismaLikeRepository } from './infrastructure/prisma-like.repository.js';
+import { PrismaPremiumAccess } from './infrastructure/prisma-premium-access.js';
 import { PrismaVideoCatalog } from './infrastructure/prisma-video-catalog.js';
 import { PrismaVideoRepository } from './infrastructure/prisma-video.repository.js';
 import { PrismaWatchHistoryRepository } from './infrastructure/prisma-watch-history.repository.js';
@@ -159,6 +165,16 @@ const CATEGORY_USE_CASES = [
         new UseCase(videos, counters),
       inject: [VIDEO_REPOSITORY, VIDEO_COUNTERS],
     })),
+    {
+      provide: PREMIUM_ACCESS,
+      useFactory: (prisma: PrismaService) => new PrismaPremiumAccess(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: ResolveViewerUseCase,
+      useFactory: (premium: PremiumAccess) => new ResolveViewerUseCase(premium),
+      inject: [PREMIUM_ACCESS],
+    },
     {
       provide: WATCH_HISTORY_REPOSITORY,
       useFactory: (prisma: PrismaService) =>

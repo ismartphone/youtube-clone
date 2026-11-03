@@ -8,6 +8,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
@@ -55,6 +56,8 @@ data class ShortsPlayback(
     val pausedByUser: Boolean = false,
     // Message affiché à la place de la vidéo : accès refusé ou chargement impossible.
     val blockedReason: UiError? = null,
+    // Short exclusif sans abonnement Premium : le message propose de découvrir l'offre.
+    val premiumRequired: Boolean = false,
 )
 
 /** « J'aime » d'un Short, connu une fois son détail chargé. */
@@ -198,7 +201,9 @@ class ShortsViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _playback.update { it.copy(blockedReason = e.toUiError()) }
+                _playback.update {
+                    it.copy(blockedReason = e.toUiError(), premiumRequired = e is DataError.PremiumRequired)
+                }
             }
             // Préchargement du détail suivant, pour un glissement plus fluide.
             videos.getOrNull(page + 1)?.let { detailOf(it.id) }

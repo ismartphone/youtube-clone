@@ -9,6 +9,7 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.LiveVideoEvent
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
@@ -16,6 +17,8 @@ import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetCommentsUseCase
 import com.youtubeclone.app.domain.usecase.GetSuggestedVideosUseCase
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
+import com.youtubeclone.app.domain.usecase.IsPremiumUseCase
+import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveLiveVideoUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
@@ -23,6 +26,7 @@ import com.youtubeclone.app.domain.usecase.PostCommentUseCase
 import com.youtubeclone.app.domain.usecase.RecordViewUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
 import com.youtubeclone.app.domain.usecase.SetLikedUseCase
+import com.youtubeclone.app.playback.BackgroundPlayback
 import com.youtubeclone.app.presentation.channel.FollowController
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -31,6 +35,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -44,7 +50,12 @@ sealed interface WatchUiState {
     data object Loading : WatchUiState
     data class Error(val error: UiError) : WatchUiState
     data class Success(val detail: VideoDetail) : WatchUiState
+    /** Vidéo exclusive sans abonnement Premium en cours : l'écran ouvre le paywall. */
+    data object PremiumRequired : WatchUiState
 }
+
+/** Durée de la publicité simulée avant la lecture, pour les comptes non Premium (ADR-007). */
+private const val AD_SECONDS = 5
 
 /** Compteurs affichés sous le lecteur, mis à jour en direct (ADR-004). */
 data class LiveStats(
@@ -70,9 +81,17 @@ class WatchViewModel @Inject constructor(
     getComments: GetCommentsUseCase,
     private val getSuggestedVideos: GetSuggestedVideosUseCase,
     postComment: PostCommentUseCase,
+    private val isPremium: IsPremiumUseCase,
+    private val observePremium: ObservePremiumStatusUseCase,
+    private val backgroundPlayback: BackgroundPlayback,
 ) : ViewModel() {
 
-    private val videoId = savedStateHandle.toRoute<WatchRoute>().videoId
+    val videoId = savedStateHandle.toRoute<WatchRoute>().videoId
+
+    // Secondes restantes de la publicité simulée ; null quand aucune n'est affichée.
+    private val _adSecondsLeft = MutableStateFlow<Int?>(null)
+    val adSecondsLeft: StateFlow<Int?> = _adSecondsLeft.asStateFlow()
+    private var playbackJob: Job? = null
 
     private val _uiState = MutableStateFlow<WatchUiState>(WatchUiState.Loading)
     val uiState: StateFlow<WatchUiState> = _uiState.asStateFlow()
@@ -137,6 +156,8 @@ class WatchViewModel @Inject constructor(
                 WatchUiState.Success(detail)
             } catch (e: CancellationException) {
                 throw e
+            } catch (_: DataError.PremiumRequired) {
+                WatchUiState.PremiumRequired
             } catch (e: Exception) {
                 WatchUiState.Error(e.toUiError(notFoundRes = R.string.error_video_not_found))
             }
@@ -185,8 +206,12 @@ class WatchViewModel @Inject constructor(
         }
     }
 
-    fun pause() {
-        player.pause()
+    /**
+     * Application en arrière-plan : un compte Premium garde le son (lecture en arrière-plan,
+     * via [BackgroundPlayback]) ; sinon la lecture se met en pause, sans libérer le lecteur.
+     */
+    fun onAppBackground() {
+        if (observePremium().value?.isPremium != true) player.pause()
     }
 
     private fun showStats(detail: VideoDetail) {
@@ -238,10 +263,25 @@ class WatchViewModel @Inject constructor(
         }
     }
 
+    // La vidéo se charge tout de suite mais ne démarre qu'après la publicité simulée, que les
+    // comptes Premium ne voient pas. Un abonnement pris pendant la publicité l'interrompt.
     private fun startPlayback(url: String) {
         player.setMediaItem(MediaItem.fromUri(url))
-        player.playWhenReady = true
+        player.playWhenReady = false
         player.prepare()
+        playbackJob?.cancel()
+        playbackJob = viewModelScope.launch {
+            if (!isPremium()) {
+                for (left in AD_SECONDS downTo 1) {
+                    if (observePremium().value?.isPremium == true) break
+                    _adSecondsLeft.value = left
+                    delay(1_000)
+                }
+                _adSecondsLeft.value = null
+            }
+            if (observePremium().value?.isPremium == true) backgroundPlayback.start(player)
+            player.playWhenReady = true
+        }
     }
 
     // Une vue par ouverture de l'écran, au premier démarrage effectif de la lecture.
@@ -261,6 +301,7 @@ class WatchViewModel @Inject constructor(
 
     override fun onCleared() {
         player.removeListener(playerListener)
+        backgroundPlayback.stop(player)
         player.release()
     }
 }

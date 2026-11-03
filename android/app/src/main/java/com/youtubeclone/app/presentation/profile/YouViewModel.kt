@@ -2,11 +2,15 @@ package com.youtubeclone.app.presentation.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
+import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.model.User
+import com.youtubeclone.app.domain.usecase.CancelPremiumUseCase
 import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
 import com.youtubeclone.app.domain.usecase.GetOwnChannelUseCase
 import com.youtubeclone.app.domain.usecase.LogoutUseCase
+import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -15,7 +19,10 @@ import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -34,10 +41,20 @@ class YouViewModel @Inject constructor(
     private val getCurrentUser: GetCurrentUserUseCase,
     private val getOwnChannel: GetOwnChannelUseCase,
     private val logout: LogoutUseCase,
+    observePremium: ObservePremiumStatusUseCase,
+    private val cancelPremium: CancelPremiumUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<YouUiState>(YouUiState.Loading)
     val uiState: StateFlow<YouUiState> = _uiState.asStateFlow()
+
+    /** Abonnement Premium (payant) ; null tant qu'il n'est pas connu. */
+    val premium: StateFlow<PremiumStatus?> = observePremium()
+
+    // Issue d'une annulation : message de confirmation ou d'erreur.
+    private val _premiumMessages = MutableSharedFlow<UiError>(extraBufferCapacity = 1)
+    val premiumMessages: SharedFlow<UiError> = _premiumMessages.asSharedFlow()
+    private var cancelJob: Job? = null
 
     private var loadJob: Job? = null
 
@@ -72,6 +89,21 @@ class YouViewModel @Inject constructor(
             } catch (e: Exception) {
                 channel.cancel()
                 YouUiState.Error(e.toUiError())
+            }
+        }
+    }
+
+    /** Fin immédiate de l'abonnement, après confirmation dans l'écran. */
+    fun onCancelPremium() {
+        if (cancelJob?.isActive == true) return
+        cancelJob = viewModelScope.launch {
+            try {
+                cancelPremium()
+                _premiumMessages.tryEmit(UiError(R.string.premium_canceled))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _premiumMessages.tryEmit(e.toUiError())
             }
         }
     }

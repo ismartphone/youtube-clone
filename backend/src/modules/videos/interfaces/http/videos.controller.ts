@@ -1,6 +1,7 @@
 import {
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -27,11 +28,16 @@ import {
 } from '../../application/like-video.use-case.js';
 import { ListVideosUseCase } from '../../application/list-videos.use-case.js';
 import { RecordViewUseCase } from '../../application/record-view.use-case.js';
+import { ResolveViewerUseCase } from '../../application/resolve-viewer.use-case.js';
 import { ANONYMOUS_VIEWER } from '../../domain/video.js';
 import { ListVideosQuery } from './list-videos.query.js';
 import { presentVideoDetail, presentVideoSummary } from './video.presenter.js';
 
-// Le statut Premium n'est pas encore géré : chaque spectateur est traité comme non Premium.
+// Code d'erreur renvoyé quand une vidéo exclusive est demandée sans abonnement Premium en cours.
+export const PREMIUM_REQUIRED = 'PremiumRequired';
+
+// Les listes ne contiennent jamais l'URL des fichiers : seul le détail d'une vidéo dépend
+// du statut Premium du spectateur.
 @Controller('videos')
 export class VideosController {
   constructor(
@@ -40,6 +46,7 @@ export class VideosController {
     private readonly recordView: RecordViewUseCase,
     private readonly likeVideo: LikeVideoUseCase,
     private readonly getLikeStatus: GetLikeStatusUseCase,
+    private readonly resolveViewer: ResolveViewerUseCase,
   ) {}
 
   @Get()
@@ -59,12 +66,22 @@ export class VideosController {
     @Param('id', ParseUUIDPipe) id: string,
     @OptionalCurrentUser() user: AuthenticatedUser | undefined,
   ) {
+    const viewer = await this.resolveViewer.execute(user?.id);
     const [video, isLiked] = await Promise.all([
-      this.getVideo.execute(id, ANONYMOUS_VIEWER),
+      this.getVideo.execute(id, viewer),
       this.getLikeStatus.execute(id, user?.id),
     ]);
     if (!video) {
       throw new NotFoundException('Vidéo introuvable');
+    }
+    // Vidéo exclusive sans abonnement en cours : une erreur claire, jamais l'URL (ADR-007).
+    // error permet au client de distinguer ce refus d'un autre 403 et d'ouvrir le paywall.
+    if (video.isPremium && !viewer.isPremium) {
+      throw new ForbiddenException({
+        statusCode: HttpStatus.FORBIDDEN,
+        error: PREMIUM_REQUIRED,
+        message: 'Cette vidéo est réservée aux membres Premium',
+      });
     }
     return presentVideoDetail(video, isLiked);
   }

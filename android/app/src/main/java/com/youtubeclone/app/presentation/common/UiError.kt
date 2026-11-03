@@ -21,6 +21,7 @@ fun Throwable.toUiError(@StringRes notFoundRes: Int = R.string.error_unexpected)
     when (this) {
         DataError.Network -> UiError(R.string.error_network)
         DataError.NotFound -> UiError(notFoundRes)
+        DataError.PremiumRequired -> UiError(R.string.watch_premium_only)
         is DataError.Server -> UiError(R.string.error_server, code, serverMessage)
         else -> UiError(R.string.error_unexpected)
     }

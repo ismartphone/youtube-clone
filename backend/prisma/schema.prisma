@@ -144,7 +144,7 @@ model Follow {
 model PremiumSubscription {
   id            String   @id @default(uuid()) @db.Uuid
   userId        String   @db.Uuid
-  purchaseToken String   @unique // justificatif renvoyé par Play Billing
+  purchaseToken String   @unique // jeton d'achat émis puis vérifié par notre serveur (ADR-012)
   startedAt     DateTime @default(now())
   expiresAt     DateTime
 

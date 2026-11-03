@@ -2,6 +2,8 @@ package com.youtubeclone.app.presentation.common
 
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /** Durée au format YouTube : 4:05, ou 1:02:30 au-delà d'une heure. */
@@ -70,3 +72,7 @@ fun formatRelativeDate(date: Instant, now: Instant = Instant.now()): String {
 
 private fun ago(count: Long, singular: String, plural: String) =
     "il y a $count ${if (count < 2) singular else plural}"
+
+/** Date complète en français, dans le fuseau de l'appareil : « 23 novembre 2026 ». */
+fun formatLongDate(date: Instant, zone: ZoneId = ZoneId.systemDefault()): String =
+    DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.FRANCE).format(date.atZone(zone))

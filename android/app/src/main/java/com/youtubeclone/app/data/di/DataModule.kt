@@ -7,6 +7,7 @@ import com.youtubeclone.app.data.remote.AuthInterceptor
 import com.youtubeclone.app.data.remote.CategoryApi
 import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.CommentApi
+import com.youtubeclone.app.data.remote.PremiumApi
 import com.youtubeclone.app.data.remote.RefreshApi
 import com.youtubeclone.app.data.remote.TokenAuthenticator
 import com.youtubeclone.app.data.remote.VideoApi
@@ -15,6 +16,7 @@ import com.youtubeclone.app.data.repository.CategoryRepositoryImpl
 import com.youtubeclone.app.data.repository.ChannelRepositoryImpl
 import com.youtubeclone.app.data.repository.CommentRepositoryImpl
 import com.youtubeclone.app.data.repository.PreferencesRepositoryImpl
+import com.youtubeclone.app.data.repository.PremiumRepositoryImpl
 import com.youtubeclone.app.data.repository.VideoRepositoryImpl
 import com.youtubeclone.app.domain.repository.AuthRepository
 import com.youtubeclone.app.domain.repository.CategoryRepository
@@ -22,6 +24,7 @@ import com.youtubeclone.app.domain.repository.ChannelRepository
 import com.youtubeclone.app.domain.repository.CommentRepository
 import com.youtubeclone.app.domain.repository.LiveVideoRepository
 import com.youtubeclone.app.domain.repository.PreferencesRepository
+import com.youtubeclone.app.domain.repository.PremiumRepository
 import com.youtubeclone.app.domain.repository.VideoRepository
 import dagger.Binds
 import dagger.Module
@@ -82,6 +85,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun providePremiumApi(retrofit: Retrofit): PremiumApi = retrofit.create(PremiumApi::class.java)
+
+    @Provides
+    @Singleton
     fun provideCategoryApi(retrofit: Retrofit): CategoryApi = retrofit.create(CategoryApi::class.java)
 
     // Client à part, sans intercepteur ni authenticator : voir RefreshApi.
@@ -126,4 +133,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPreferencesRepository(impl: PreferencesRepositoryImpl): PreferencesRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPremiumRepository(impl: PremiumRepositoryImpl): PremiumRepository
 }

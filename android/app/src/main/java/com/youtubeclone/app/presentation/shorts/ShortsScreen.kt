@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -86,6 +88,7 @@ import com.youtubeclone.app.presentation.watch.CommentsSheet
 fun ShortsScreen(
     onChannelClick: (channelId: String) -> Unit,
     onLoginRequired: () -> Unit,
+    onPremiumClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ShortsViewModel = hiltViewModel(),
 ) {
@@ -107,7 +110,7 @@ fun ShortsScreen(
         ShortsUiState.Loading -> LoadingState(modifier)
         ShortsUiState.Empty -> MessageState(stringResource(R.string.shorts_empty), modifier)
         is ShortsUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
-        is ShortsUiState.Success -> ShortsPager(state.videos, viewModel, onChannelClick, onLoginRequired, modifier)
+        is ShortsUiState.Success -> ShortsPager(state.videos, viewModel, onChannelClick, onLoginRequired, onPremiumClick, modifier)
     }
 }
 
@@ -117,6 +120,7 @@ private fun ShortsPager(
     viewModel: ShortsViewModel,
     onChannelClick: (channelId: String) -> Unit,
     onLoginRequired: () -> Unit,
+    onPremiumClick: () -> Unit,
     modifier: Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { videos.size })
@@ -160,6 +164,7 @@ private fun ShortsPager(
             blockedReason = playback.blockedReason?.takeIf { isActive }?.let {
                 if (it.code != null) stringResource(it.messageRes, it.code) else stringResource(it.messageRes)
             },
+            premiumRequired = isActive && playback.premiumRequired,
             likes = likes[video.id],
             // Le nombre de commentaires n'est connu que pour le Short visible.
             commentCount = commentsState?.takeIf { isActive && !it.isLoading && it.error == null }?.total,
@@ -170,6 +175,7 @@ private fun ShortsPager(
             onShareClick = { shareVideo(context, video) },
             onChannelClick = { onChannelClick(video.channel.id) },
             onFollowClick = { requireLogin(viewModel.follow::toggle) },
+            onPremiumClick = onPremiumClick,
         )
     }
 
@@ -192,6 +198,7 @@ private fun ShortPage(
     player: Player?,
     pausedByUser: Boolean,
     blockedReason: String?,
+    premiumRequired: Boolean,
     likes: ShortLikes?,
     commentCount: Int?,
     followState: FollowUiState?,
@@ -201,6 +208,7 @@ private fun ShortPage(
     onShareClick: () -> Unit,
     onChannelClick: () -> Unit,
     onFollowClick: () -> Unit,
+    onPremiumClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -232,16 +240,31 @@ private fun ShortPage(
         )
 
         if (blockedReason != null) {
-            Text(
-                text = blockedReason,
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White,
-                textAlign = TextAlign.Center,
+            Column(
                 modifier = Modifier
                     .align(Alignment.Center)
+                    .padding(horizontal = 32.dp)
                     .background(Color.Black.copy(alpha = 0.7f), MaterialTheme.shapes.medium)
                     .padding(16.dp),
-            )
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = blockedReason,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                )
+                if (premiumRequired) {
+                    Button(
+                        onClick = onPremiumClick,
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                    ) {
+                        Text(stringResource(R.string.premium_discover), fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         } else if (pausedByUser) {
             Icon(
                 painter = painterResource(R.drawable.ic_play),
@@ -414,6 +437,7 @@ private fun ShortPagePreview() {
             player = null,
             pausedByUser = true,
             blockedReason = null,
+            premiumRequired = false,
             likes = ShortLikes(likeCount = 1_240, isLiked = true),
             commentCount = 36,
             followState = FollowUiState(followerCount = 15_800, isFollowing = false),
@@ -423,6 +447,7 @@ private fun ShortPagePreview() {
             onShareClick = {},
             onChannelClick = {},
             onFollowClick = {},
+            onPremiumClick = {},
         )
     }
 }

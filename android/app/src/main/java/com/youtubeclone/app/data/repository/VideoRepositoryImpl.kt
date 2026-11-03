@@ -58,7 +58,12 @@ class VideoRepositoryImpl @Inject constructor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: HttpException) {
-            throw if (e.code() == 404) DataError.NotFound else DataError.Server(e.code())
+            // 403 sur une vidéo : seule une vidéo exclusive sans abonnement Premium le provoque.
+            throw when (e.code()) {
+                404 -> DataError.NotFound
+                403 -> DataError.PremiumRequired
+                else -> DataError.Server(e.code())
+            }
         } catch (e: IOException) {
             throw DataError.Network
         }

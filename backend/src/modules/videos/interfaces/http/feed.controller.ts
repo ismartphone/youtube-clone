@@ -14,7 +14,7 @@ import { PaginationQuery } from './list-videos.query.js';
 import { presentVideoSummary } from './video.presenter.js';
 
 // Listes de vidéos propres à l'utilisateur connecté : fil Abonnements, historique, vidéos aimées.
-// Le statut Premium n'est pas encore géré : le spectateur reste traité comme non Premium.
+// Les listes ne contiennent pas l'URL des fichiers : le spectateur y est traité comme non Premium.
 @Controller('me')
 @UseGuards(JwtAuthGuard)
 export class FeedController {

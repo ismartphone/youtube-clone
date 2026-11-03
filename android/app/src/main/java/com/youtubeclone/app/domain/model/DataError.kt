@@ -14,4 +14,9 @@ sealed class DataError : Exception() {
     data object NotFound : DataError() {
         private fun readResolve(): Any = NotFound
     }
+
+    /** Vidéo exclusive demandée sans abonnement Premium en cours : le serveur refuse l'accès (ADR-007). */
+    data object PremiumRequired : DataError() {
+        private fun readResolve(): Any = PremiumRequired
+    }
 }

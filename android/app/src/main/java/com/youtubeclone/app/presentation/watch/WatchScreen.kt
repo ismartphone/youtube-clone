@@ -111,10 +111,13 @@ fun WatchScreen(
     onVideoClick: (videoId: String) -> Unit,
     onChannelClick: (channelId: String) -> Unit,
     onLoginRequired: () -> Unit,
+    onPremiumRequired: (videoId: String) -> Unit,
+    onRemoveAdsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WatchViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val adSecondsLeft by viewModel.adSecondsLeft.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
@@ -124,8 +127,8 @@ fun WatchScreen(
     ErrorToast(viewModel.errors)
     ErrorToast(viewModel.comments.errors)
 
-    // Application en arrière-plan : la lecture se met en pause, sans libérer le lecteur.
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.pause() }
+    // Application en arrière-plan : pause, sauf pour un compte Premium (lecture en arrière-plan).
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onAppBackground() }
 
     // Connexion temps réel ouverte tant que l'écran est visible : fermée quand on le quitte
     // (autre écran, application en arrière-plan), rouverte au retour.
@@ -145,6 +148,11 @@ fun WatchScreen(
     when (val state = uiState) {
         WatchUiState.Loading -> LoadingState(modifier)
         is WatchUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
+        // Refus du serveur : l'écran laisse sa place au paywall.
+        WatchUiState.PremiumRequired -> {
+            LoadingState(modifier)
+            LaunchedEffect(Unit) { onPremiumRequired(viewModel.videoId) }
+        }
         is WatchUiState.Success -> {
             val video = state.detail.video
             WatchContent(
@@ -153,7 +161,7 @@ fun WatchScreen(
                 followState = followState,
                 comments = commentsState,
                 suggestions = suggestions,
-                player = { PlayerArea(state.detail, viewModel.player) },
+                player = { PlayerArea(state.detail, viewModel.player, adSecondsLeft, onRemoveAdsClick) },
                 onChannelClick = { onChannelClick(video.channel.id) },
                 onFollowClick = { requireLogin(viewModel.follow::toggle) },
                 onLikeClick = { requireLogin(viewModel::toggleLike) },
@@ -220,7 +228,12 @@ private fun WatchContent(
 }
 
 @Composable
-private fun PlayerArea(detail: VideoDetail, player: Player) {
+private fun PlayerArea(
+    detail: VideoDetail,
+    player: Player,
+    adSecondsLeft: Int?,
+    onRemoveAdsClick: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -230,6 +243,9 @@ private fun PlayerArea(detail: VideoDetail, player: Player) {
     ) {
         if (detail.videoUrl != null) {
             VideoPlayer(player = player, modifier = Modifier.fillMaxSize())
+            if (adSecondsLeft != null) {
+                AdOverlay(adSecondsLeft, onRemoveAdsClick, Modifier.fillMaxSize())
+            }
         } else {
             // Le serveur n'a pas donné l'URL : accès refusé, par exemple vidéo Premium.
             Text(
@@ -240,6 +256,45 @@ private fun PlayerArea(detail: VideoDetail, player: Player) {
                 modifier = Modifier.padding(24.dp),
             )
         }
+    }
+}
+
+// Publicité simulée (ADR-007) : quelques secondes avant la lecture, sans régie réelle et sans
+// bouton pour la passer. Les comptes Premium ne la voient pas.
+@Composable
+private fun AdOverlay(secondsLeft: Int, onRemoveAdsClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .background(Color(0xFF1A1A1A))
+            .padding(12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.ad_label),
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+            color = Color.Black,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .background(Color(0xFFFFC107), RoundedCornerShape(4.dp))
+                .padding(horizontal = 6.dp, vertical = 2.dp),
+        )
+        Text(
+            text = stringResource(R.string.ad_countdown, secondsLeft),
+            style = MaterialTheme.typography.titleMedium,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.align(Alignment.Center),
+        )
+        Text(
+            text = stringResource(R.string.ad_remove),
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .clip(RoundedCornerShape(4.dp))
+                .clickable(onClick = onRemoveAdsClick)
+                .background(Color.White.copy(alpha = 0.15f))
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        )
     }
 }
 
