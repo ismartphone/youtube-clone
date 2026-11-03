@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.analytics.PaywallVariant
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
@@ -133,8 +134,14 @@ private fun PaywallContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 16.dp),
             )
+            // Seul le titre change entre les variantes du test A/B : le reste de l'écran est identique.
             Text(
-                text = stringResource(R.string.premium_paywall_title),
+                text = stringResource(
+                    when (state.variant) {
+                        PaywallVariant.BENEFITS -> R.string.premium_paywall_title
+                        PaywallVariant.PRICE -> R.string.premium_paywall_title_price
+                    },
+                ),
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,

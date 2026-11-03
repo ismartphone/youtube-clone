@@ -50,6 +50,7 @@
     <string name="premium_badge">Premium</string>
     <string name="premium_price">4,99 € par mois</string>
     <string name="premium_paywall_title">Passez à Premium</string>
+    <string name="premium_paywall_title_price">Premium pour 4,99 € par mois</string>
     <string name="premium_benefit_no_ads">Sans publicité</string>
     <string name="premium_benefit_no_ads_detail">Les vidéos démarrent tout de suite.</string>
     <string name="premium_benefit_exclusive">Vidéos exclusives</string>

@@ -20,6 +20,31 @@ interface Analytics {
     fun reset()
 }
 
+/**
+ * Test A/B du paywall (ADR-006) : variante attribuée par le drapeau PostHog « paywall-title ».
+ * Ne bloque jamais : drapeau absent, pas encore chargé ou PostHog injoignable, la variante
+ * par défaut [PaywallVariant.BENEFITS] s'affiche.
+ */
+interface Experiments {
+    fun paywallVariant(): PaywallVariant
+}
+
+/** Variantes du titre du paywall. [key] : nom de la variante dans PostHog. */
+enum class PaywallVariant(val key: String) {
+    /** Titre orienté avantages, « Passez à Premium ». Variante par défaut. */
+    BENEFITS("benefits"),
+
+    /** Titre orienté prix, « Premium pour 4,99 € par mois ». */
+    PRICE("price"),
+    ;
+
+    companion object {
+        const val FLAG_KEY = "paywall-title"
+
+        fun fromKey(key: String?): PaywallVariant = entries.firstOrNull { it.key == key } ?: BENEFITS
+    }
+}
+
 /** Événements mesurés. Les noms suivent la convention snake_case de PostHog. */
 sealed class AnalyticsEvent(val name: String, val properties: Map<String, Any> = emptyMap()) {
     data object SignedUp : AnalyticsEvent("signed_up")
@@ -42,9 +67,12 @@ sealed class AnalyticsEvent(val name: String, val properties: Map<String, Any> =
     class CommentPosted(videoId: String) : AnalyticsEvent("comment_posted", mapOf("video_id" to videoId))
     class ChannelFollowed(channelId: String) : AnalyticsEvent("channel_followed", mapOf("channel_id" to channelId))
 
-    // Parcours du paywall : affiché, achat lancé, achat confirmé ou abandon.
-    data object PaywallViewed : AnalyticsEvent("paywall_viewed")
-    data object PurchaseStarted : AnalyticsEvent("purchase_started")
-    data object PurchaseConfirmed : AnalyticsEvent("purchase_confirmed")
-    data object PaywallDismissed : AnalyticsEvent("paywall_dismissed")
+    // Parcours du paywall : affiché, achat lancé, achat confirmé ou abandon. Chacun porte la
+    // variante affichée, pour comparer les taux de conversion du test A/B.
+    class PaywallViewed(variant: PaywallVariant) : AnalyticsEvent("paywall_viewed", variant.toProperties())
+    class PurchaseStarted(variant: PaywallVariant) : AnalyticsEvent("purchase_started", variant.toProperties())
+    class PurchaseConfirmed(variant: PaywallVariant) : AnalyticsEvent("purchase_confirmed", variant.toProperties())
+    class PaywallDismissed(variant: PaywallVariant) : AnalyticsEvent("paywall_dismissed", variant.toProperties())
 }
+
+private fun PaywallVariant.toProperties(): Map<String, Any> = mapOf("paywall_variant" to key)

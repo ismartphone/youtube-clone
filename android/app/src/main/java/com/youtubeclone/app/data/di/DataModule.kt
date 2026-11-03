@@ -20,6 +20,7 @@ import com.youtubeclone.app.data.repository.PreferencesRepositoryImpl
 import com.youtubeclone.app.data.repository.PremiumRepositoryImpl
 import com.youtubeclone.app.data.repository.VideoRepositoryImpl
 import com.youtubeclone.app.domain.analytics.Analytics
+import com.youtubeclone.app.domain.analytics.Experiments
 import com.youtubeclone.app.domain.repository.AuthRepository
 import com.youtubeclone.app.domain.repository.CategoryRepository
 import com.youtubeclone.app.domain.repository.ChannelRepository
@@ -143,4 +144,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAnalytics(impl: PostHogAnalytics): Analytics
+
+    @Binds
+    @Singleton
+    abstract fun bindExperiments(impl: PostHogAnalytics): Experiments
 }

@@ -8,6 +8,8 @@ import com.posthog.android.PostHogAndroidConfig
 import com.youtubeclone.app.BuildConfig
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.analytics.AnalyticsEvent
+import com.youtubeclone.app.domain.analytics.Experiments
+import com.youtubeclone.app.domain.analytics.PaywallVariant
 import com.youtubeclone.app.domain.repository.AuthRepository
 import com.youtubeclone.app.domain.repository.PreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -25,13 +27,14 @@ import kotlinx.coroutines.runBlocking
  * Mesures envoyées directement à PostHog cloud Europe (ADR-006), sans passer par le backend.
  * Respecte l'ADR-013 : compte identifié par son seul UUID, visiteur anonyme, et aucun envoi
  * quand « Partager des statistiques d'usage » est désactivé.
+ * Fournit aussi la variante du test A/B du paywall, lue dans les drapeaux PostHog.
  */
 @Singleton
 class PostHogAnalytics @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferences: PreferencesRepository,
     private val auth: AuthRepository,
-) : Analytics {
+) : Analytics, Experiments {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -86,6 +89,9 @@ class PostHogAnalytics @Inject constructor(
             sessionReplay = false
             // Pas de profil pour un visiteur : il reste anonyme tant qu'il ne se connecte pas.
             personProfiles = PersonProfiles.IDENTIFIED_ONLY
+            // Drapeaux (test A/B du paywall) chargés dès le démarrage, puis gardés en cache
+            // sur l'appareil pour les lancements suivants.
+            preloadFeatureFlags = true
             debug = BuildConfig.DEBUG
         }
         PostHogAndroid.setup(context, config)
@@ -111,4 +117,9 @@ class PostHogAnalytics @Inject constructor(
     override fun reset() {
         if (isSetUp) PostHog.reset()
     }
+
+    // Lu dans le cache du SDK, sans attendre le réseau. La lecture envoie aussi l'exposition
+    // au test ($feature_flag_called), utilisée par PostHog pour compter les participants.
+    override fun paywallVariant(): PaywallVariant =
+        if (isSetUp) PaywallVariant.fromKey(PostHog.getFeatureFlag(PaywallVariant.FLAG_KEY) as? String) else PaywallVariant.BENEFITS
 }

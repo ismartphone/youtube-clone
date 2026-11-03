@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.analytics.AnalyticsEvent
+import com.youtubeclone.app.domain.analytics.Experiments
+import com.youtubeclone.app.domain.analytics.PaywallVariant
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.usecase.ConfirmPremiumPurchaseUseCase
@@ -26,6 +28,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class PaywallUiState(
+    /** Variante du test A/B, fixée à l'ouverture de l'écran. */
+    val variant: PaywallVariant = PaywallVariant.BENEFITS,
     val isLoggedIn: Boolean = false,
     /** Déjà membre : l'écran le dit au lieu de proposer l'achat. */
     val isAlreadyPremium: Boolean = false,
@@ -45,16 +49,19 @@ class PaywallViewModel @Inject constructor(
     private val startCheckout: StartPremiumCheckoutUseCase,
     private val confirmPurchase: ConfirmPremiumPurchaseUseCase,
     private val analytics: Analytics,
+    experiments: Experiments,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(PaywallUiState())
+    private val variant = experiments.paywallVariant()
+
+    private val _uiState = MutableStateFlow(PaywallUiState(variant = variant))
     val uiState: StateFlow<PaywallUiState> = _uiState.asStateFlow()
 
     private val _errors = MutableSharedFlow<UiError>(extraBufferCapacity = 1)
     val errors: SharedFlow<UiError> = _errors.asSharedFlow()
 
     init {
-        analytics.track(AnalyticsEvent.PaywallViewed)
+        analytics.track(AnalyticsEvent.PaywallViewed(variant))
         viewModelScope.launch {
             observeSession().collect { loggedIn -> _uiState.update { it.copy(isLoggedIn = loggedIn) } }
         }
@@ -72,7 +79,7 @@ class PaywallViewModel @Inject constructor(
     fun startPurchase() {
         if (_uiState.value.isBusy) return
         _uiState.update { it.copy(isBusy = true) }
-        analytics.track(AnalyticsEvent.PurchaseStarted)
+        analytics.track(AnalyticsEvent.PurchaseStarted(variant))
         viewModelScope.launch {
             try {
                 val token = startCheckout()
@@ -96,7 +103,7 @@ class PaywallViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val status: PremiumStatus = confirmPurchase(token)
-                if (status.isPremium) analytics.track(AnalyticsEvent.PurchaseConfirmed)
+                if (status.isPremium) analytics.track(AnalyticsEvent.PurchaseConfirmed(variant))
                 _uiState.update {
                     it.copy(isBusy = false, checkoutToken = null, isPurchased = status.isPremium)
                 }
@@ -119,7 +126,7 @@ class PaywallViewModel @Inject constructor(
     // Écran quitté sans achat confirmé : abandon du paywall. Un membre déjà Premium n'est pas compté.
     override fun onCleared() {
         val state = _uiState.value
-        if (!state.isPurchased && !state.isAlreadyPremium) analytics.track(AnalyticsEvent.PaywallDismissed)
+        if (!state.isPurchased && !state.isAlreadyPremium) analytics.track(AnalyticsEvent.PaywallDismissed(variant))
     }
 
     private suspend fun refreshQuietly() {
