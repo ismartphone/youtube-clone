@@ -67,8 +67,8 @@ Autres commandes :
 |---|---|
 | `npm run build` | Compile dans `dist/` |
 | `npm run start:prod` | Lance la version compilée |
-| `npm run test` | Tests unitaires (Vitest) |
-| `npm run test:e2e` | Tests de bout en bout |
+| `npm run test` | Tests unitaires du domaine (Vitest) : règles pures, sans base ni FFmpeg. Fichiers `*.spec.ts` à côté du code testé, sous `src/modules/*/domain/` |
+| `npm run test:e2e` | Tests de bout en bout (`*.e2e-spec.ts`) : aucun n'est écrit pour l'instant, la commande échoue faute de fichier |
 | `npm run lint` | Analyse statique (oxlint) |
 | `npm run thumbnails:regenerate` | Remplace les miniatures génériques (placehold.co) par une image extraite de la vidéo |
 | `npm run hls:generate` | Génère l'échelle HLS (720p, 480p et 360p, jamais au-dessus de la source) des vidéos hébergées chez nous qui n'en ont pas : seed, Creative Commons, ou génération en tâche de fond interrompue. Quelques minutes pour tout le catalogue (ADR-017) |

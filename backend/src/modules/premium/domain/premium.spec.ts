@@ -1,0 +1,20 @@
+import { subscriptionEnd } from './premium.js';
+
+describe('subscriptionEnd', () => {
+  it("fait expirer l'abonnement le même jour du mois suivant", () => {
+    const start = new Date(2026, 10, 3, 21, 30);
+    expect(subscriptionEnd(start)).toEqual(new Date(2026, 11, 3, 21, 30));
+  });
+
+  it('passe à l’année suivante en décembre', () => {
+    expect(subscriptionEnd(new Date(2026, 11, 15))).toEqual(
+      new Date(2027, 0, 15),
+    );
+  });
+
+  it('ne modifie pas la date de départ', () => {
+    const start = new Date(2026, 10, 3);
+    subscriptionEnd(start);
+    expect(start).toEqual(new Date(2026, 10, 3));
+  });
+});
