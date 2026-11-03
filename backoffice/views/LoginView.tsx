@@ -1,4 +1,5 @@
 import type { LoginErrors } from "@/controllers/useLoginController";
+import { Logo } from "./AdminShell";
 import { Button, ErrorBanner, Field, TextInput } from "./ui";
 
 export function LoginView({
@@ -28,10 +29,15 @@ export function LoginView({
           event.preventDefault();
           onSubmit();
         }}
-        className="flex w-full max-w-sm flex-col gap-5 rounded-2xl border border-border bg-surface p-8"
+        aria-busy={submitting}
+        className="flex w-full max-w-sm flex-col gap-5 rounded-xl border border-border bg-surface p-8"
       >
         <div>
-          <h1 className="text-2xl font-semibold">Back-office</h1>
+          <div className="mb-4 flex items-center gap-2.5 text-sm font-semibold">
+            <Logo />
+            YouTube Clone
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">Back-office</h1>
           <p className="mt-1 text-sm text-muted">Connexion réservée aux administrateurs.</p>
         </div>
         <Field id="email" label="Adresse email" error={errors.email}>

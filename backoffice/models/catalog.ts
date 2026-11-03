@@ -56,6 +56,11 @@ export interface CatalogStats {
   totalViews: number;
 }
 
+/** Les [count] vidéos les plus vues, de la plus vue à la moins vue. */
+export function mostViewed(videos: Video[], count: number): Video[] {
+  return [...videos].sort((a, b) => b.viewCount - a.viewCount).slice(0, count);
+}
+
 export function pageCount(page: Page<unknown>): number {
   return Math.max(1, Math.ceil(page.total / page.pageSize));
 }

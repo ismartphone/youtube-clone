@@ -1,6 +1,22 @@
 import type { RemoteData } from "@/controllers/useRemoteData";
 import type { CategoryWithCount } from "@/models/catalog";
-import { Button, ErrorBanner, Field, Loading, PageHeader, TextInput } from "./ui";
+import { formatNumber } from "@/models/format";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  ErrorBanner,
+  Field,
+  PageHeader,
+  Panel,
+  TableSkeleton,
+  Td,
+  TextInput,
+  Th,
+  Tr,
+} from "./ui";
+
+const COLUMNS = ["Catégorie", "Vidéos", "Actions"];
 
 export function CategoriesView({
   state,
@@ -27,55 +43,76 @@ export function CategoriesView({
 }) {
   return (
     <>
-      <PageHeader title="Catégories" />
-      <form
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault();
-          onCreate();
-        }}
-        className="mb-8 flex max-w-xl flex-wrap items-start gap-3"
-      >
-        <div className="min-w-60 flex-1">
-          <Field id="category-name" label="Nouvelle catégorie" error={nameError}>
-            <TextInput id="category-name" value={name} onChange={onNameChange} error={nameError} />
-          </Field>
+      <PageHeader title="Catégories" description="Catégories proposées à la publication d'une vidéo." />
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
+        <div className="order-2 lg:order-1">
+          {actionError && (
+            <div className="mb-4">
+              <ErrorBanner message={actionError} />
+            </div>
+          )}
+          {state.status === "loading" && <TableSkeleton columns={COLUMNS} rows={4} />}
+          {state.status === "error" && <ErrorBanner message={state.message} onRetry={onRetry} />}
+          {state.status === "success" && state.data.length === 0 && (
+            <EmptyState
+              title="Aucune catégorie pour le moment"
+              description="Créez une première catégorie avec le formulaire."
+            />
+          )}
+          {state.status === "success" && state.data.length > 0 && (
+            <DataTable minWidth={420}>
+              <thead>
+                <tr>
+                  <Th>Catégorie</Th>
+                  <Th align="right">Vidéos</Th>
+                  <Th align="right">Actions</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.data.map((category) => (
+                  <Tr key={category.id}>
+                    <Td className="font-medium">{category.name}</Td>
+                    <Td align="right">{formatNumber(category.videoCount)}</Td>
+                    <Td align="right">
+                      <div className="flex justify-end">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          disabled={deletingId === category.id}
+                          onClick={() => onDelete(category)}
+                        >
+                          {deletingId === category.id ? "Suppression…" : "Supprimer"}
+                        </Button>
+                      </div>
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </DataTable>
+          )}
         </div>
-        <div className="pt-7">
-          <Button type="submit" disabled={creating}>
-            {creating ? "Création…" : "Créer"}
-          </Button>
-        </div>
-      </form>
-      {actionError && (
-        <div className="mb-4">
-          <ErrorBanner message={actionError} />
-        </div>
-      )}
-      {state.status === "loading" && <Loading />}
-      {state.status === "error" && <ErrorBanner message={state.message} onRetry={onRetry} />}
-      {state.status === "success" && state.data.length === 0 && (
-        <p className="py-12 text-center text-sm text-muted">Aucune catégorie pour le moment.</p>
-      )}
-      {state.status === "success" && state.data.length > 0 && (
-        <ul className="max-w-xl divide-y divide-border rounded-2xl border border-border">
-          {state.data.map((category) => (
-            <li key={category.id} className="flex items-center justify-between gap-4 px-4 py-3">
+        <div className="order-1 lg:order-2">
+          <Panel title="Nouvelle catégorie">
+            <form
+              noValidate
+              onSubmit={(event) => {
+                event.preventDefault();
+                onCreate();
+              }}
+              className="flex flex-col gap-4"
+            >
+              <Field id="category-name" label="Nom" error={nameError}>
+                <TextInput id="category-name" value={name} onChange={onNameChange} error={nameError} />
+              </Field>
               <div>
-                <p className="font-medium">{category.name}</p>
-                <p className="text-sm text-muted">{category.videoCount} vidéo(s)</p>
+                <Button type="submit" disabled={creating}>
+                  {creating ? "Création…" : "Créer la catégorie"}
+                </Button>
               </div>
-              <Button
-                variant="danger"
-                disabled={deletingId === category.id}
-                onClick={() => onDelete(category)}
-              >
-                {deletingId === category.id ? "Suppression…" : "Supprimer"}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
+            </form>
+          </Panel>
+        </div>
+      </div>
     </>
   );
 }

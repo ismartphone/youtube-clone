@@ -20,6 +20,23 @@ export function listVideos(page: number, pageSize: number): Promise<Page<Video>>
   return apiRequest(`/admin/videos?page=${page}&pageSize=${pageSize}`);
 }
 
+// Plus grande page acceptée par l'API (MAX_PAGE_SIZE côté backend).
+const ALL_VIDEOS_PAGE_SIZE = 50;
+
+/**
+ * Tout le catalogue, page après page. L'API ne trie que par date : le tableau de bord lit donc
+ * toutes les vidéos pour trier lui-même par vues. Acceptable pour le catalogue de démonstration ;
+ * sur un gros catalogue, il faudrait un tri par vues côté API.
+ */
+export async function listAllVideos(): Promise<Video[]> {
+  const videos: Video[] = [];
+  for (let page = 1; ; page++) {
+    const result = await listVideos(page, ALL_VIDEOS_PAGE_SIZE);
+    videos.push(...result.items);
+    if (result.items.length === 0 || videos.length >= result.total) return videos;
+  }
+}
+
 export function getVideo(id: string): Promise<VideoDetail> {
   return apiRequest(`/admin/videos/${encodeURIComponent(id)}`);
 }

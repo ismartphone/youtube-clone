@@ -1,10 +1,24 @@
 import Image from "next/image";
-import Link from "next/link";
 import type { RemoteData } from "@/controllers/useRemoteData";
 import { pageCount, type Page, type Video } from "@/models/catalog";
 import { formatDuration, formatNumber } from "@/models/format";
 import { mediaUrl } from "@/models/media";
-import { Button, ErrorBanner, Loading, PageHeader, Pagination } from "./ui";
+import {
+  Badge,
+  Button,
+  DataTable,
+  EmptyState,
+  ErrorBanner,
+  LinkButton,
+  PageHeader,
+  Pagination,
+  TableSkeleton,
+  Td,
+  Th,
+  Tr,
+} from "./ui";
+
+const COLUMNS = ["Vidéo", "Chaîne", "Format", "Vues", "Actions"];
 
 export function VideoListView({
   state,
@@ -27,13 +41,15 @@ export function VideoListView({
     <>
       <PageHeader
         title="Vidéos"
+        description={
+          state.status === "success"
+            ? `${formatNumber(state.data.total)} vidéo(s), Shorts compris, de la plus récente à la plus ancienne.`
+            : "Vidéos et Shorts du catalogue."
+        }
         action={
-          <Link
-            href="/videos/new"
-            className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
-          >
+          <LinkButton href="/videos/new" variant="primary">
             Ajouter une vidéo
-          </Link>
+          </LinkButton>
         }
       />
       {actionError && (
@@ -41,74 +57,83 @@ export function VideoListView({
           <ErrorBanner message={actionError} />
         </div>
       )}
-      {state.status === "loading" && <Loading />}
+      {state.status === "loading" && <TableSkeleton columns={COLUMNS} />}
       {state.status === "error" && <ErrorBanner message={state.message} onRetry={onRetry} />}
       {state.status === "success" && state.data.items.length === 0 && (
-        <p className="py-12 text-center text-sm text-muted">Aucune vidéo dans le catalogue.</p>
+        <EmptyState
+          title="Aucune vidéo dans le catalogue"
+          description="Les vidéos ajoutées ici ou publiées depuis l'application apparaîtront dans cette liste."
+          action={
+            <LinkButton href="/videos/new" variant="primary">
+              Ajouter une vidéo
+            </LinkButton>
+          }
+        />
       )}
       {state.status === "success" && state.data.items.length > 0 && (
         <>
-          <p className="mb-3 text-sm text-muted">{formatNumber(state.data.total)} vidéo(s)</p>
-          <div className="overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="bg-surface text-muted">
-                <tr>
-                  <th scope="col" className="px-4 py-3 font-medium">Vidéo</th>
-                  <th scope="col" className="px-4 py-3 font-medium">Chaîne</th>
-                  <th scope="col" className="px-4 py-3 font-medium">Format</th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">Vues</th>
-                  <th scope="col" className="px-4 py-3 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {state.data.items.map((video) => (
-                  <tr key={video.id} className="border-t border-border">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
+          <DataTable>
+            <thead>
+              <tr>
+                <Th>Vidéo</Th>
+                <Th>Chaîne</Th>
+                <Th>Format</Th>
+                <Th align="right">Vues</Th>
+                <Th align="right">Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.data.items.map((video) => (
+                <Tr key={video.id}>
+                  <Td>
+                    <div className="flex items-center gap-3">
+                      <div className="relative shrink-0">
                         {/* URL saisies à la main, de n'importe quel domaine : pas d'optimisation Next.js. */}
                         <Image
                           src={mediaUrl(video.thumbnailUrl)}
                           alt=""
-                          width={112}
-                          height={63}
+                          width={96}
+                          height={54}
                           unoptimized
-                          className="h-[63px] w-28 shrink-0 rounded-md bg-surface-hover object-cover"
+                          className="h-[54px] w-24 rounded-md bg-surface-hover object-cover"
                         />
-                        <div className="min-w-0">
-                          <p className="line-clamp-2 font-medium">{video.title}</p>
-                          <p className="mt-0.5 text-xs text-muted">
-                            {formatDuration(video.durationSeconds)}
-                            {video.category && ` · ${video.category.name}`}
-                            {video.isPremium && " · Premium"}
-                          </p>
-                        </div>
+                        <span className="absolute right-1 bottom-1 rounded bg-black/80 px-1 text-[10px] font-medium tabular-nums">
+                          {formatDuration(video.durationSeconds)}
+                        </span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">{video.channel.name}</td>
-                    <td className="px-4 py-3">{video.format === "SHORT" ? "Short" : "Vidéo"}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">{formatNumber(video.viewCount)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <Link
-                          href={`/videos/${video.id}`}
-                          className="rounded-full border border-border px-4 py-2 text-sm font-medium hover:bg-surface-hover"
-                        >
-                          Modifier
-                        </Link>
-                        <Button
-                          variant="danger"
-                          disabled={deletingId === video.id}
-                          onClick={() => onDelete(video)}
-                        >
-                          {deletingId === video.id ? "Suppression…" : "Supprimer"}
-                        </Button>
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 font-medium">{video.title}</p>
+                        <p className="mt-0.5 text-xs text-muted">{video.category?.name ?? "Sans catégorie"}</p>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </Td>
+                  <Td className="text-muted">{video.channel.name}</Td>
+                  <Td>
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge>{video.format === "SHORT" ? "Short" : "Vidéo"}</Badge>
+                      {video.isPremium && <Badge tone="accent">Premium</Badge>}
+                    </div>
+                  </Td>
+                  <Td align="right">{formatNumber(video.viewCount)}</Td>
+                  <Td align="right">
+                    <div className="flex justify-end gap-2">
+                      <LinkButton href={`/videos/${video.id}`} size="sm">
+                        Modifier
+                      </LinkButton>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={deletingId === video.id}
+                        onClick={() => onDelete(video)}
+                      >
+                        {deletingId === video.id ? "Suppression…" : "Supprimer"}
+                      </Button>
+                    </div>
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </DataTable>
           <Pagination page={page} pageCount={pageCount(state.data)} onChange={onPageChange} />
         </>
       )}
