@@ -32,6 +32,8 @@ Le client envoie `{ "event": "join", "data": { "videoId": ... } }` pour rejoindr
 
 Les salles sont gardées en mémoire dans le serveur. Ce fonctionnement n'est valable que pour une seule instance du backend.
 
+Le `join` de la salle d'une vidéo privée est vérifié par la passerelle : il est refusé à toute personne autre que le propriétaire de la vidéo (ADR-016).
+
 ### Envoi des commentaires et des « j'aime »
 La connexion WebSocket ne sert qu'à recevoir. Les commentaires sont publiés par POST /videos/:id/comments, et les « j'aime » par POST et DELETE /videos/:id/like, sur l'API REST. Le serveur les diffuse ensuite à la salle de la vidéo.
 
@@ -63,7 +65,7 @@ La connexion est ouverte tant que l'écran de lecture est visible, et fermée qu
 - Les salles sont gardées en mémoire : avec plusieurs instances du backend, il faudrait relayer les événements entre elles (par exemple par Redis pub/sub), ce qui n'est pas fait.
 - Les événements diffusés pendant une coupure sont perdus : l'application doit relire les compteurs et la première page des commentaires après chaque reconnexion.
 - La colonne `likeCount` en base n'est à jour que toutes les 30 secondes ; les compteurs affichés doivent additionner la valeur en base et les variations en attente dans Redis.
-- N'importe quel client, visiteur compris, peut rejoindre la salle d'une vidéo exclusive. C'est une limite assumée : il n'y a pas de fuite, puisque les événements diffusés ne contiennent jamais l'URL de la vidéo.
+- N'importe quel client, visiteur compris, peut rejoindre la salle d'une vidéo exclusive. C'est une limite assumée : il n'y a pas de fuite, puisque les événements diffusés ne contiennent jamais l'URL de la vidéo. Ce raisonnement ne vaut pas pour une vidéo privée, dont l'existence même, les commentaires et les compteurs ne doivent pas être exposés : le `join` de sa salle est vérifié et refusé à toute personne autre que son propriétaire (ADR-016).
 - Écart volontaire avec ADR-004 : ses conséquences indiquent que le client envoie ses commentaires et reçoit ceux des autres sur la même connexion ; ici, l'envoi passe par l'API REST et la connexion WebSocket ne sert qu'à recevoir. Cet écart affaiblit l'argument de ADR-004 contre les Server-Sent Events, écartés parce qu'ils ne permettent pas d'envoyer un commentaire.
 
 ## Liens
@@ -71,3 +73,4 @@ La connexion est ouverte tant que l'écran de lecture est visible, et fermée qu
 - [ADR-008](ADR-008-authentification-jwt.md) : authentification par JWT avec access token court et refresh token ; c'est l'access token de cet ADR qui est transmis dans le handshake, et son mécanisme de renouvellement qui est utilisé après une fermeture 4401.
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; c'est ce framework qui fournit la passerelle WebSocket et l'adaptateur `ws`.
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est cette application qui ouvre la connexion avec le client WebSocket d'OkHttp et gère les reconnexions.
+- [ADR-016](ADR-016-reglages-publication-video.md) : réglages de publication d'une vidéo (visibilité et commentaires) ; il impose la vérification du `join` pour la salle d'une vidéo privée.

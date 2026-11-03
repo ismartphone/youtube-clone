@@ -20,12 +20,14 @@ Contraintes :
 ### FFmpeg, dépendance système du backend
 FFmpeg est installé à part, et non comme paquet npm : par exemple `winget install Gyan.FFmpeg` sous Windows, et installé dans l'image au déploiement. Le serveur appelle la commande `ffmpeg` du PATH, surchargeable par la variable FFMPEG_PATH, et `ffprobe`, surchargeable par FFPROBE_PATH.
 
-FFmpeg sert à trois usages :
+FFmpeg sert à cinq usages :
 - générer les miniatures : une image extraite à 10 % de la durée, recadrée en 1280x720 (720x1280 pour un Short) et enregistrée en JPEG dans le stockage local. La génération a lieu quand une vidéo est créée ou modifiée sans miniature depuis le back-office, quand une vidéo est envoyée depuis l'application mobile (le même service est réutilisé tel quel, voir l'ADR-015), par le bouton « Régénérer la miniature » et par la commande `npm run thumbnails:regenerate` ;
 - préparer les vidéos de démonstration du seed, avec la commande `npm run seed:videos` : téléchargement depuis Pexels, vérification par ffprobe et réencodage en 720p ;
-- valider par ffprobe les fichiers envoyés depuis l'application mobile : les vidéos et les Shorts, et l'image facultative d'un post. La validation ne se fie jamais à l'extension ni au type MIME annoncé par le client (ADR-015).
+- valider par ffprobe les fichiers envoyés depuis l'application mobile : les vidéos et les Shorts, et l'image facultative d'un post. La validation ne se fie jamais à l'extension ni au type MIME annoncé par le client (ADR-015) ;
+- générer l'échelle HLS multi-qualités d'une vidéo hébergée chez nous, à l'import et à l'envoi depuis l'application (ADR-017) ;
+- transcrire la piste audio pour produire les sous-titres automatiques, avec le filtre whisper (ADR-017).
 
-Ce réencodage est une préparation hors ligne de données de démonstration. Il est distinct de l'absence de transcodage à l'exécution posée par l'ADR-002, où le serveur sert les fichiers tels quels : l'ADR-002 n'est donc pas contredit.
+Ce réencodage est une préparation hors ligne de données de démonstration. L'échelle HLS et la transcription sont elles aussi produites hors ligne, une seule fois par vidéo (ADR-017). Il est distinct de l'absence de transcodage à l'exécution posée par l'ADR-002, où le serveur sert les fichiers tels quels : l'ADR-002 n'est donc pas contredit.
 
 La commande `seed:videos` prépare des données de démonstration et n'est pas un chemin d'entrée au catalogue. Le seul envoi de fichier exposé est la route authentifiée de l'application mobile, réservée au propriétaire d'une chaîne, décrite par l'ADR-015.
 
@@ -34,8 +36,10 @@ Si FFmpeg ou ffprobe est absent au démarrage, le serveur démarre quand même e
 
 Ce choix évite de rendre toute l'API indisponible pour un outil qui ne sert qu'à ces traitements : la lecture des vidéos et le reste de l'application mobile continuent de fonctionner.
 
+Si FFmpeg est présent mais ne contient pas le filtre whisper, les vidéos sont publiées sans sous-titres, et une erreur est journalisée (ADR-017).
+
 ### Chemins relatifs pour les fichiers hébergés chez nous
-Les fichiers hébergés chez nous sont enregistrés en base avec un chemin relatif, par exemple `/media/thumbnails/<uuid>.jpg` ou `/media/videos/<nom>.mp4`. Le backend les sert en statique sous `/media`.
+Les fichiers hébergés chez nous sont enregistrés en base avec un chemin relatif, par exemple `/media/thumbnails/<uuid>.jpg` ou `/media/videos/<nom>.mp4`. Les échelles HLS sont rangées sous `/media/hls` et les sous-titres sous `/media/subtitles` (ADR-017). Le backend les sert en statique sous `/media`.
 
 Chaque client complète ce chemin avec l'adresse par laquelle il joint l'API :
 - l'application Android, avec son adresse d'API (10.0.2.2:3000 sur l'émulateur) ;
@@ -77,3 +81,4 @@ Ce choix vient de ce qu'en développement l'émulateur et le navigateur ne joign
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; c'est ce backend qui appelle FFmpeg et sert les fichiers en statique sous `/media`.
 - [ADR-009](ADR-009-stockage-tokens-backoffice.md) : stockage des tokens du back-office ; c'est cet ADR qui définit le relais `/api` de Next.js, par lequel le back-office complète les chemins relatifs.
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est cette application qui complète les chemins relatifs avec son adresse d'API.
+- [ADR-017](ADR-017-hls-multi-qualites-sous-titres.md) : diffusion HLS multi-qualités et sous-titres automatiques ; il ajoute à FFmpeg l'échelle HLS et la transcription par le filtre whisper, et les dossiers `/media/hls` et `/media/subtitles`.

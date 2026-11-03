@@ -34,7 +34,7 @@ Un créateur publie des vidéos, des Shorts et des posts depuis l'application mo
 - Short : vidéo verticale de 60 secondes au plus.
 - Vidéo : pas de contrainte d'orientation.
 - Un fichier qui ne convient pas est refusé clairement.
-- Écran de publication : aperçu, titre, description, catégorie. Le format SHORT ou LONG vient de l'onglet choisi.
+- Écran de publication : aperçu, titre, description, catégorie, ainsi que la visibilité et l'activation des commentaires, présentées dans une liste repliée (ADR-016). Le format SHORT ou LONG vient de l'onglet choisi.
 - Envoi multipart avec progression réelle, annulable, et message clair en cas d'échec.
 
 ### Backend
@@ -44,8 +44,9 @@ Un créateur publie des vidéos, des Shorts et des posts depuis l'application mo
 - Le fichier est validé par ffprobe, jamais par son extension ni par le type MIME annoncé par le client.
 - Le nom du fichier est généré par le serveur, jamais repris du client.
 - La miniature est générée par le service FFmpeg existant (ADR-011), réutilisé tel quel.
+- La vidéo est publiée tout de suite en MP4. L'envoi déclenche ensuite, en tâche de fond, la génération de l'échelle HLS et celle des sous-titres, sans allonger la requête ; un échec de l'une ou de l'autre ne bloque pas la publication (ADR-017).
 - Si ffprobe ou FFmpeg est absent du serveur, l'envoi depuis l'application est refusé avec une erreur HTTP 503 et un message clair. Le serveur démarre quand même, comme pour les miniatures (ADR-011).
-- La vidéo publiée apparaît dans le fil et sur la page de la chaîne.
+- Une vidéo publiée en visibilité publique apparaît dans le fil et sur la page de la chaîne. Une vidéo non répertoriée ou privée n'apparaît dans aucune liste publique (ADR-016).
 
 ### Post
 - Nouvelle entité POST : texte, image facultative, auteur (la chaîne), date. Elle est ajoutée par une migration Prisma.
@@ -86,4 +87,6 @@ Un créateur publie des vidéos, des Shorts et des posts depuis l'application mo
 - [ADR-011](ADR-011-ffmpeg-chemins-medias.md) : FFmpeg en dépendance système et chemins relatifs ; son service de miniatures est réutilisé tel quel, et ffprobe valide les vidéos envoyées et les images des posts ; sans ffprobe ni FFmpeg, l'envoi depuis l'application est refusé en 503.
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est dans cette application que se trouvent la barre d'onglets, la feuille de création et les écrans de publication.
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; c'est ce backend qui expose la route d'envoi et la création des posts.
-- [ADR-007](ADR-007-offre-premium.md) : offre Premium ; les champs de l'écran de publication mobile sont l'aperçu, le titre, la description et la catégorie, le marquage isPremium n'en fait pas partie.
+- [ADR-007](ADR-007-offre-premium.md) : offre Premium ; les champs de l'écran de publication mobile sont l'aperçu, le titre, la description, la catégorie, la visibilité et les commentaires (ADR-016), le marquage isPremium n'en fait pas partie.
+- [ADR-016](ADR-016-reglages-publication-video.md) : réglages de publication d'une vidéo ; il ajoute la visibilité et l'activation des commentaires à l'écran de publication, et restreint l'apparition dans le fil et sur la page de la chaîne aux vidéos publiques.
+- [ADR-017](ADR-017-hls-multi-qualites-sous-titres.md) : diffusion HLS multi-qualités et sous-titres automatiques ; l'envoi depuis l'application déclenche leur génération en tâche de fond, après la publication en MP4.
