@@ -5,8 +5,13 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -17,12 +22,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -36,9 +48,9 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.channel.ChannelScreen
+import com.youtubeclone.app.presentation.create.CreateSheet
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
-import com.youtubeclone.app.presentation.library.LibraryScreen
 import com.youtubeclone.app.presentation.premium.PaywallScreen
 import com.youtubeclone.app.presentation.profile.YouListScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
@@ -55,7 +67,6 @@ import kotlinx.serialization.Serializable
 // Destinations typées de la navigation.
 @Serializable data object HomeRoute
 @Serializable data object ShortsRoute
-@Serializable data object LibraryRoute
 @Serializable data object YouRoute
 @Serializable data object LoginRoute
 @Serializable data object RegisterRoute
@@ -92,7 +103,6 @@ private enum class Tab(
     Home(HomeRoute, HomeRoute::class, R.string.tab_home, R.drawable.ic_tab_home),
     Shorts(ShortsRoute, ShortsRoute::class, R.string.tab_shorts, R.drawable.ic_tab_shorts),
     Subscriptions(SubscriptionsRoute, SubscriptionsRoute::class, R.string.tab_subscriptions, R.drawable.ic_tab_subscriptions),
-    Library(LibraryRoute, LibraryRoute::class, R.string.tab_library, R.drawable.ic_tab_library),
     You(YouRoute, YouRoute::class, R.string.tab_you, R.drawable.ic_tab_you),
 }
 
@@ -116,6 +126,8 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
         NavTransitions(tabRoutes = Tab.entries.map { it.routeClass }, reduceMotion = reduceMotion)
     }
     // Un seul exemplaire de chaque onglet, état conservé entre les onglets.
+    // Feuille de création du bouton + (ADR-015), ouverte par-dessus l'onglet courant.
+    var showCreateSheet by rememberSaveable { mutableStateOf(false) }
     val openTab = { route: Any ->
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -129,6 +141,8 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
         bottomBar = {
             if (showBottomBar) NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 Tab.entries.forEach { tab ->
+                    // Le + s'insère au centre, entre Shorts et Abonnements.
+                    if (tab == Tab.Subscriptions) CreateItem(onClick = { showCreateSheet = true })
                     val selected = currentDestination?.hierarchy?.any { it.hasRoute(tab.routeClass) } == true
                     NavigationBarItem(
                         selected = selected,
@@ -144,6 +158,12 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             }
         },
     ) { innerPadding ->
+        if (showCreateSheet) {
+            CreateSheet(
+                onDismiss = { showCreateSheet = false },
+                onLoginRequired = { navController.navigate(LoginRoute) },
+            )
+        }
         NavHost(
             navController = navController,
             startDestination = HomeRoute,
@@ -190,7 +210,6 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             composable<SubscriptionsRoute> {
                 SubscriptionsScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginClick = openLogin)
             }
-            composable<LibraryRoute> { LibraryScreen() }
             composable<WatchRoute> {
                 WatchScreen(
                     onVideoClick = openVideo,
@@ -258,6 +277,35 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
         }
     }
 }
+
+// Bouton + de la barre d'onglets : il n'ouvre pas d'onglet mais la feuille de création.
+// Mis en valeur par un disque clair, sans libellé visible.
+@Composable
+private fun RowScope.CreateItem(onClick: () -> Unit) {
+    val label = stringResource(R.string.tab_create)
+    NavigationBarItem(
+        selected = false,
+        onClick = onClick,
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(CREATE_BUTTON_SIZE)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.onBackground),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_add),
+                    contentDescription = label,
+                    tint = MaterialTheme.colorScheme.background,
+                )
+            }
+        },
+        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent),
+    )
+}
+
+private val CREATE_BUTTON_SIZE = 40.dp
 
 // Onglet sélectionné : l'icône grossit légèrement (sauf animations réduites), et la couleur
 // passe du gris au blanc en fondu.

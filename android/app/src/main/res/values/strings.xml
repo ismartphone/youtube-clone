@@ -5,8 +5,25 @@
     <string name="tab_home">Accueil</string>
     <string name="tab_shorts">Shorts</string>
     <string name="tab_subscriptions">Abonnements</string>
-    <string name="tab_library">Bibliothèque</string>
     <string name="tab_you">Vous</string>
+    <string name="tab_create">Créer</string>
+
+    <!-- Feuille de création du bouton + (ADR-015) -->
+    <string name="create_tab_video">Vidéo</string>
+    <string name="create_tab_short">Short</string>
+    <string name="create_tab_live">En direct</string>
+    <string name="create_tab_post">Post</string>
+    <string name="create_live_soon">Bientôt disponible</string>
+    <string name="create_video_title">Publier une vidéo</string>
+    <string name="create_video_message">Choisissez une vidéo dans votre galerie.</string>
+    <string name="create_short_title">Publier un Short</string>
+    <string name="create_short_message">Choisissez une vidéo verticale de 60 secondes au plus.</string>
+    <string name="create_post_title">Publier un post</string>
+    <string name="create_post_message">Partagez un message avec les abonnés de votre chaîne.</string>
+    <string name="create_login_title">Connectez-vous pour publier</string>
+    <string name="create_login_message">Il faut un compte et une chaîne pour publier des vidéos, des Shorts et des posts.</string>
+    <string name="create_no_channel_title">Créez votre chaîne pour publier</string>
+    <string name="create_no_channel_message">Vos vidéos, vos Shorts et vos posts sont publiés sur votre chaîne. Créez-en une pour commencer.</string>
 
     <string name="home_empty">Aucune vidéo pour le moment.</string>
     <string name="home_filter_all">Tout</string>
