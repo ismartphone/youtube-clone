@@ -11,6 +11,7 @@ import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
 import com.youtubeclone.app.domain.usecase.GetOwnChannelUseCase
 import com.youtubeclone.app.domain.usecase.LogoutUseCase
 import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
+import com.youtubeclone.app.domain.usecase.ObserveOwnChannelCreatedUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -43,6 +44,7 @@ class YouViewModel @Inject constructor(
     private val logout: LogoutUseCase,
     observePremium: ObservePremiumStatusUseCase,
     private val cancelPremium: CancelPremiumUseCase,
+    observeOwnChannelCreated: ObserveOwnChannelCreatedUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<YouUiState>(YouUiState.Loading)
@@ -64,6 +66,10 @@ class YouViewModel @Inject constructor(
             observeSession().collect { isLoggedIn ->
                 if (isLoggedIn) load() else showLoggedOut()
             }
+        }
+        // Chaîne créée depuis l'application : l'en-tête montre aussitôt « Voir la chaîne ».
+        viewModelScope.launch {
+            observeOwnChannelCreated().collect { load() }
         }
     }
 

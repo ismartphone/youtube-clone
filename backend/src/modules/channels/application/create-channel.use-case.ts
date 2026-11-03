@@ -14,6 +14,7 @@ export class CreateChannelUseCase {
     return this.channels.create(ownerId, {
       name: channel.name.trim(),
       handle: normalizeHandle(channel.handle),
+      description: channel.description?.trim() || null,
     });
   }
 }

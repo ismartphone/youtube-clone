@@ -11,6 +11,7 @@ export interface ChannelSummary {
 export interface NewChannel {
   name: string;
   handle: string;
+  description: string | null;
 }
 
 // Abonnés d'une chaîne (FOLLOW, abonnement gratuit), vus par l'utilisateur de la requête.

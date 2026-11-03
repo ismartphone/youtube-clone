@@ -1,5 +1,13 @@
 import { Transform } from 'class-transformer';
-import { IsString, IsUrl, Length, Matches, ValidateIf } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUrl,
+  Length,
+  Matches,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 import { HANDLE_PATTERN, normalizeHandle } from '../../domain/channel.js';
 
 // Bannière de notre stockage : chemin relatif servi sous /media (ADR-011).
@@ -47,4 +55,13 @@ export class CreateChannelBody {
       'Le handle doit contenir 3 à 30 caractères : lettres, chiffres, points, tirets ou tirets bas',
   })
   handle: string;
+
+  // Facultative ; une chaîne vide est enregistrée comme absente.
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() || null : value,
+  )
+  @IsString()
+  @MaxLength(1000, { message: 'La description fait 1000 caractères au plus.' })
+  description: string | null = null;
 }

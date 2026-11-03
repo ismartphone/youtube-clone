@@ -24,6 +24,7 @@
     <string name="create_login_message">Il faut un compte et une chaîne pour publier des vidéos, des Shorts et des posts.</string>
     <string name="create_no_channel_title">Créez votre chaîne pour publier</string>
     <string name="create_no_channel_message">Vos vidéos, vos Shorts et vos posts sont publiés sur votre chaîne. Créez-en une pour commencer.</string>
+    <string name="create_no_channel_action">Créer ma chaîne</string>
     <string name="create_pick_video">Choisir une vidéo</string>
     <string name="create_problem_unreadable">Cette vidéo est illisible. Choisissez-en une autre.</string>
     <string name="create_problem_too_large">Cette vidéo dépasse %1$d Mo. Choisissez-en une plus légère.</string>
@@ -194,4 +195,13 @@
     <string name="interests_empty">Aucune catégorie pour le moment.</string>
     <string name="you_edit_interests">Centres d\'intérêt</string>
 
+    <!-- Création de chaîne -->
+    <string name="you_create_channel">Créer une chaîne</string>
+    <string name="create_channel_title">Créer votre chaîne</string>
+    <string name="create_channel_intro">Votre chaîne porte vos vidéos, vos Shorts et vos posts. Vous pourrez publier dès sa création.</string>
+    <string name="create_channel_name">Nom de la chaîne</string>
+    <string name="create_channel_handle">Identifiant</string>
+    <string name="create_channel_handle_rule">%1$d à %2$d caractères : lettres minuscules, chiffres, point, tiret ou tiret bas.</string>
+    <string name="create_channel_description">Description (facultative)</string>
+    <string name="create_channel_submit">Créer la chaîne</string>
 </resources>

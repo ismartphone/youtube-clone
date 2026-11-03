@@ -29,6 +29,13 @@ data class ChannelPageDto(
 )
 
 @Serializable
+data class CreateChannelRequestDto(
+    val name: String,
+    val handle: String,
+    val description: String? = null,
+)
+
+@Serializable
 data class OwnChannelDto(
     val channel: ChannelSummaryDto? = null,
 )

@@ -78,6 +78,7 @@ class YouActions(
     val onPremiumClick: () -> Unit = {},
     val onCancelPremium: () -> Unit = {},
     val onSettingsClick: () -> Unit = {},
+    val onCreateChannel: () -> Unit = {},
 )
 
 @Composable
@@ -90,6 +91,7 @@ fun YouScreen(
     onSubscriptionsClick: () -> Unit,
     onPremiumClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onCreateChannel: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: YouViewModel = hiltViewModel(),
 ) {
@@ -110,6 +112,7 @@ fun YouScreen(
         onPremiumClick = onPremiumClick,
         onCancelPremium = viewModel::onCancelPremium,
         onSettingsClick = onSettingsClick,
+        onCreateChannel = onCreateChannel,
     )
 
     when (val current = state) {
@@ -139,7 +142,12 @@ private fun YouContent(
     ) {
         item(key = "header") {
             if (user != null) {
-                AccountHeader(user, channel, onViewChannel = { channel?.let { actions.onChannelClick(it.id) } })
+                AccountHeader(
+                    user = user,
+                    channel = channel,
+                    onViewChannel = { channel?.let { actions.onChannelClick(it.id) } },
+                    onCreateChannel = actions.onCreateChannel,
+                )
             } else {
                 SignInPrompt(actions.onLoginClick, actions.onRegisterClick)
             }
@@ -147,9 +155,14 @@ private fun YouContent(
         item(key = "shortcuts") {
             Shortcuts(
                 onHistory = { openList(YouList.History) },
-                // Avec une chaîne, Vos vidéos ouvre sa page ; sinon un état vide l'explique.
+                // Avec une chaîne, Vos vidéos ouvre sa page ; connecté sans chaîne, sa création ;
+                // visiteur, un état vide l'explique.
                 onYourVideos = {
-                    if (user != null && channel != null) actions.onChannelClick(channel.id) else openList(YouList.YourVideos)
+                    when {
+                        user != null && channel != null -> actions.onChannelClick(channel.id)
+                        user != null -> actions.onCreateChannel()
+                        else -> openList(YouList.YourVideos)
+                    }
                 },
                 onLiked = { openList(YouList.Liked) },
                 onSubscriptions = actions.onSubscriptionsClick,
@@ -160,9 +173,10 @@ private fun YouContent(
     }
 }
 
-// Grand avatar, nom, puis « @handle · Voir la chaîne › ». Sans chaîne, l'email remplace le handle.
+// Grand avatar, nom, puis « @handle · Voir la chaîne › ». Sans chaîne, l'email remplace le handle,
+// suivi d'un lien « Créer une chaîne › ».
 @Composable
-private fun AccountHeader(user: User, channel: Channel?, onViewChannel: () -> Unit) {
+private fun AccountHeader(user: User, channel: Channel?, onViewChannel: () -> Unit, onCreateChannel: () -> Unit) {
     Row(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -211,6 +225,27 @@ private fun AccountHeader(user: User, channel: Channel?, onViewChannel: () -> Un
                             modifier = Modifier.size(18.dp),
                         )
                     }
+                }
+            }
+            if (channel == null) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable(onClick = onCreateChannel, role = Role.Button),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.you_create_channel),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                    )
+                    Icon(
+                        painter = painterResource(R.drawable.ic_chevron_right),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
         }

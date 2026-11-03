@@ -48,6 +48,7 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.channel.ChannelScreen
+import com.youtubeclone.app.presentation.channel.CreateChannelScreen
 import com.youtubeclone.app.presentation.create.CreateSheet
 import com.youtubeclone.app.presentation.create.PublishVideoScreen
 import com.youtubeclone.app.presentation.create.PublishedBanner
@@ -83,6 +84,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class ShortsPlayerRoute(val startVideoId: String)
 // Offre Premium. [videoId] : vidéo exclusive refusée, rouverte une fois l'achat confirmé.
 @Serializable data class PaywallRoute(val videoId: String? = null)
+// Création de la chaîne de l'utilisateur connecté.
+@Serializable data object CreateChannelRoute
 // Publication d'une vidéo choisie dans la galerie. [format] : nom d'une valeur de VideoFormat.
 @Serializable data class PublishVideoRoute(val uri: String, val format: String)
 // Nom d'une valeur de YouList : historique, vidéos aimées ou vos vidéos.
@@ -97,6 +100,7 @@ private val FULL_SCREEN_ROUTES = listOf(
     RegisterRoute::class,
     InterestsRoute::class,
     PublishVideoRoute::class,
+    CreateChannelRoute::class,
 )
 
 private enum class Tab(
@@ -171,6 +175,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                 onDismiss = { showCreateSheet = false },
                 onLoginRequired = { navController.navigate(LoginRoute) },
                 onPublishVideo = { uri, format -> navController.navigate(PublishVideoRoute(uri, format.name)) },
+                onCreateChannel = { navController.navigate(CreateChannelRoute) },
             )
         }
         NavHost(
@@ -248,6 +253,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onSubscriptionsClick = { openTab(SubscriptionsRoute) },
                     onPremiumClick = openPaywall,
                     onSettingsClick = { navController.navigate(SettingsRoute) },
+                    onCreateChannel = { navController.navigate(CreateChannelRoute) },
                 )
             }
             composable<SettingsRoute> { SettingsScreen() }
@@ -285,6 +291,17 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onClose = { navController.popBackStack() },
                     // Retour à l'écran d'où le créateur était parti, où s'affiche la confirmation.
                     onPublished = { navController.popBackStack() },
+                )
+            }
+            composable<CreateChannelRoute> {
+                CreateChannelScreen(
+                    onClose = { navController.popBackStack() },
+                    // La page de la nouvelle chaîne remplace le formulaire : Retour ramène d'où l'on venait.
+                    onCreated = { channelId ->
+                        navController.navigate(ChannelRoute(channelId)) {
+                            popUpTo<CreateChannelRoute> { inclusive = true }
+                        }
+                    },
                 )
             }
             composable<InterestsRoute> {

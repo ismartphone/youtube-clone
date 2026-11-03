@@ -2,6 +2,7 @@ package com.youtubeclone.app.data.repository
 
 import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.apiCall
+import com.youtubeclone.app.data.remote.dto.CreateChannelRequestDto
 import com.youtubeclone.app.data.remote.dto.toDomain
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
@@ -22,6 +23,17 @@ class ChannelRepositoryImpl @Inject constructor(
     // Instance unique (voir RepositoryModule) : tous les écrans reçoivent les mêmes changements.
     private val changes = MutableSharedFlow<FollowChange>(extraBufferCapacity = 16)
     override val followChanges: Flow<FollowChange> = changes.asSharedFlow()
+
+    private val created = MutableSharedFlow<Channel>(extraBufferCapacity = 1)
+    override val ownChannelCreated: Flow<Channel> = created.asSharedFlow()
+
+    override suspend fun createChannel(name: String, handle: String, description: String?): Channel {
+        val channel = apiCall(json) {
+            api.createChannel(CreateChannelRequestDto(name = name, handle = handle, description = description))
+        }.toDomain()
+        created.emit(channel)
+        return channel
+    }
 
     override suspend fun getChannelPage(channelId: String): ChannelPage =
         apiCall(json) { api.getChannel(channelId) }.toDomain()

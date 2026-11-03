@@ -68,7 +68,7 @@ private val CONTENT_HEIGHT = 220.dp
 
 /**
  * Feuille ouverte par le bouton + de la barre d'onglets, avec ses onglets en bas : Vidéo, Short,
- * En direct (grisé) et Post. [onLoginRequired] et [onPublishVideo] sont appelés après la
+ * En direct (grisé) et Post. [onLoginRequired], [onPublishVideo] et [onCreateChannel] sont appelés après la
  * fermeture de la feuille.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +77,7 @@ fun CreateSheet(
     onDismiss: () -> Unit,
     onLoginRequired: () -> Unit,
     onPublishVideo: (uri: String, format: VideoFormat) -> Unit,
+    onCreateChannel: () -> Unit,
     viewModel: CreateViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -120,6 +121,11 @@ fun CreateSheet(
                     CreateUiState.NoChannel -> SheetMessage(
                         title = stringResource(R.string.create_no_channel_title),
                         message = stringResource(R.string.create_no_channel_message),
+                        action = stringResource(R.string.create_no_channel_action),
+                        onAction = {
+                            onDismiss()
+                            onCreateChannel()
+                        },
                     )
                     is CreateUiState.Ready -> SheetMessage(
                         title = stringResource(selected.title),

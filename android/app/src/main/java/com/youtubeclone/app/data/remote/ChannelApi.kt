@@ -1,8 +1,11 @@
 package com.youtubeclone.app.data.remote
 
 import com.youtubeclone.app.data.remote.dto.ChannelPageDto
+import com.youtubeclone.app.data.remote.dto.ChannelSummaryDto
+import com.youtubeclone.app.data.remote.dto.CreateChannelRequestDto
 import com.youtubeclone.app.data.remote.dto.FollowStatusDto
 import com.youtubeclone.app.data.remote.dto.OwnChannelDto
+import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -14,6 +17,10 @@ interface ChannelApi {
     suspend fun getChannel(@Path("id") id: String): ChannelPageDto
 
     // Chaîne de l'utilisateur connecté ; channel vaut null s'il n'en a pas créé.
+    // Route protégée : crée la chaîne de l'utilisateur connecté.
+    @POST("channels")
+    suspend fun createChannel(@Body body: CreateChannelRequestDto): ChannelSummaryDto
+
     @GET("me/channel")
     suspend fun getOwnChannel(): OwnChannelDto
 
