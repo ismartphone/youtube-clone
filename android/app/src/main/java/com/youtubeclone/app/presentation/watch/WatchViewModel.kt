@@ -1,18 +1,18 @@
 package com.youtubeclone.app.presentation.watch
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
-import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.DataError
@@ -137,6 +137,10 @@ class WatchViewModel @Inject constructor(
     private val _selectedQuality = MutableStateFlow<Int?>(null)
     val selectedQuality: StateFlow<Int?> = _selectedQuality.asStateFlow()
 
+    // Sous-titres affichés ; désactivés au départ, activés par le bouton du lecteur ou le menu.
+    private val _subtitlesEnabled = MutableStateFlow(false)
+    val subtitlesEnabled: StateFlow<Boolean> = _subtitlesEnabled.asStateFlow()
+
     /** Réglage « Lecture automatique », partagé avec Vous → Paramètres ; null tant qu'il n'est pas lu. */
     val autoplayEnabled: StateFlow<Boolean?> = observeAutoplay()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
@@ -228,8 +232,8 @@ class WatchViewModel @Inject constructor(
                 playingVideo = detail.video
                 // HLS quand il existe (choix de la qualité), MP4 sinon (ADR-017).
                 when {
-                    detail.hlsUrl != null -> startPlayback(detail.hlsUrl, isHls = true)
-                    detail.videoUrl != null -> startPlayback(detail.videoUrl, isHls = false)
+                    detail.hlsUrl != null -> startPlayback(detail.hlsUrl, isHls = true, detail.subtitleUrl)
+                    detail.videoUrl != null -> startPlayback(detail.videoUrl, isHls = false, detail.subtitleUrl)
                 }
                 showStats(detail)
                 loadSuggestions(detail.video)
@@ -334,6 +338,14 @@ class WatchViewModel @Inject constructor(
         player.playWhenReady = playWhenReady
     }
 
+    /** Bouton des sous-titres du lecteur, ou interrupteur du menu. */
+    fun setSubtitlesEnabled(enabled: Boolean) {
+        _subtitlesEnabled.value = enabled
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !enabled)
+            .build()
+    }
+
     /** Interrupteur du menu du lecteur : même réglage que Vous → Paramètres. */
     fun onAutoplayChange(enabled: Boolean) {
         viewModelScope.launch { setAutoplay(enabled) }
@@ -419,14 +431,27 @@ class WatchViewModel @Inject constructor(
 
     // La vidéo se charge tout de suite mais ne démarre qu'après la publicité simulée, que les
     // comptes Premium ne voient pas. Un abonnement pris pendant la publicité l'interrompt.
-    private fun startPlayback(url: String, isHls: Boolean) {
-        val item = MediaItem.fromUri(url)
-        if (isHls) {
-            // Media3 lit le HLS et adapte la qualité au débit ; une qualité choisie lui est imposée.
-            player.setMediaSource(HlsMediaSource.Factory(DefaultDataSource.Factory(context)).createMediaSource(item))
-        } else {
-            player.setMediaItem(item)
-        }
+    private fun startPlayback(url: String, isHls: Boolean, subtitleUrl: String?) {
+        // Media3 lit le HLS et adapte la qualité au débit ; une qualité choisie lui est imposée.
+        // Les sous-titres WebVTT sont une piste à part, ajoutée à la vidéo (HLS ou MP4).
+        val item = MediaItem.Builder()
+            .setUri(url)
+            .setMimeType(if (isHls) MimeTypes.APPLICATION_M3U8 else null)
+            .setSubtitleConfigurations(
+                listOfNotNull(
+                    subtitleUrl?.let {
+                        MediaItem.SubtitleConfiguration.Builder(Uri.parse(it))
+                            .setMimeType(MimeTypes.TEXT_VTT)
+                            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                            .build()
+                    },
+                ),
+            )
+            .build()
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !_subtitlesEnabled.value)
+            .build()
+        player.setMediaItem(item)
         player.playWhenReady = false
         player.prepare()
         playbackJob?.cancel()

@@ -245,4 +245,8 @@
     <string name="player_menu_quality_value">%1$dp</string>
     <string name="player_menu_single_quality">Une seule qualité pour cette vidéo : %1$dp.</string>
     <string name="player_menu_quality_unknown">Qualité disponible au démarrage de la vidéo.</string>
+    <string name="player_menu_subtitles">Sous-titres</string>
+    <string name="player_menu_subtitles_auto">Générés automatiquement</string>
+    <string name="player_subtitles_enable">Activer les sous-titres</string>
+    <string name="player_subtitles_disable">Désactiver les sous-titres</string>
 </resources>

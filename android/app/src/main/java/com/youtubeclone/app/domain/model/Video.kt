@@ -46,6 +46,8 @@ data class VideoDetail(
     val videoUrl: String?,
     /** Manifeste HLS multi-qualités (ADR-017) ; null sans HLS : le MP4 sert alors de repli. */
     val hlsUrl: String? = null,
+    /** Sous-titres WebVTT générés automatiquement (ADR-017) ; null s'il n'y en a pas. */
+    val subtitleUrl: String? = null,
     val likeStatus: LikeStatus,
 )
 

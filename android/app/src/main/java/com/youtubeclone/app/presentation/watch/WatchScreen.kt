@@ -1,5 +1,6 @@
 package com.youtubeclone.app.presentation.watch
 
+import android.view.View
 import android.widget.Toast
 import androidx.activity.compose.LocalActivity
 import androidx.annotation.DrawableRes
@@ -132,6 +133,7 @@ fun WatchScreen(
     val qualities by viewModel.qualities.collectAsStateWithLifecycle()
     val selectedQuality by viewModel.selectedQuality.collectAsStateWithLifecycle()
     val autoplayEnabled by viewModel.autoplayEnabled.collectAsStateWithLifecycle()
+    val subtitlesEnabled by viewModel.subtitlesEnabled.collectAsStateWithLifecycle()
     var showPlayerMenu by rememberSaveable { mutableStateOf(false) }
     if (showPlayerMenu) {
         PlayerMenuSheet(
@@ -141,6 +143,9 @@ fun WatchScreen(
                 viewModel.selectQuality(it)
                 showPlayerMenu = false
             },
+            hasSubtitles = (uiState as? WatchUiState.Success)?.detail?.subtitleUrl != null,
+            subtitlesEnabled = subtitlesEnabled,
+            onSubtitlesChange = viewModel::setSubtitlesEnabled,
             autoplayEnabled = autoplayEnabled,
             onAutoplayChange = viewModel::onAutoplayChange,
             onDismiss = { showPlayerMenu = false },
@@ -205,6 +210,8 @@ fun WatchScreen(
                         onCancelAutoplay = viewModel::cancelAutoplay,
                         onBack = onBack,
                         onMenuClick = { showPlayerMenu = true },
+                        subtitlesEnabled = subtitlesEnabled,
+                        onSubtitlesClick = { viewModel.setSubtitlesEnabled(!subtitlesEnabled) },
                     )
                 },
                 onChannelClick = { onChannelClick(video.channel.id) },
@@ -285,6 +292,8 @@ private fun PlayerArea(
     onCancelAutoplay: () -> Unit,
     onBack: () -> Unit,
     onMenuClick: () -> Unit,
+    subtitlesEnabled: Boolean,
+    onSubtitlesClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -302,13 +311,29 @@ private fun PlayerArea(
                 AutoplayOverlay(autoplay, onCancelAutoplay, Modifier.fillMaxSize())
             }
             BackTopBar(title = "", onBack = onBack, contentColor = Color.White, modifier = Modifier.align(Alignment.TopStart))
-            // Menu du lecteur : qualité et lecture automatique (ADR-017).
-            IconButton(onClick = onMenuClick, modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_settings),
-                    contentDescription = stringResource(R.string.player_menu),
-                    tint = Color.White,
-                )
+            Row(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
+                // Sous-titres générés automatiquement (ADR-017), seulement si la vidéo en a.
+                if (detail.subtitleUrl != null) {
+                    IconButton(onClick = onSubtitlesClick) {
+                        Icon(
+                            painter = painterResource(
+                                if (subtitlesEnabled) R.drawable.ic_subtitles_on else R.drawable.ic_subtitles_off,
+                            ),
+                            contentDescription = stringResource(
+                                if (subtitlesEnabled) R.string.player_subtitles_disable else R.string.player_subtitles_enable,
+                            ),
+                            tint = Color.White,
+                        )
+                    }
+                }
+                // Menu du lecteur : qualité, sous-titres et lecture automatique (ADR-017).
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_settings),
+                        contentDescription = stringResource(R.string.player_menu),
+                        tint = Color.White,
+                    )
+                }
             }
         } else {
             // Le serveur n'a pas donné l'URL : accès refusé, par exemple vidéo Premium.
@@ -409,6 +434,9 @@ private fun VideoPlayer(player: Player, modifier: Modifier = Modifier) {
                 this.player = player
                 // Indicateur de chargement pendant la mise en mémoire tampon.
                 setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
+                // Roue dentée de Media3 masquée : notre menu (qualité, sous-titres, lecture
+                // automatique) est le seul. Media3 l'active ou la grise, sans jamais la réafficher.
+                findViewById<View>(androidx.media3.ui.R.id.exo_settings)?.visibility = View.GONE
             }
         },
         // La vue est détachée du lecteur quand elle quitte l'écran ; le lecteur, lui, reste au ViewModel.

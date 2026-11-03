@@ -25,8 +25,8 @@ import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.R
 
 /**
- * Menu du lecteur (ADR-017) : qualité, parmi celles réellement disponibles pour la vidéo, et
- * lecture automatique, le même réglage que Vous → Paramètres.
+ * Menu du lecteur (ADR-017) : qualité, parmi celles réellement disponibles pour la vidéo,
+ * sous-titres quand la vidéo en a, et lecture automatique, le même réglage que Vous → Paramètres.
  * [selectedQuality] null : « Auto », le lecteur choisit selon le débit.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,6 +35,9 @@ internal fun PlayerMenuSheet(
     qualities: List<Int>,
     selectedQuality: Int?,
     onQualitySelected: (Int?) -> Unit,
+    hasSubtitles: Boolean,
+    subtitlesEnabled: Boolean,
+    onSubtitlesChange: (Boolean) -> Unit,
     autoplayEnabled: Boolean?,
     onAutoplayChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -64,21 +67,21 @@ internal fun PlayerMenuSheet(
                 }
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            if (hasSubtitles) {
+                SwitchRow(
+                    label = stringResource(R.string.player_menu_subtitles),
+                    caption = stringResource(R.string.player_menu_subtitles_auto),
+                    checked = subtitlesEnabled,
+                    onCheckedChange = onSubtitlesChange,
+                )
+            }
             if (autoplayEnabled != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .toggleable(value = autoplayEnabled, role = Role.Switch, onValueChange = onAutoplayChange)
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_autoplay),
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Switch(checked = autoplayEnabled, onCheckedChange = null)
-                }
+                SwitchRow(
+                    label = stringResource(R.string.settings_autoplay),
+                    caption = null,
+                    checked = autoplayEnabled,
+                    onCheckedChange = onAutoplayChange,
+                )
             }
         }
     }
@@ -92,6 +95,30 @@ private fun SectionTitle(text: String) {
         fontWeight = FontWeight.Bold,
         modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
     )
+}
+
+// Ligne à interrupteur, avec une précision facultative sous le libellé.
+@Composable
+private fun SwitchRow(label: String, caption: String?, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+            if (caption != null) {
+                Text(
+                    text = caption,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Switch(checked = checked, onCheckedChange = null)
+    }
 }
 
 @Composable

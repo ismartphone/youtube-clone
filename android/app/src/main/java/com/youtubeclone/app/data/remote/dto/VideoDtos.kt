@@ -53,6 +53,8 @@ data class VideoDetailDto(
     val videoUrl: String? = null,
     // Null sans HLS (vidéo externe, génération pas encore faite) ou accès refusé.
     val hlsUrl: String? = null,
+    // Null sans sous-titres (vidéo externe, transcription pas faite ou échouée) ou accès refusé.
+    val subtitleUrl: String? = null,
     val likeCount: Int = 0,
     // Vrai seulement si la requête portait le token d'un utilisateur qui a aimé la vidéo.
     val isLiked: Boolean = false,

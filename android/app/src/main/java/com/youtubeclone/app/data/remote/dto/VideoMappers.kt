@@ -54,6 +54,7 @@ fun VideoDetailDto.toDomain() = VideoDetail(
     // Vidéo hébergée chez nous : chemin relatif, complété comme les miniatures.
     videoUrl = videoUrl?.let(::resolveMediaUrl),
     hlsUrl = hlsUrl?.let(::resolveMediaUrl),
+    subtitleUrl = subtitleUrl?.let(::resolveMediaUrl),
     likeStatus = LikeStatus(likeCount = likeCount, isLiked = isLiked),
 )
 
