@@ -61,6 +61,7 @@ import com.youtubeclone.app.presentation.common.ChannelPageSkeleton
 import com.youtubeclone.app.presentation.common.EmptyStateMessage
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
+import com.youtubeclone.app.presentation.common.VisibilityBadge
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatVideoCount
@@ -346,6 +347,7 @@ private fun ShortTile(video: Video, modifier: Modifier = Modifier) {
                 .matchParentSize()
                 .background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.6f))),
         )
+        VisibilityBadge(video.visibility, Modifier.align(Alignment.TopStart).padding(8.dp))
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)

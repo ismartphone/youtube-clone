@@ -3,8 +3,11 @@ package com.youtubeclone.app.presentation.create
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +19,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -24,10 +29,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,20 +44,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.VideoFormat
+import com.youtubeclone.app.domain.model.VideoVisibility
 import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.asText
 import kotlin.math.roundToInt
@@ -77,6 +91,8 @@ fun PublishVideoScreen(
         onDescriptionChange = viewModel::onDescriptionChange,
         onCategorySelected = viewModel::onCategorySelected,
         onRetryCategories = viewModel::loadCategories,
+        onVisibilityChange = viewModel::onVisibilityChange,
+        onCommentsEnabledChange = viewModel::onCommentsEnabledChange,
         onPublish = viewModel::publish,
         onCancel = viewModel::cancel,
     )
@@ -90,6 +106,8 @@ private fun PublishVideoContent(
     onDescriptionChange: (String) -> Unit,
     onCategorySelected: (String) -> Unit,
     onRetryCategories: () -> Unit,
+    onVisibilityChange: (VideoVisibility) -> Unit,
+    onCommentsEnabledChange: (Boolean) -> Unit,
     onPublish: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -142,6 +160,13 @@ private fun PublishVideoContent(
                     TextButton(onClick = onRetryCategories) { Text(stringResource(R.string.retry)) }
                 }
             }
+            PublishSettings(
+                visibility = state.visibility,
+                commentsEnabled = state.commentsEnabled,
+                enabled = editable,
+                onVisibilityChange = onVisibilityChange,
+                onCommentsEnabledChange = onCommentsEnabledChange,
+            )
             state.message?.let { message ->
                 Text(
                     text = message.asText(),
@@ -277,4 +302,122 @@ private fun UploadProgressRow(progress: Float?, onCancel: () -> Unit) {
             Text(stringResource(R.string.publish_cancel))
         }
     }
+}
+
+// Réglages de publication (ADR-016), repliés sous le formulaire : la ligne résume l'état, et se
+// déplie sur la visibilité et les commentaires.
+@Composable
+private fun PublishSettings(
+    visibility: VideoVisibility,
+    commentsEnabled: Boolean,
+    enabled: Boolean,
+    onVisibilityChange: (VideoVisibility) -> Unit,
+    onCommentsEnabledChange: (Boolean) -> Unit,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val chevron by animateFloatAsState(if (expanded) 90f else 0f, label = "chevron")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button) { expanded = !expanded }
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = stringResource(R.string.publish_settings),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = stringResource(visibilityLabel(visibility)) + " · " + stringResource(
+                        if (commentsEnabled) R.string.publish_settings_comments_on else R.string.publish_settings_comments_off,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                painter = painterResource(R.drawable.ic_chevron_right),
+                contentDescription = null,
+                modifier = Modifier.rotate(chevron),
+            )
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
+                Text(
+                    text = stringResource(R.string.publish_settings_visibility),
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(bottom = 4.dp),
+                )
+                VideoVisibility.entries.forEach { option ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = option == visibility,
+                                enabled = enabled,
+                                role = Role.RadioButton,
+                                onClick = { onVisibilityChange(option) },
+                            )
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = option == visibility, onClick = null, enabled = enabled)
+                        Column(Modifier.padding(start = 12.dp)) {
+                            Text(stringResource(visibilityLabel(option)), style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                text = stringResource(visibilityDetail(option)),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(
+                            value = commentsEnabled,
+                            enabled = enabled,
+                            role = Role.Switch,
+                            onValueChange = onCommentsEnabledChange,
+                        )
+                        .padding(top = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.publish_settings_comments),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(checked = commentsEnabled, onCheckedChange = null, enabled = enabled)
+                }
+                Text(
+                    text = stringResource(R.string.publish_settings_later),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun visibilityLabel(visibility: VideoVisibility) = when (visibility) {
+    VideoVisibility.PUBLIC -> R.string.visibility_public
+    VideoVisibility.UNLISTED -> R.string.visibility_unlisted
+    VideoVisibility.PRIVATE -> R.string.visibility_private
+}
+
+private fun visibilityDetail(visibility: VideoVisibility) = when (visibility) {
+    VideoVisibility.PUBLIC -> R.string.visibility_public_detail
+    VideoVisibility.UNLISTED -> R.string.visibility_unlisted_detail
+    VideoVisibility.PRIVATE -> R.string.visibility_private_detail
 }

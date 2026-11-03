@@ -7,6 +7,7 @@ import com.youtubeclone.app.domain.model.LikeStatus
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
+import com.youtubeclone.app.domain.model.VideoVisibility
 import com.youtubeclone.app.domain.model.VideoPage
 import java.time.Instant
 
@@ -30,6 +31,8 @@ fun VideoSummaryDto.toDomain() = Video(
     publishedAt = Instant.parse(publishedAt),
     channel = channel.toDomain(),
     category = category?.toDomain(),
+    visibility = visibilityOf(visibility),
+    commentsEnabled = commentsEnabled,
 )
 
 fun VideoDetailDto.toDomain() = VideoDetail(
@@ -44,6 +47,8 @@ fun VideoDetailDto.toDomain() = VideoDetail(
         publishedAt = Instant.parse(publishedAt),
         channel = channel.toDomain(),
         category = category?.toDomain(),
+        visibility = visibilityOf(visibility),
+        commentsEnabled = commentsEnabled,
     ),
     description = description,
     // Vidéo hébergée chez nous : chemin relatif, complété comme les miniatures.
@@ -59,3 +64,7 @@ fun VideoPageDto.toDomain() = VideoPage(
     pageSize = pageSize,
     total = total,
 )
+
+// Valeur inconnue (version plus récente du serveur) : traitée comme publique.
+private fun visibilityOf(value: String): VideoVisibility =
+    runCatching { VideoVisibility.valueOf(value) }.getOrDefault(VideoVisibility.PUBLIC)

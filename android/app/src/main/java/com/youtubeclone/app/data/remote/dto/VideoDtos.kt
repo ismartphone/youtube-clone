@@ -30,6 +30,8 @@ data class VideoSummaryDto(
     val publishedAt: String,
     val channel: ChannelSummaryDto,
     val category: CategoryDto? = null,
+    val visibility: String = "PUBLIC",
+    val commentsEnabled: Boolean = true,
 )
 
 @Serializable
@@ -44,6 +46,8 @@ data class VideoDetailDto(
     val publishedAt: String,
     val channel: ChannelSummaryDto,
     val category: CategoryDto? = null,
+    val visibility: String = "PUBLIC",
+    val commentsEnabled: Boolean = true,
     val description: String? = null,
     // Null quand le serveur refuse l'accès au fichier (vidéo Premium).
     val videoUrl: String? = null,

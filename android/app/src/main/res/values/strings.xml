@@ -223,4 +223,18 @@
     <string name="compose_post_remove_image">Retirer l\'image</string>
     <string name="compose_post_image_unreadable">Cette image est illisible. Choisissez-en une autre.</string>
     <string name="compose_post_image_too_large">Cette image dépasse %1$d Mo. Choisissez-en une plus légère.</string>
+
+    <!-- Réglages de publication (ADR-016) -->
+    <string name="visibility_public">Publique</string>
+    <string name="visibility_unlisted">Non répertoriée</string>
+    <string name="visibility_private">Privée</string>
+    <string name="visibility_public_detail">Tout le monde peut la trouver et la regarder.</string>
+    <string name="visibility_unlisted_detail">Seules les personnes qui ont le lien peuvent la regarder.</string>
+    <string name="visibility_private_detail">Vous seul pouvez la voir.</string>
+    <string name="publish_settings">Réglages</string>
+    <string name="publish_settings_visibility">Visibilité</string>
+    <string name="publish_settings_comments">Commentaires</string>
+    <string name="publish_settings_comments_on">Commentaires activés</string>
+    <string name="publish_settings_comments_off">Commentaires désactivés</string>
+    <string name="publish_settings_later">Ces réglages se modifient ensuite depuis l\'administration.</string>
 </resources>

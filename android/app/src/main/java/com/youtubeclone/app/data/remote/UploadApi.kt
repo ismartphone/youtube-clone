@@ -21,6 +21,8 @@ interface UploadApi {
         @Part("description") description: RequestBody?,
         @Part("categoryId") categoryId: RequestBody,
         @Part("format") format: RequestBody,
+        @Part("visibility") visibility: RequestBody,
+        @Part("commentsEnabled") commentsEnabled: RequestBody,
     ): VideoDetailDto
 }
 

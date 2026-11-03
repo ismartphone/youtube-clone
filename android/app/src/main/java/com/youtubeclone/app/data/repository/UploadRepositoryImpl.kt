@@ -78,6 +78,8 @@ class UploadRepositoryImpl @Inject constructor(
                 description = upload.description?.toTextPart(),
                 categoryId = upload.categoryId.toTextPart(),
                 format = upload.format.name.toTextPart(),
+                visibility = upload.visibility.name.toTextPart(),
+                commentsEnabled = upload.commentsEnabled.toString().toTextPart(),
             )
         }
         val video = detail.toDomain().video

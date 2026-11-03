@@ -365,11 +365,14 @@ private fun ShortActions(
                 .clickable(onClick = onChannelClick, role = Role.Button),
         )
         ShortAction(R.drawable.ic_share, stringResource(R.string.shorts_share), onClick = onShareClick)
-        ShortAction(
-            icon = R.drawable.ic_comment,
-            label = commentCount?.let(::formatCompactCount) ?: stringResource(R.string.shorts_comments),
-            onClick = onCommentsClick,
-        )
+        // Commentaires désactivés (ADR-016) : pas de bouton.
+        if (video.commentsEnabled) {
+            ShortAction(
+                icon = R.drawable.ic_comment,
+                label = commentCount?.let(::formatCompactCount) ?: stringResource(R.string.shorts_comments),
+                onClick = onCommentsClick,
+            )
+        }
         ShortAction(
             icon = R.drawable.ic_like,
             label = likes?.let { formatCompactCount(it.likeCount) } ?: stringResource(R.string.shorts_like),

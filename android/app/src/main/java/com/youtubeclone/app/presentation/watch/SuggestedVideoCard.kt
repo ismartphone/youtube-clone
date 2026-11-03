@@ -16,6 +16,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.domain.model.Video
+import com.youtubeclone.app.presentation.common.VisibilityBadge
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
 import com.youtubeclone.app.presentation.home.VideoThumbnail
@@ -38,6 +39,7 @@ fun SuggestedVideoCard(video: Video, modifier: Modifier = Modifier) {
                 .clip(RoundedCornerShape(8.dp)),
         )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            VisibilityBadge(video.visibility)
             Text(
                 text = video.title,
                 style = MaterialTheme.typography.titleSmall,

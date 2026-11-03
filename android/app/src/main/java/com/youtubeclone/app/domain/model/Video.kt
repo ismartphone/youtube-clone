@@ -4,6 +4,9 @@ import java.time.Instant
 
 enum class VideoFormat { SHORT, LONG }
 
+/** Qui voit la vidéo (ADR-016) : tous, ceux qui ont le lien, ou son propriétaire seulement. */
+enum class VideoVisibility { PUBLIC, UNLISTED, PRIVATE }
+
 data class Category(
     val id: String,
     val name: String,
@@ -27,6 +30,10 @@ data class Video(
     val publishedAt: Instant,
     val channel: Channel,
     val category: Category?,
+    /** Une vidéo non publique n'arrive ici que pour son propriétaire (page de sa chaîne). */
+    val visibility: VideoVisibility = VideoVisibility.PUBLIC,
+    /** Commentaires désactivés : le bloc commentaires n'est pas affiché. */
+    val commentsEnabled: Boolean = true,
 )
 
 /**

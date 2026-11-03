@@ -9,6 +9,7 @@ import com.youtubeclone.app.domain.model.Category
 import com.youtubeclone.app.domain.model.UploadProgress
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.model.VideoUpload
+import com.youtubeclone.app.domain.model.VideoVisibility
 import com.youtubeclone.app.domain.usecase.GetCategoriesUseCase
 import com.youtubeclone.app.domain.usecase.UploadVideoUseCase
 import com.youtubeclone.app.presentation.common.UiError
@@ -35,6 +36,9 @@ data class PublishVideoUiState(
     val description: String = "",
     val categories: List<Category> = emptyList(),
     val categoryId: String? = null,
+    /** Réglages de publication (ADR-016), modifiables ensuite depuis l'administration seulement. */
+    val visibility: VideoVisibility = VideoVisibility.PUBLIC,
+    val commentsEnabled: Boolean = true,
     /** La liste des catégories n'a pas pu être lue : l'écran propose de réessayer. */
     val categoriesFailed: Boolean = false,
     val isUploading: Boolean = false,
@@ -93,6 +97,14 @@ class PublishVideoViewModel @Inject constructor(
         _uiState.update { it.copy(description = value.take(DESCRIPTION_MAX_LENGTH)) }
     }
 
+    fun onVisibilityChange(visibility: VideoVisibility) {
+        _uiState.update { it.copy(visibility = visibility) }
+    }
+
+    fun onCommentsEnabledChange(enabled: Boolean) {
+        _uiState.update { it.copy(commentsEnabled = enabled) }
+    }
+
     fun onCategorySelected(categoryId: String) {
         _uiState.update { it.copy(categoryId = categoryId) }
     }
@@ -108,6 +120,8 @@ class PublishVideoViewModel @Inject constructor(
             title = state.title.trim(),
             description = state.description.trim().ifEmpty { null },
             categoryId = categoryId,
+            visibility = state.visibility,
+            commentsEnabled = state.commentsEnabled,
         )
         uploadJob = viewModelScope.launch {
             try {

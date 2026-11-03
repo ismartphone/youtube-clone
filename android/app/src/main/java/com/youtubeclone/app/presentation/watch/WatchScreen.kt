@@ -242,7 +242,10 @@ private fun WatchContent(
             item(key = "title") { TitleBlock(detail, viewCount = stats?.viewCount ?: detail.video.viewCount) }
             item(key = "channel") { ChannelRow(detail.video.channel, followState, onChannelClick, onFollowClick) }
             item(key = "actions") { ActionsRow(stats, onLikeClick, onShareClick, onUnavailableClick) }
-            item(key = "comments") { CommentsTeaser(comments, onCommentsClick) }
+            // Commentaires désactivés (ADR-016) : le bloc n'apparaît pas.
+            if (detail.video.commentsEnabled) {
+                item(key = "comments") { CommentsTeaser(comments, onCommentsClick) }
+            }
             items(suggestions, key = { it.id }) { video ->
                 SuggestedVideoCard(
                     video = video,

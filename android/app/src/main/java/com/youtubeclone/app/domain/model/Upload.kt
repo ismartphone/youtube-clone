@@ -40,6 +40,8 @@ data class VideoUpload(
     val title: String,
     val description: String?,
     val categoryId: String,
+    val visibility: VideoVisibility,
+    val commentsEnabled: Boolean,
 )
 
 /** Avancement d'un envoi : octets envoyés, puis vidéo publiée. */
