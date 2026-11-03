@@ -9,6 +9,7 @@ import { MEDIA_URL_PREFIX } from '../../../shared/infrastructure/media.config.js
 import {
   hasSpeech,
   srtToWebVtt,
+  SUBTITLE_MAX_CHARS,
   transcriptionTimeoutMs,
   type SubtitleGenerator,
 } from '../domain/subtitles.js';
@@ -98,6 +99,8 @@ export class FfmpegSubtitleGenerator
       'language=auto',
       `queue=${QUEUE_SECONDS}`,
       'format=srt',
+      // Répliques courtes, coupées entre deux mots : deux lignes à l'écran au plus.
+      `max_len=${SUBTITLE_MAX_CHARS}`,
       `destination=${filterValue(resolve(srt))}`,
     ].join(':');
     try {
