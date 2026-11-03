@@ -6,7 +6,12 @@ import { join, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { Ffprobe } from '../../../shared/infrastructure/ffprobe.js';
 import { MEDIA_URL_PREFIX } from '../../../shared/infrastructure/media.config.js';
-import { srtToWebVtt, type SubtitleGenerator } from '../domain/subtitles.js';
+import {
+  hasSpeech,
+  srtToWebVtt,
+  transcriptionTimeoutMs,
+  type SubtitleGenerator,
+} from '../domain/subtitles.js';
 
 const run = promisify(execFile);
 
@@ -70,8 +75,9 @@ export class FfmpegSubtitleGenerator
     return videoUrl.startsWith(VIDEOS_PREFIX);
   }
 
-  async generate(videoUrl: string, timeoutMs: number): Promise<string> {
+  async generate(videoUrl: string, durationSeconds: number): Promise<string> {
     const source = this.localPath(videoUrl);
+    const timeoutMs = transcriptionTimeoutMs(durationSeconds);
     if (!(await this.isAvailable())) {
       throw new Error(
         'transcription indisponible (filtre whisper ou modèle absent)',
@@ -111,9 +117,12 @@ export class FfmpegSubtitleGenerator
         ],
         { timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 },
       );
-      const content = srtToWebVtt(await readFile(srt, 'utf8'));
+      const transcript = await readFile(srt, 'utf8');
+      const content = hasSpeech(transcript, durationSeconds)
+        ? srtToWebVtt(transcript)
+        : null;
       if (content === null) {
-        throw new Error('aucune parole transcrite');
+        throw new Error('aucune parole détectée');
       }
       await writeFile(vtt, content, 'utf8');
       return `${URL_PREFIX}${id}.vtt`;

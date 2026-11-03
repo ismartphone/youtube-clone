@@ -42,15 +42,47 @@ export function srtToWebVtt(srt: string): string | null {
   return cues.length === 0 ? null : `WEBVTT\n\n${cues.join('\n\n')}\n`;
 }
 
+// Garde-fou contre les répliques inventées : sur un fond sonore sans parole (rue, musique), la
+// reconnaissance vocale produit quelques phrases sans rapport. Une vidéo de plus de 20 secondes
+// dont la transcription compte moins de 10 mots est considérée comme sans parole.
+const MIN_SPOKEN_WORDS = 10;
+const WORD_CHECK_MIN_SECONDS = 20;
+// Annotations de bruit ajoutées par whisper : « [Music] », « (crickets chirping) », « ♪ ».
+const SOUND_ANNOTATION = /\[[^\]]*\]|\([^)]*\)|♪/g;
+const WORD = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu;
+
+/** Nombre de mots prononcés dans un SRT : ni numéros de bloc, ni lignes de temps, ni annotations. */
+export function spokenWordCount(srt: string): number {
+  return (
+    srt
+      .replace(/\r/g, '')
+      .split('\n')
+      .filter((line) => !SRT_TIMING.test(line) && !/^\s*\d+\s*$/.test(line))
+      .join(' ')
+      .replace(SOUND_ANNOTATION, ' ')
+      .match(WORD)?.length ?? 0
+  );
+}
+
+/** Vrai si la transcription [srt] d'une vidéo de [durationSeconds] contient vraiment de la parole. */
+export function hasSpeech(srt: string, durationSeconds: number): boolean {
+  const words = spokenWordCount(srt);
+  if (durationSeconds > WORD_CHECK_MIN_SECONDS) {
+    return words >= MIN_SPOKEN_WORDS;
+  }
+  return words > 0;
+}
+
 export interface SubtitleGenerator {
   // Vrai si la vidéo est hébergée chez nous (/media/videos/...) : seule celle-ci a des sous-titres.
   isLocal(videoUrl: string): boolean;
   /**
-   * Transcrit la vidéo [videoUrl] et renvoie l'URL relative du fichier WebVTT. Lève une erreur si
-   * FFmpeg n'a pas le filtre whisper, si le modèle manque, si la vidéo n'a pas de piste audio,
-   * si rien n'est transcrit ou si [timeoutMs] est dépassé (rien n'est laissé sur le disque).
+   * Transcrit la vidéo [videoUrl], longue de [durationSeconds], et renvoie l'URL relative du
+   * fichier WebVTT. Lève une erreur si FFmpeg n'a pas le filtre whisper, si le modèle manque, si
+   * la vidéo n'a pas de piste audio, si la transcription ne contient pas de parole (hasSpeech) ou
+   * dépasse son temps (transcriptionTimeoutMs). Rien n'est alors laissé sur le disque.
    */
-  generate(videoUrl: string, timeoutMs: number): Promise<string>;
+  generate(videoUrl: string, durationSeconds: number): Promise<string>;
   // Supprime un fichier de sous-titres généré ; sans effet pour toute autre URL.
   remove(subtitleUrl: string): Promise<void>;
 }

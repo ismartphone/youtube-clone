@@ -54,7 +54,10 @@ Invoke-WebRequest https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml
 
 Sans le filtre ou sans le modèle, le serveur démarre quand même : une erreur est journalisée et
 les vidéos sont publiées sans sous-titres. La langue est détectée automatiquement. Sur une vidéo
-sans parole (bruit d'ambiance, musique), le modèle peut inventer des répliques.
+sans parole (bruit d'ambiance, musique), le modèle peut inventer des répliques : c'est une limite connue
+de la reconnaissance vocale, pas un défaut de notre code. Garde-fou : une vidéo de plus de 20 secondes
+dont la transcription compte moins de 10 mots (annotations comme « [Music] » non comptées) est
+considérée comme sans parole, et ne reçoit pas de sous-titres.
 
 Le pas à pas complet, avec les comptes de démonstration, est dans le [README de la racine](../README.md).
 

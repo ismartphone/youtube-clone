@@ -25,7 +25,6 @@ import {
   thumbnailPosition,
   thumbnailSize,
 } from '../src/modules/videos/domain/thumbnail-generator.js';
-import { transcriptionTimeoutMs } from '../src/modules/videos/domain/subtitles.js';
 import { FfmpegHlsGenerator } from '../src/modules/videos/infrastructure/ffmpeg-hls-generator.js';
 import { FfmpegSubtitleGenerator } from '../src/modules/videos/infrastructure/ffmpeg-subtitle-generator.js';
 import { FfmpegThumbnailGenerator } from '../src/modules/videos/infrastructure/ffmpeg-thumbnail-generator.js';
@@ -92,7 +91,7 @@ async function generateSubtitles(videoId: string, video: CcVideo) {
   try {
     const subtitleUrl = await subtitles.generate(
       ccVideoUrl(video),
-      transcriptionTimeoutMs(video.durationSeconds),
+      video.durationSeconds,
     );
     await prisma.video.update({
       where: { id: videoId },

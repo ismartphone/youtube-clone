@@ -1,8 +1,5 @@
 import type { VideoCatalog } from '../domain/catalog.js';
-import {
-  transcriptionTimeoutMs,
-  type SubtitleGenerator,
-} from '../domain/subtitles.js';
+import type { SubtitleGenerator } from '../domain/subtitles.js';
 import type { VideoRepository } from '../domain/video.repository.js';
 
 export type SubtitleOutcome = 'generated' | 'skipped' | 'missing';
@@ -30,7 +27,7 @@ export class GenerateSubtitlesUseCase {
     }
     const subtitleUrl = await this.subtitles.generate(
       video.videoUrl,
-      transcriptionTimeoutMs(video.durationSeconds),
+      video.durationSeconds,
     );
     const current = await this.videos.findById(videoId);
     if (!current || current.videoUrl !== video.videoUrl) {
