@@ -4,6 +4,8 @@ import com.youtubeclone.app.data.remote.PremiumApi
 import com.youtubeclone.app.data.remote.apiCall
 import com.youtubeclone.app.data.remote.dto.SubscribeRequest
 import com.youtubeclone.app.data.remote.dto.toDomain
+import com.youtubeclone.app.domain.model.PaymentConfig
+import com.youtubeclone.app.domain.model.PremiumCheckout
 import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.repository.AuthRepository
 import com.youtubeclone.app.domain.repository.PremiumRepository
@@ -59,8 +61,11 @@ class PremiumRepositoryImpl @Inject constructor(
         return apiCall(json) { api.getStatus() }.toDomain().also { _status.value = it }
     }
 
-    override suspend fun startCheckout(): String =
-        apiCall(json) { api.checkout() }.purchaseToken
+    override suspend fun getPaymentConfig(): PaymentConfig =
+        apiCall(json) { api.getConfig() }.toDomain()
+
+    override suspend fun startCheckout(): PremiumCheckout =
+        apiCall(json) { api.checkout() }.toDomain()
 
     override suspend fun confirmPurchase(purchaseToken: String): PremiumStatus =
         apiCall(json) { api.subscribe(SubscribeRequest(purchaseToken)) }.toDomain()

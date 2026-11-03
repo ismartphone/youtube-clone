@@ -1,12 +1,15 @@
 package com.youtubeclone.app.domain.usecase
 
+import com.youtubeclone.app.domain.model.PaymentConfig
+import com.youtubeclone.app.domain.model.PremiumCheckout
 import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.repository.PremiumRepository
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.StateFlow
 
-// Offre Premium : achat simulé par notre backend (ADR-012), état toujours décidé par le serveur.
+// Offre Premium : paiement Stripe en mode test ou achat simulé de repli (ADR-014), état toujours
+// décidé par le serveur.
 
 /** État Premium partagé par tous les écrans ; null tant qu'il n'est pas connu. */
 class ObservePremiumStatusUseCase @Inject constructor(
@@ -41,14 +44,21 @@ class IsPremiumUseCase @Inject constructor(
     }
 }
 
-/** Étape 1 de l'achat : le serveur émet un jeton. Exige une session ouverte. */
+/** Mode de paiement actif, lu à l'ouverture du paywall. Exige une session ouverte. */
+class GetPaymentConfigUseCase @Inject constructor(
+    private val repository: PremiumRepository,
+) {
+    suspend operator fun invoke(): PaymentConfig = repository.getPaymentConfig()
+}
+
+/** Étape 1 de l'achat : le serveur démarre le paiement. Exige une session ouverte. */
 class StartPremiumCheckoutUseCase @Inject constructor(
     private val repository: PremiumRepository,
 ) {
-    suspend operator fun invoke(): String = repository.startCheckout()
+    suspend operator fun invoke(): PremiumCheckout = repository.startCheckout()
 }
 
-/** Étape 2 : le serveur vérifie le jeton et active l'abonnement s'il l'accepte. */
+/** Étape 2 : le serveur vérifie le paiement et active l'abonnement s'il l'accepte. */
 class ConfirmPremiumPurchaseUseCase @Inject constructor(
     private val repository: PremiumRepository,
 ) {

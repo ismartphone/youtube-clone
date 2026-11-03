@@ -1,10 +1,12 @@
 package com.youtubeclone.app.domain.repository
 
+import com.youtubeclone.app.domain.model.PaymentConfig
+import com.youtubeclone.app.domain.model.PremiumCheckout
 import com.youtubeclone.app.domain.model.PremiumStatus
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Abonnement Premium de l'utilisateur connecté. Le serveur décide seul de l'activation (ADR-012) :
+ * Abonnement Premium de l'utilisateur connecté. Le serveur décide seul de l'activation (ADR-014) :
  * l'application ne fait qu'afficher l'état qu'il renvoie.
  * Les implémentations lèvent une [com.youtubeclone.app.domain.model.DataError] en cas d'échec.
  */
@@ -15,10 +17,13 @@ interface PremiumRepository {
     /** Relit l'état depuis le serveur (sans session : inactif, sans appel). */
     suspend fun refresh(): PremiumStatus
 
-    /** Commence un achat : renvoie le jeton émis par le serveur. */
-    suspend fun startCheckout(): String
+    /** Mode de paiement actif et, en mode Stripe, la clé publiable. */
+    suspend fun getPaymentConfig(): PaymentConfig
 
-    /** Confirme l'achat avec le jeton ; le serveur active l'abonnement s'il l'accepte. */
+    /** Commence un achat : le serveur démarre le paiement, au montant qu'il fixe. */
+    suspend fun startCheckout(): PremiumCheckout
+
+    /** Confirme l'achat ; le serveur vérifie le paiement et active l'abonnement s'il l'accepte. */
     suspend fun confirmPurchase(purchaseToken: String): PremiumStatus
 
     suspend fun cancel(): PremiumStatus

@@ -42,8 +42,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.stripe.android.PaymentConfiguration
+import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.analytics.PaywallVariant
+import com.youtubeclone.app.domain.model.PaymentMode
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
@@ -79,6 +84,28 @@ fun PaywallScreen(
         onClose = onClose,
         modifier = modifier,
     )
+    // Mode Stripe (ADR-014) : la PaymentSheet du SDK Stripe encaisse avec la clé publiable
+    // reçue du serveur ; son issue est renvoyée au ViewModel, qui fait vérifier le paiement.
+    val paymentSheet = rememberPaymentSheet { result ->
+        viewModel.onPaymentOutcome(
+            when (result) {
+                is PaymentSheetResult.Completed -> PaymentOutcome.Completed
+                is PaymentSheetResult.Canceled -> PaymentOutcome.Canceled
+                is PaymentSheetResult.Failed -> PaymentOutcome.Failed
+            },
+        )
+    }
+    LaunchedEffect(state.stripePayment) {
+        val payment = state.stripePayment ?: return@LaunchedEffect
+        PaymentConfiguration.init(context, payment.publishableKey)
+        paymentSheet.presentWithPaymentIntent(
+            payment.clientSecret,
+            PaymentSheet.Configuration(merchantDisplayName = context.getString(R.string.premium_name)),
+        )
+        viewModel.onStripeSheetShown()
+    }
+
+    // Mode simulé (repli quand le serveur n'a pas de clé Stripe) : feuille de paiement simulée.
     if (state.checkoutToken != null) {
         SimulatedPaymentSheet(
             isConfirming = state.isBusy,
@@ -191,7 +218,9 @@ private fun PaywallContent(
                 }
             }
             Text(
-                text = stringResource(R.string.premium_simulated_note),
+                text = stringResource(
+                    if (state.paymentMode == PaymentMode.STRIPE) R.string.premium_stripe_note else R.string.premium_simulated_note,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

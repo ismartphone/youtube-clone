@@ -19,6 +19,7 @@ media3 = "1.11.1"
 datastore = "1.2.1"
 coreSplashscreen = "1.2.0"
 posthog = "3.72.5"
+stripe = "23.24.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,6 +53,7 @@ androidx-media3-session = { group = "androidx.media3", name = "media3-session", 
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 posthog-android = { group = "com.posthog", name = "posthog-android", version.ref = "posthog" }
+stripe-android = { group = "com.stripe", name = "stripe-android", version.ref = "stripe" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

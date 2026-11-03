@@ -90,6 +90,9 @@ dependencies {
     // Mesures d'audience et test A/B (ADR-006)
     implementation(libs.posthog.android)
 
+    // Paiement Premium par Stripe en mode test, avec sa PaymentSheet (ADR-014)
+    implementation(libs.stripe.android)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

@@ -60,6 +60,9 @@
     <string name="premium_subscribe">S\'abonner pour 4,99 €/mois</string>
     <string name="premium_login_to_subscribe">Se connecter pour s\'abonner</string>
     <string name="premium_later">Plus tard</string>
+    <string name="premium_stripe_note">Paiement Stripe en mode test : aucun débit réel. L\'abonnement dure un mois, sans renouvellement.</string>
+    <string name="premium_payment_canceled">Paiement annulé : aucun abonnement n\'a été souscrit.</string>
+    <string name="premium_payment_failed">Le paiement n\'a pas abouti : aucun abonnement n\'a été souscrit.</string>
     <string name="premium_simulated_note">Paiement simulé : aucun débit réel. L\'abonnement dure un mois, sans renouvellement.</string>
     <string name="premium_already">Vous êtes déjà membre Premium.</string>
     <string name="premium_close">Fermer</string>
