@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -102,24 +103,48 @@ private fun BannerContent(publication: Publication) {
                         .aspectRatio(if (video.format == VideoFormat.SHORT) 9f / 16f else 16f / 9f)
                         .clip(RoundedCornerShape(8.dp)),
                 )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(
-                            if (video.format == VideoFormat.SHORT) R.string.published_short else R.string.published_video,
-                        ),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = video.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                BannerText(
+                    title = stringResource(
+                        if (video.format == VideoFormat.SHORT) R.string.published_short else R.string.published_video,
+                    ),
+                    detail = video.title,
+                )
+            }
+            // Post : son image s'il en a une, puis le début de son texte.
+            is Publication.PostPublished -> {
+                val post = publication.post
+                if (post.imageUrl != null) {
+                    AsyncImage(
+                        model = post.imageUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .height(THUMBNAIL_HEIGHT)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(8.dp)),
                     )
                 }
+                BannerText(title = stringResource(R.string.published_post), detail = post.text)
             }
         }
+    }
+}
+
+@Composable
+private fun RowScope.BannerText(title: String, detail: String) {
+    Column(modifier = Modifier.weight(1f)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = detail,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

@@ -68,7 +68,7 @@ private val CONTENT_HEIGHT = 220.dp
 
 /**
  * Feuille ouverte par le bouton + de la barre d'onglets, avec ses onglets en bas : Vidéo, Short,
- * En direct (grisé) et Post. [onLoginRequired], [onPublishVideo] et [onCreateChannel] sont appelés après la
+ * En direct (grisé) et Post. [onLoginRequired], [onPublishVideo], [onCreateChannel] et [onWritePost] sont appelés après la
  * fermeture de la feuille.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,6 +78,7 @@ fun CreateSheet(
     onLoginRequired: () -> Unit,
     onPublishVideo: (uri: String, format: VideoFormat) -> Unit,
     onCreateChannel: () -> Unit,
+    onWritePost: () -> Unit,
     viewModel: CreateViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -130,11 +131,20 @@ fun CreateSheet(
                     is CreateUiState.Ready -> SheetMessage(
                         title = stringResource(selected.title),
                         message = stringResource(selected.message),
-                        action = selected.format?.let { stringResource(R.string.create_pick_video) },
+                        action = when {
+                            selected.format != null -> stringResource(R.string.create_pick_video)
+                            selected == CreateTab.Post -> stringResource(R.string.create_write_post)
+                            else -> null
+                        },
                         onAction = {
-                            pickVideo.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
-                            )
+                            if (selected == CreateTab.Post) {
+                                onDismiss()
+                                onWritePost()
+                            } else {
+                                pickVideo.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly),
+                                )
+                            }
                         },
                         isBusy = pick.isChecking,
                         problem = pick.problem?.let { problemText(it) },

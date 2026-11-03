@@ -52,6 +52,7 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.domain.model.FollowStatus
+import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.presentation.common.ChannelAvatar
@@ -60,6 +61,7 @@ import com.youtubeclone.app.presentation.common.EmptyStateMessage
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.formatFollowerCount
+import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatVideoCount
 import com.youtubeclone.app.presentation.common.formatViewCount
 import com.youtubeclone.app.presentation.home.previewVideo
@@ -67,13 +69,13 @@ import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import com.youtubeclone.app.presentation.watch.SuggestedVideoCard
 
 // Page de chaîne d'après les maquettes (android/maquettes/chaine-01, -03 et -12, captures iOS) :
-// bannière, en-tête, S'abonner, puis onglets Vidéos et Shorts. On reprend la mise en page et la
+// bannière, en-tête, S'abonner, puis onglets Vidéos, Shorts et Posts. On reprend la mise en page et la
 // hiérarchie, avec les conventions Material.
 
-/** Onglets de la page : chacun ne montre qu'un format de vidéo. */
+/** Onglets de la page : Vidéos et Shorts montrent chacun un format de vidéo, Posts les posts (ADR-015). */
 private enum class ChannelTab(
     @StringRes val label: Int,
-    val format: VideoFormat,
+    val format: VideoFormat?,
     @DrawableRes val emptyIcon: Int,
     @StringRes val emptyTitle: Int,
     @StringRes val emptyMessage: Int,
@@ -85,6 +87,10 @@ private enum class ChannelTab(
     Shorts(
         R.string.channel_tab_shorts, VideoFormat.SHORT, R.drawable.ic_tab_shorts,
         R.string.channel_shorts_empty_title, R.string.channel_shorts_empty_message,
+    ),
+    Posts(
+        R.string.channel_tab_posts, null, R.drawable.ic_comment,
+        R.string.channel_posts_empty_title, R.string.channel_posts_empty_message,
     ),
 }
 
@@ -99,6 +105,7 @@ fun ChannelScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
+    val posts by viewModel.posts.collectAsStateWithLifecycle()
     ErrorToast(viewModel.follow.errors)
 
     when (val state = uiState) {
@@ -106,6 +113,7 @@ fun ChannelScreen(
         is ChannelUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
         is ChannelUiState.Success -> ChannelContent(
             page = state.page,
+            posts = posts,
             followState = followState,
             // Visiteur : la connexion est demandée au moment de s'abonner.
             onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
@@ -121,6 +129,7 @@ fun ChannelScreen(
 @Composable
 private fun ChannelContent(
     page: ChannelPage,
+    posts: List<Post>,
     followState: FollowUiState?,
     onFollowClick: () -> Unit,
     onVideoClick: (videoId: String) -> Unit,
@@ -143,6 +152,13 @@ private fun ChannelContent(
             ChannelTabs(selected = selectedTab, onSelect = { selectedTab = it })
         }
         when {
+            selectedTab == ChannelTab.Posts -> if (posts.isEmpty()) {
+                fullWidthItem("empty") { TabEmptyState(selectedTab) }
+            } else {
+                items(items = posts, key = { it.id }, span = { GridItemSpan(maxLineSpan) }) { post ->
+                    PostCard(post)
+                }
+            }
             tabVideos.isEmpty() -> fullWidthItem("empty") { TabEmptyState(selectedTab) }
             selectedTab == ChannelTab.Videos -> items(
                 items = tabVideos,
@@ -343,6 +359,52 @@ private fun ShortTile(video: Video, modifier: Modifier = Modifier) {
     }
 }
 
+// Post : avatar, nom et date, texte, puis l'image éventuelle sur toute la largeur.
+@Composable
+private fun PostCard(post: Post) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            ChannelAvatar(post.channel, Modifier.size(32.dp), initialStyle = MaterialTheme.typography.labelLarge)
+            Text(
+                text = post.channel.name,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Text(
+                text = formatRelativeDate(post.createdAt),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            text = post.text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        post.imageUrl?.let { url ->
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.FillWidth,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp)),
+            )
+        }
+    }
+}
+
 @Composable
 private fun TabEmptyState(tab: ChannelTab) {
     EmptyStateMessage(
@@ -370,6 +432,7 @@ private fun previewChannelPage(videos: List<Video>) = ChannelPage(
 private fun ChannelContentPreview() {
     YoutubeCloneTheme {
         ChannelContent(
+            posts = emptyList(),
             page = previewChannelPage(
                 listOf(
                     previewVideo("1", "Sintel, la bande-annonce", "Studio Libre", 12_400, 3),
@@ -389,6 +452,7 @@ private fun ChannelContentPreview() {
 private fun ChannelShortsEmptyPreview() {
     YoutubeCloneTheme {
         ChannelContent(
+            posts = emptyList(),
             page = previewChannelPage(emptyList()),
             followState = FollowUiState(followerCount = 15_800, isFollowing = true),
             onFollowClick = {},

@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.ChannelPage
+import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
+import com.youtubeclone.app.domain.usecase.GetChannelPostsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
@@ -37,6 +39,7 @@ class ChannelViewModel @Inject constructor(
     setFollowing: SetFollowingUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
     observePublications: ObservePublicationsUseCase,
+    private val getChannelPosts: GetChannelPostsUseCase,
 ) : ViewModel() {
 
     private val channelId = savedStateHandle.toRoute<ChannelRoute>().channelId
@@ -48,6 +51,10 @@ class ChannelViewModel @Inject constructor(
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     val follow = FollowController(viewModelScope, setFollowing, observeFollowChanges)
+
+    // Onglet Posts : les plus récents. Un échec laisse simplement la liste vide.
+    private val _posts = MutableStateFlow<List<Post>>(emptyList())
+    val posts: StateFlow<List<Post>> = _posts.asStateFlow()
 
     private var loadJob: Job? = null
 
@@ -65,12 +72,23 @@ class ChannelViewModel @Inject constructor(
         }
     }
 
+    private suspend fun loadPosts() {
+        _posts.value = try {
+            getChannelPosts(channelId).items
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
     fun load() {
         loadJob?.cancel()
         // Un rechargement garde la page affichée au lieu de repasser par le chargement.
         if (_uiState.value !is ChannelUiState.Success) _uiState.value = ChannelUiState.Loading
         loadJob = viewModelScope.launch {
             _uiState.value = try {
+                launch { loadPosts() }
                 val page = getChannelPage(channelId)
                 follow.show(page.channel.id, page.followStatus, canFollow = !page.isOwner)
                 ChannelUiState.Success(page)

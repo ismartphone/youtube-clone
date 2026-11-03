@@ -1,17 +1,8 @@
 import {
-  ArgumentsHost,
   BadRequestException,
   Body,
-  CallHandler,
-  Catch,
   Controller,
-  ExceptionFilter,
-  ExecutionContext,
   ForbiddenException,
-  HttpException,
-  Injectable,
-  NestInterceptor,
-  PayloadTooLargeException,
   Post,
   ServiceUnavailableException,
   UnprocessableEntityException,
@@ -20,7 +11,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { BaseExceptionFilter } from '@nestjs/core';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Transform } from 'class-transformer';
 import {
@@ -31,10 +21,7 @@ import {
   Length,
   MaxLength,
 } from 'class-validator';
-import type { Request } from 'express';
-import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { finalize, type Observable } from 'rxjs';
 import type { AuthenticatedUser } from '../../../auth/domain/user.js';
 import { CurrentUser } from '../../../auth/interfaces/http/current-user.decorator.js';
 import { JwtAuthGuard } from '../../../auth/interfaces/http/jwt-auth.guard.js';
@@ -48,6 +35,11 @@ import {
   NoChannelError,
   UploadUnavailableError,
 } from '../../domain/video-upload.js';
+import {
+  FileTooLargeFilter,
+  RemoveTempFileInterceptor,
+  type ReceivedFile,
+} from '../../../../shared/interfaces/http/file-upload.js';
 import { presentVideoDetail } from './video.presenter.js';
 
 const trim = ({ value }: { value: unknown }) =>
@@ -83,46 +75,6 @@ export class UploadVideoBody {
   format: VideoFormat;
 }
 
-// Seuls le chemin du fichier temporaire et sa présence nous intéressent : le nom et le type
-// annoncés par le client sont ignorés (ADR-015).
-interface ReceivedFile {
-  path: string;
-}
-
-// Le fichier temporaire est supprimé quoi qu'il arrive : refusé, corps invalide ou erreur.
-// Accepté, il a déjà été déplacé dans le stockage et la suppression est sans effet.
-@Injectable()
-class RemoveTempFileInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const request = context
-      .switchToHttp()
-      .getRequest<Request & { file?: ReceivedFile }>();
-    return next.handle().pipe(
-      finalize(() => {
-        if (request.file) {
-          void rm(request.file.path, { force: true });
-        }
-      }),
-    );
-  }
-}
-
-// Fichier trop gros, arrêté par multer pendant la réception : message en français.
-@Catch(PayloadTooLargeException)
-class FileTooLargeFilter
-  extends BaseExceptionFilter
-  implements ExceptionFilter
-{
-  catch(_exception: HttpException, host: ArgumentsHost) {
-    super.catch(
-      new PayloadTooLargeException(
-        `La vidéo dépasse la taille maximale de ${MAX_UPLOAD_BYTES / 1024 / 1024} Mo.`,
-      ),
-      host,
-    );
-  }
-}
-
 // Publication depuis l'application mobile (ADR-015) : réservée au propriétaire d'une chaîne.
 // Le garde d'authentification passe avant la réception : un anonyme n'écrit rien sur le disque.
 @Controller('me/videos')
@@ -131,7 +83,11 @@ export class UploadController {
   constructor(private readonly uploadVideo: UploadVideoUseCase) {}
 
   @Post()
-  @UseFilters(FileTooLargeFilter)
+  @UseFilters(
+    new FileTooLargeFilter(
+      `La vidéo dépasse la taille maximale de ${MAX_UPLOAD_BYTES / 1024 / 1024} Mo.`,
+    ),
+  )
   @UseInterceptors(
     FileInterceptor('file', {
       // Nom aléatoire sans extension, généré par multer : celui du client n'est jamais repris.

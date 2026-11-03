@@ -7,4 +7,8 @@ sealed interface Publication {
     data class VideoPublished(val video: Video) : Publication {
         override val channelId: String get() = video.channel.id
     }
+
+    data class PostPublished(val post: Post) : Publication {
+        override val channelId: String get() = post.channel.id
+    }
 }

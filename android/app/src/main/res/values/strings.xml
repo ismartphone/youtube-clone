@@ -25,6 +25,7 @@
     <string name="create_no_channel_title">Créez votre chaîne pour publier</string>
     <string name="create_no_channel_message">Vos vidéos, vos Shorts et vos posts sont publiés sur votre chaîne. Créez-en une pour commencer.</string>
     <string name="create_no_channel_action">Créer ma chaîne</string>
+    <string name="create_write_post">Rédiger un post</string>
     <string name="create_pick_video">Choisir une vidéo</string>
     <string name="create_problem_unreadable">Cette vidéo est illisible. Choisissez-en une autre.</string>
     <string name="create_problem_too_large">Cette vidéo dépasse %1$d Mo. Choisissez-en une plus légère.</string>
@@ -40,6 +41,7 @@
     <string name="publish_categories_failed">Impossible de charger les catégories.</string>
     <string name="publish_category_placeholder">Choisissez une catégorie</string>
     <string name="published_video">Votre vidéo est en ligne</string>
+    <string name="published_post">Votre post est en ligne</string>
     <string name="published_short">Votre Short est en ligne</string>
     <string name="publish_submit">Publier</string>
     <string name="publish_cancel">Annuler l\'envoi</string>
@@ -166,6 +168,9 @@
     <string name="channel_videos_empty_title">Aucune vidéo</string>
     <string name="channel_videos_empty_message">Cette chaîne n\'a pas encore publié de vidéo.</string>
     <string name="channel_shorts_empty_title">Aucun Short</string>
+    <string name="channel_tab_posts">Posts</string>
+    <string name="channel_posts_empty_title">Aucun post</string>
+    <string name="channel_posts_empty_message">Cette chaîne n\'a pas encore publié de post.</string>
     <string name="channel_shorts_empty_message">Cette chaîne n\'a pas encore publié de Short.</string>
     <string name="error_channel_not_found">Cette chaîne n\'existe pas ou a été supprimée.</string>
 
@@ -208,4 +213,12 @@
     <string name="create_channel_handle_rule">%1$d à %2$d caractères : lettres minuscules, chiffres, point, tiret ou tiret bas.</string>
     <string name="create_channel_description">Description (facultative)</string>
     <string name="create_channel_submit">Créer la chaîne</string>
+
+    <!-- Rédaction d'un post -->
+    <string name="compose_post_placeholder">Partagez quelque chose avec votre communauté</string>
+    <string name="compose_post_add_image">Ajouter une image</string>
+    <string name="compose_post_image_preview">Image du post</string>
+    <string name="compose_post_remove_image">Retirer l\'image</string>
+    <string name="compose_post_image_unreadable">Cette image est illisible. Choisissez-en une autre.</string>
+    <string name="compose_post_image_too_large">Cette image dépasse %1$d Mo. Choisissez-en une plus légère.</string>
 </resources>

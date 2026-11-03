@@ -1,6 +1,8 @@
-import { Logger, OnModuleInit } from '@nestjs/common';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { OnModuleInit } from '@nestjs/common';
+import {
+  Ffprobe,
+  ProbeFailedError,
+} from '../../../shared/infrastructure/ffprobe.js';
 import {
   InvalidVideoFileError,
   UploadUnavailableError,
@@ -8,89 +10,40 @@ import {
   type VideoProber,
 } from '../domain/video-upload.js';
 
-const run = promisify(execFile);
-
-const PROBE_TIMEOUT_MS = 30_000;
-const VERSION_CHECK_TIMEOUT_MS = 5_000;
-
-interface FfprobeOutput {
-  format?: { duration?: string };
-  streams?: {
-    codec_type?: string;
-    width?: number;
-    height?: number;
-    tags?: { rotate?: string };
-    side_data_list?: { rotation?: number }[];
-  }[];
-}
-
 /**
- * Analyse d'une vidéo envoyée avec ffprobe, appelé en ligne de commande (ADR-011, ADR-015).
- * Le fichier n'est lu que comme MP4 (démultiplexeur « mov », qui couvre MP4 et MOV) et
- * uniquement depuis le disque : un fichier déguisé (playlist, image, autre conteneur)
- * est refusé par ffprobe lui-même, quel que soit son nom ou le type annoncé.
+ * Analyse d'une vidéo envoyée, avec ffprobe (ADR-011, ADR-015). Le fichier n'est lu que comme
+ * MP4 (démultiplexeur « mov », qui couvre MP4 et MOV).
  * ffprobe absent : le serveur démarre quand même, et seul l'envoi est refusé.
  */
 export class FfprobeVideoProber implements VideoProber, OnModuleInit {
-  private readonly logger = new Logger(FfprobeVideoProber.name);
-  private available: Promise<boolean> | undefined;
+  private readonly ffprobe: Ffprobe;
 
-  constructor(private readonly command: string) {}
-
-  async onModuleInit() {
-    await this.isAvailable();
+  constructor(command: string) {
+    this.ffprobe = new Ffprobe(
+      command,
+      "L'envoi de vidéos depuis l'application",
+      FfprobeVideoProber.name,
+    );
   }
 
-  private isAvailable(): Promise<boolean> {
-    this.available ??= run(this.command, ['-version'], {
-      timeout: VERSION_CHECK_TIMEOUT_MS,
-    }).then(
-      () => true,
-      () => {
-        this.logger.error(
-          `ffprobe est introuvable (commande « ${this.command} »). L'envoi de vidéos depuis ` +
-            "l'application est désactivé ; le reste de l'API fonctionne. Installez FFmpeg ou " +
-            'indiquez le chemin de ffprobe dans FFPROBE_PATH, puis redémarrez.',
-        );
-        return false;
-      },
-    );
-    return this.available;
+  async onModuleInit() {
+    await this.ffprobe.isAvailable();
   }
 
   async probe(path: string): Promise<ProbedVideo> {
-    if (!(await this.isAvailable())) {
+    if (!(await this.ffprobe.isAvailable())) {
       throw new UploadUnavailableError();
     }
-    let output: FfprobeOutput;
+    let output;
     try {
-      const { stdout } = await run(
-        this.command,
-        [
-          '-v',
-          'error',
-          '-protocol_whitelist',
-          'file',
-          '-format_whitelist',
-          'mov',
-          '-show_format',
-          '-show_streams',
-          '-of',
-          'json',
-          path,
-        ],
-        { timeout: PROBE_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 },
-      );
-      output = JSON.parse(stdout) as FfprobeOutput;
+      output = await this.ffprobe.probe(path, 'mov');
     } catch (error) {
-      // Raison technique dans les journaux ; le créateur reçoit un message simple.
-      const detail = error as { stderr?: string; message?: string };
-      this.logger.warn(
-        `Fichier refusé par ffprobe : ${detail.stderr?.trim().split('\n').at(-1) || detail.message}`,
-      );
-      throw new InvalidVideoFileError(
-        "Ce fichier n'est pas une vidéo lisible. Envoyez une vidéo au format MP4.",
-      );
+      if (error instanceof ProbeFailedError) {
+        throw new InvalidVideoFileError(
+          "Ce fichier n'est pas une vidéo lisible. Envoyez une vidéo au format MP4.",
+        );
+      }
+      throw error;
     }
     const stream = output.streams?.find((s) => s.codec_type === 'video');
     const durationSeconds = Number(output.format?.duration ?? 0);

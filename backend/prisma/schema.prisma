@@ -58,6 +58,7 @@ model Channel {
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   videos    Video[]
   followers Follow[]
+  posts     Post[]
 
   @@map("channels")
 }
@@ -68,6 +69,21 @@ model Category {
   videos Video[]
 
   @@map("categories")
+}
+
+// Post publié par une chaîne depuis l'application (ADR-015) : texte, image facultative
+// (chemin relatif /media/posts/...), date. Création réservée au propriétaire, lecture publique.
+model Post {
+  id        String   @id @default(uuid()) @db.Uuid
+  channelId String   @db.Uuid
+  text      String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt(sort: Desc)]) // onglet Posts de la page de chaîne
+  @@map("posts")
 }
 
 // La base ne stocke que les URL des fichiers, jamais les fichiers eux-mêmes.

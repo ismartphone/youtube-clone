@@ -49,6 +49,7 @@ import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.channel.CreateChannelScreen
+import com.youtubeclone.app.presentation.create.ComposePostScreen
 import com.youtubeclone.app.presentation.create.CreateSheet
 import com.youtubeclone.app.presentation.create.PublishVideoScreen
 import com.youtubeclone.app.presentation.create.PublishedBanner
@@ -86,6 +87,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class PaywallRoute(val videoId: String? = null)
 // Création de la chaîne de l'utilisateur connecté.
 @Serializable data object CreateChannelRoute
+// Rédaction d'un post sur sa chaîne.
+@Serializable data object ComposePostRoute
 // Publication d'une vidéo choisie dans la galerie. [format] : nom d'une valeur de VideoFormat.
 @Serializable data class PublishVideoRoute(val uri: String, val format: String)
 // Nom d'une valeur de YouList : historique, vidéos aimées ou vos vidéos.
@@ -101,6 +104,7 @@ private val FULL_SCREEN_ROUTES = listOf(
     InterestsRoute::class,
     PublishVideoRoute::class,
     CreateChannelRoute::class,
+    ComposePostRoute::class,
 )
 
 private enum class Tab(
@@ -176,6 +180,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                 onLoginRequired = { navController.navigate(LoginRoute) },
                 onPublishVideo = { uri, format -> navController.navigate(PublishVideoRoute(uri, format.name)) },
                 onCreateChannel = { navController.navigate(CreateChannelRoute) },
+                onWritePost = { navController.navigate(ComposePostRoute) },
             )
         }
         NavHost(
@@ -288,6 +293,13 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             }
             composable<PublishVideoRoute> {
                 PublishVideoScreen(
+                    onClose = { navController.popBackStack() },
+                    // Retour à l'écran d'où le créateur était parti, où s'affiche la confirmation.
+                    onPublished = { navController.popBackStack() },
+                )
+            }
+            composable<ComposePostRoute> {
+                ComposePostScreen(
                     onClose = { navController.popBackStack() },
                     // Retour à l'écran d'où le créateur était parti, où s'affiche la confirmation.
                     onPublished = { navController.popBackStack() },

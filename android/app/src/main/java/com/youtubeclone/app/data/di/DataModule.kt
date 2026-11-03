@@ -8,6 +8,7 @@ import com.youtubeclone.app.data.remote.AuthInterceptor
 import com.youtubeclone.app.data.remote.CategoryApi
 import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.CommentApi
+import com.youtubeclone.app.data.remote.PostApi
 import com.youtubeclone.app.data.remote.PremiumApi
 import com.youtubeclone.app.data.remote.RefreshApi
 import com.youtubeclone.app.data.remote.SearchApi
@@ -18,6 +19,7 @@ import com.youtubeclone.app.data.repository.AuthRepositoryImpl
 import com.youtubeclone.app.data.repository.CategoryRepositoryImpl
 import com.youtubeclone.app.data.repository.ChannelRepositoryImpl
 import com.youtubeclone.app.data.repository.InMemoryPublicationFeed
+import com.youtubeclone.app.data.repository.PostRepositoryImpl
 import com.youtubeclone.app.data.repository.CommentRepositoryImpl
 import com.youtubeclone.app.data.repository.PreferencesRepositoryImpl
 import com.youtubeclone.app.data.repository.PremiumRepositoryImpl
@@ -31,6 +33,7 @@ import com.youtubeclone.app.domain.repository.CategoryRepository
 import com.youtubeclone.app.domain.repository.ChannelRepository
 import com.youtubeclone.app.domain.repository.CommentRepository
 import com.youtubeclone.app.domain.repository.LiveVideoRepository
+import com.youtubeclone.app.domain.repository.PostRepository
 import com.youtubeclone.app.domain.repository.PreferencesRepository
 import com.youtubeclone.app.domain.repository.PremiumRepository
 import com.youtubeclone.app.domain.repository.PublicationFeed
@@ -105,6 +108,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun providePostApi(retrofit: Retrofit): PostApi = retrofit.create(PostApi::class.java)
+
+    @Provides
+    @Singleton
     fun provideSearchApi(retrofit: Retrofit): SearchApi = retrofit.create(SearchApi::class.java)
 
     // Même client (session, rafraîchissement du token), mais une attente de réponse plus longue :
@@ -174,6 +181,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUploadRepository(impl: UploadRepositoryImpl): UploadRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPostRepository(impl: PostRepositoryImpl): PostRepository
 
     @Binds
     @Singleton
