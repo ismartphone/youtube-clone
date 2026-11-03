@@ -216,6 +216,9 @@ async function main() {
       durationSeconds: Math.round(LOCAL_SEED_VIDEOS.outdoors.clipSeconds),
       publishedAt: daysAgo(0),
       format: VideoFormat.LONG,
+      // Vidéo exclusive (ADR-007), la plus récente : en tête du fil, le badge Premium et le
+      // paywall se voient dès le premier lancement, sans passer par le back-office.
+      isPremium: true,
     },
   ];
 
