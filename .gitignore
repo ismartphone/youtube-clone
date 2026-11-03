@@ -30,3 +30,5 @@ android/maquettes/
 *.iml
 .DS_Store
 Thumbs.db
+backend/*firebase-adminsdk*.json
+backend/firebase-service-account.json

@@ -9,3 +9,6 @@ node_modules
 
 # Fichiers générés par le serveur (miniatures), voir MEDIA_DIR
 /storage
+
+# Clé de compte de service Firebase
+backend/*firebase-adminsdk*.json
