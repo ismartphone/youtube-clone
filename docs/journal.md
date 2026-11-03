@@ -1,14 +1,17 @@
 # Journal de développement
 
 Journal reconstitué à partir de l'historique Git (46 commits) et des ADR de `docs/adr/`. Les heures
-sont celles des commits. Il ne retrace que ce que ces sources enregistrent : une tâche non commitée,
-une piste abandonnée ou un échange avec l'IA qui n'a laissé aucune trace écrite n'y figurent pas.
+sont celles des commits. S'y ajoutent les arrêts de l'IA, qui ont eu lieu dans les conversations et
+non dans Git : ils sont rapportés par le lead développeur (voir
+[`processus-ia.md`](processus-ia.md#7-les-cas-où-lia-sest-arrêtée)). Une tâche non commitée ou une
+piste abandonnée sans trace écrite n'y figure pas.
 
 | Jour | Commits | Thème |
 |---|---|---|
 | [Jeudi 15 octobre](#jeudi-15-octobre) | 24 | Cadrage, socle des trois projets, authentification, temps réel |
 | [Vendredi 16 octobre](#vendredi-16-octobre) | 8 | Animations, FFmpeg et vidéos locales, reprise des écrans d'après les maquettes |
 | [Lundi 19 octobre](#lundi-19-octobre) | 10 | Onglet Vous, historique, Shorts, page de chaîne, bannières, connexion |
+| [Vendredi 23 octobre](#vendredi-23-octobre) | 0 | Arbitrages sur le paiement Premium et les mesures d'audience |
 | [Mardi 3 novembre](#mardi-3-novembre) | 4 | Premium, mesures d'audience, test A/B |
 
 Aucun commit les 17 et 18 octobre, ni du 20 octobre au 2 novembre.
@@ -121,6 +124,12 @@ d'après ces maquettes.
 - **Droits sur les maquettes.** Les captures de référence viennent de Mobbin et ne doivent pas être
   redistribuées. **Solution :** le dossier `android/maquettes/` est exclu du dépôt, seul l'index est
   versionné.
+- **Arrêt de l'IA : l'origine des vidéos dans l'ADR-002.** Hors de la tâche demandée, l'agent relève
+  que l'ADR-002 dit les vidéos Pexels « téléchargées puis importées dans notre stockage via le
+  back-office », alors que `seed:videos` les écrit directement dans le stockage. Il propose une
+  correction (« hors données de démonstration préparées par le seed, voir ADR-011 ») mais ne
+  l'applique pas et attend l'accord. **Suite :** la correction est validée, mais elle n'a jamais été
+  appliquée. L'ADR-002 contient toujours la phrase d'origine.
 
 ---
 
@@ -145,7 +154,29 @@ d'après ces maquettes.
   `npm run seed:banners`, documentées dans `backend/README.md`.
 - **Conséquence non vue sur le moment.** L'écran d'accueil du premier lancement, refait en un seul
   écran, ne contient plus le choix de refuser les mesures que prévoyait l'ADR-006. L'écart n'est
-  relevé et traité que le 3 novembre, par l'ADR-013.
+  soulevé que le 23 octobre, et consigné le 3 novembre dans l'ADR-013.
+- **Arrêt de l'IA : l'émulateur.** L'émulateur Android s'arrête trois fois sans explication.
+  **Solution :** l'agent cesse de le relancer et demande confirmation avant de continuer, au lieu
+  de s'acharner.
+
+---
+
+## Vendredi 23 octobre
+
+Aucun commit ce jour-là. Deux arrêts de l'IA, en préparant l'offre Premium et les mesures
+d'audience, ont mené aux décisions consignées le 3 novembre.
+
+### Problèmes rencontrés et solutions
+
+- **Arrêt de l'IA : la facturation Play.** La consigne était d'implémenter la facturation Google
+  Play, ou de s'arrêter si elle supposait une application publiée. Elle le supposait : l'agent
+  s'arrête et demande un arbitrage, sans choisir seul une solution de remplacement. **Solution :**
+  le lead développeur retient l'achat simulé par notre propre backend, qui deviendra l'ADR-012.
+- **Arrêt de l'IA : les mesures et les données personnelles.** L'agent s'arrête sur deux questions
+  qu'aucun document ne tranche : l'utilisateur doit-il rester anonyme ou être identifié auprès de
+  PostHog, et où placer le refus des mesures, que l'écran d'accueil ne propose plus ? **Solution :**
+  identification par le seul UUID du compte, refus dans Paramètres. Cette décision deviendra
+  l'ADR-013.
 
 ---
 
@@ -173,8 +204,8 @@ d'usage ». Clés lues dans `android/secrets.properties`, exclu du dépôt.
 
 - **Le paiement prévu par l'ADR-007 est impossible.** Le mode test de Google Play Billing suppose une
   application déposée sur la Play Console, un compte développeur payant, un produit et des testeurs
-  configurés ; les anciens produits de test (`android.test.purchased`) n'existent plus. **Solution :**
-  l'ADR-012 fait jouer au backend le rôle du fournisseur de paiement (jeton d'achat émis par
+  configurés ; les anciens produits de test (`android.test.purchased`) n'existent plus. **Solution,
+  arbitrée le 23 octobre :** l'ADR-012 fait jouer au backend le rôle du fournisseur de paiement (jeton d'achat émis par
   `POST /me/premium/checkout`, vérifié par `POST /me/premium/subscribe`). Il ne remplace que la partie
   paiement de l'ADR-007, qui reste valable pour le reste ; le serveur reste seul juge de l'activation.
 - **Les mesures ne sont plus anonymes.** Suivre un utilisateur entre ses sessions et mesurer les
@@ -192,3 +223,5 @@ d'usage ». Clés lues dans `android/secrets.properties`, exclu du dépôt.
   au démarrage et gardés en cache ; sans drapeau, sans réseau ou avec les mesures désactivées, la
   variante par défaut s'affiche immédiatement. Limite notée : avec le peu d'utilisateurs d'un projet
   d'école, le test démontre la mise en place, pas un résultat significatif.
+- **Arrêt de l'IA : l'émulateur, de nouveau.** Comme le 19 octobre, l'agent cesse de relancer un
+  émulateur qui s'arrête sans explication et demande confirmation.

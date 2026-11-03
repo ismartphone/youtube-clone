@@ -52,6 +52,9 @@ Les décisions fondatrices (ADR-001 à ADR-007) ont bien été écrites avant le
 l'ADR-013, livré avant le code PostHog qu'il encadre. Pour les ADR-008 à ADR-012, le fichier est
 committé avec le code ou quelques minutes après : l'historique ne permet pas de savoir si la
 décision avait été arrêtée avant, seulement que sa trace écrite est arrivée avec la fonctionnalité.
+Pour les ADR-012 et ADR-013, les conversations situent la décision au 23 octobre, soit dix jours
+avant la rédaction du fichier (voir les arrêts 1 et 2). L'écart entre la décision et sa rédaction
+n'est donc pas toujours un écart entre la décision et le code.
 
 **Analyse.** La rédaction avant le code a tenu sur les sept premiers ADR, puis elle a glissé quand
 le rythme s'est accéléré : le 15 octobre, l'authentification, le back-office et le temps réel ont
@@ -157,7 +160,7 @@ bas).
 identification par le seul UUID du compte, jamais l'email ni le nom, et interrupteur de refus dans
 Paramètres. Il consigne aussi, comme conséquence négative, que le partage activé par défaut n'est
 pas un consentement préalable et doit être justifié à l'oral. L'écart sur l'écran d'accueil, lui,
-n'a été repéré que deux semaines après.
+n'a été soulevé que quatre jours après sa refonte, le 23 octobre.
 
 ### Cas 6 — Un bug introduit par la lecture en arrière-plan
 
@@ -192,7 +195,7 @@ se lit dans les ADR.
 
 ### Arrêt 1 — La facturation Play
 
-La consigne donnée à l'agent était double : implémenter la facturation Google Play, ou s'arrêter si
+Le 23 octobre, la consigne donnée à l'agent était double : implémenter la facturation Google Play, ou s'arrêter si
 elle supposait une application publiée. Elle le supposait. L'agent s'est arrêté et a demandé un
 arbitrage. Il n'a pas choisi seul l'achat simulé par le backend.
 
@@ -200,7 +203,7 @@ arbitrage. Il n'a pas choisi seul l'achat simulé par le backend.
 
 ### Arrêt 2 — Les mesures d'audience
 
-Avant de brancher PostHog, l'agent s'est arrêté sur deux questions qu'aucun document ne tranchait :
+Le 23 octobre également, avant de brancher PostHog, l'agent s'est arrêté sur deux questions qu'aucun document ne tranchait :
 l'utilisateur devait-il rester anonyme ou être identifié, et où placer le refus des mesures, que
 l'écran d'accueil ne proposait plus ?
 
@@ -208,14 +211,23 @@ l'écran d'accueil ne proposait plus ?
 
 ### Arrêt 3 — L'origine des vidéos dans l'ADR-002
 
-En travaillant sur une autre tâche, l'agent a relevé de lui-même une incohérence dans la section
-« Origine des vidéos » de l'ADR-002. Elle sortait du périmètre de sa tâche. Il l'a signalée et a
-demandé avant de modifier un ADR accepté, au lieu de le corriger de sa propre initiative.
+Le 16 octobre, en travaillant sur une autre tâche, l'agent a relevé de lui-même une incohérence
+dans la section « Origine des vidéos » de l'ADR-002. Cette section dit que les vidéos Pexels sont
+« téléchargées puis importées dans notre stockage via le back-office ». Or la commande
+`seed:videos` les écrit directement dans le stockage, sans passer par le back-office.
+
+Le point sortait du périmètre de sa tâche. L'agent l'a signalé et a proposé une correction : « hors
+données de démonstration préparées par le seed, voir ADR-011 ». Il ne l'a pas appliquée : il a
+attendu l'accord avant de toucher à un ADR accepté.
+
+**Résultat :** la correction a été validée, mais elle n'a jamais été appliquée. L'ADR-002 contient
+toujours la phrase d'origine. Le cas montre que l'agent s'arrête même quand il a déjà la solution.
 
 ### Arrêt 4 — L'émulateur
 
-L'émulateur Android s'est arrêté trois fois sans explication. L'agent a cessé de le relancer et a
-demandé confirmation avant de continuer, plutôt que de s'acharner.
+Le 19 octobre, l'émulateur Android s'est arrêté trois fois sans explication. L'agent a cessé de le
+relancer et a demandé confirmation avant de continuer, plutôt que de s'acharner. Il a refait de
+même le 3 novembre.
 
 ### Le point commun
 

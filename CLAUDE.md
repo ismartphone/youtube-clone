@@ -32,7 +32,7 @@ minSdk 26.
 **Backend** — NestJS (TypeScript), PostgreSQL, Prisma, Redis (cache, sessions, compteurs),
 passerelle WebSocket NestJS. Stockage vidéo : dossier local en développement, Cloudflare R2 + CDN au déploiement.
 Architecture **hexagonale, monolithe modulaire** : `domain/` · `application/` · `infrastructure/` · `interfaces/`.
-Modules : auth, users, channels, videos, comments, subscriptions.
+Modules : auth, channels (dont les abonnements), videos, comments, premium, realtime.
 
 **Back-office** — Next.js (TypeScript), Tailwind CSS.
 Architecture **MVC** : `app/` · `controllers/` · `models/` · `views/` · `services/`.
