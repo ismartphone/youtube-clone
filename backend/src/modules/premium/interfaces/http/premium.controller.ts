@@ -8,6 +8,7 @@ import {
   HttpStatus,
   NotFoundException,
   Post,
+  ServiceUnavailableException,
   UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
@@ -19,6 +20,7 @@ import { JwtAuthGuard } from '../../../auth/interfaces/http/jwt-auth.guard.js';
 import {
   CancelPremiumUseCase,
   ConfirmPurchaseUseCase,
+  GetPaymentConfigUseCase,
   GetPremiumStatusUseCase,
   StartCheckoutUseCase,
 } from '../../application/premium.use-cases.js';
@@ -27,9 +29,12 @@ import {
   AlreadyPremiumError,
   InvalidPurchaseTokenError,
   NotPremiumError,
+  PaymentAlreadyUsedError,
+  PaymentUnavailableError,
 } from '../../domain/premium.errors.js';
 
-// Corps de POST /me/premium/subscribe : le jeton reçu de POST /me/premium/checkout.
+// Corps de POST /me/premium/subscribe : la référence reçue de POST /me/premium/checkout,
+// soit l'identifiant du PaymentIntent (mode stripe), soit le jeton simulé (mode simulated).
 export class SubscribeBody {
   @Transform(({ value }: { value: unknown }) =>
     typeof value === 'string' ? value.trim() : value,
@@ -48,12 +53,31 @@ function presentStatus(subscription: ActiveSubscription | null) {
   };
 }
 
-// Abonnement Premium de l'utilisateur connecté (PREMIUM_SUBSCRIPTION, ADR-007 et ADR-012).
+// Traduit les erreurs métier communes à checkout et subscribe en codes HTTP.
+function toHttpError(error: unknown): unknown {
+  if (
+    error instanceof AlreadyPremiumError ||
+    error instanceof PaymentAlreadyUsedError
+  ) {
+    return new ConflictException(error.message);
+  }
+  if (error instanceof InvalidPurchaseTokenError) {
+    // 422 et non 400 : la requête est bien formée, c'est le paiement qui n'est pas accepté.
+    return new UnprocessableEntityException(error.message);
+  }
+  if (error instanceof PaymentUnavailableError) {
+    return new ServiceUnavailableException(error.message);
+  }
+  return error;
+}
+
+// Abonnement Premium de l'utilisateur connecté (PREMIUM_SUBSCRIPTION, ADR-007 et ADR-014).
 @Controller('me/premium')
 @UseGuards(JwtAuthGuard)
 export class PremiumController {
   constructor(
     private readonly getStatus: GetPremiumStatusUseCase,
+    private readonly getPaymentConfig: GetPaymentConfigUseCase,
     private readonly startCheckout: StartCheckoutUseCase,
     private readonly confirmPurchase: ConfirmPurchaseUseCase,
     private readonly cancelPremium: CancelPremiumUseCase,
@@ -64,21 +88,29 @@ export class PremiumController {
     return presentStatus(await this.getStatus.execute(user.id));
   }
 
-  // Étape 1 : le serveur émet le jeton d'achat, que l'application renverra pour confirmer.
+  // Mode de paiement actif : « stripe » avec la clé publiable, ou « simulated » (repli).
+  @Get('config')
+  config() {
+    return this.getPaymentConfig.execute();
+  }
+
+  // Étape 1 : le serveur démarre le paiement, au montant qu'il fixe lui-même.
   @Post('checkout')
   async checkout(@CurrentUser() user: AuthenticatedUser) {
     try {
-      const checkout = await this.startCheckout.execute(user.id);
-      return { purchaseToken: checkout.purchaseToken, expiresAt: checkout.expiresAt };
+      const payment = await this.startCheckout.execute(user.id);
+      return {
+        mode: payment.mode,
+        purchaseToken: payment.reference,
+        clientSecret: payment.clientSecret,
+        expiresAt: payment.expiresAt,
+      };
     } catch (error) {
-      if (error instanceof AlreadyPremiumError) {
-        throw new ConflictException(error.message);
-      }
-      throw error;
+      throw toHttpError(error);
     }
   }
 
-  // Étape 2 : le serveur vérifie le jeton puis crée l'abonnement pour un mois.
+  // Étape 2 : le serveur vérifie le paiement puis accorde un mois de Premium.
   @Post('subscribe')
   @HttpCode(HttpStatus.OK)
   async subscribe(
@@ -90,14 +122,7 @@ export class PremiumController {
         await this.confirmPurchase.execute(user.id, body.purchaseToken),
       );
     } catch (error) {
-      if (error instanceof AlreadyPremiumError) {
-        throw new ConflictException(error.message);
-      }
-      if (error instanceof InvalidPurchaseTokenError) {
-        // 422 et non 400 : la requête est bien formée, c'est le jeton qui n'est pas accepté.
-        throw new UnprocessableEntityException(error.message);
-      }
-      throw error;
+      throw toHttpError(error);
     }
   }
 

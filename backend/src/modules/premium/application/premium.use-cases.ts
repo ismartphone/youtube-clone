@@ -1,18 +1,19 @@
 import {
-  CHECKOUT_TTL_SECONDS,
   subscriptionEnd,
   type ActiveSubscription,
-  type Checkout,
+  type PaymentMode,
+  type PaymentStart,
 } from '../domain/premium.js';
 import {
   AlreadyPremiumError,
   InvalidPurchaseTokenError,
   NotPremiumError,
 } from '../domain/premium.errors.js';
-import type { CheckoutStore, PremiumRepository } from '../domain/ports.js';
+import type { PaymentGateway, PremiumRepository } from '../domain/ports.js';
 
-// Parcours d'achat simulé (ADR-012) : checkout, feuille de paiement simulée dans l'application,
-// puis confirmation avec le jeton. Le serveur reste seul juge de l'activation (ADR-007).
+// Parcours d'achat (ADR-014) : le serveur démarre le paiement, l'application le fait régler
+// (PaymentSheet Stripe ou feuille simulée de repli), puis le serveur vérifie le paiement avant
+// d'accorder un mois de Premium. Le serveur reste seul juge de l'activation (ADR-007).
 
 export class GetPremiumStatusUseCase {
   constructor(private readonly subscriptions: PremiumRepository) {}
@@ -22,44 +23,60 @@ export class GetPremiumStatusUseCase {
   }
 }
 
+export interface PaymentConfig {
+  mode: PaymentMode;
+  publishableKey: string | null;
+}
+
+// Mode de paiement actif, lu par l'application à l'ouverture du paywall.
+export class GetPaymentConfigUseCase {
+  constructor(private readonly payments: PaymentGateway) {}
+
+  execute(): PaymentConfig {
+    return {
+      mode: this.payments.mode,
+      publishableKey: this.payments.publishableKey,
+    };
+  }
+}
+
 export class StartCheckoutUseCase {
   constructor(
     private readonly subscriptions: PremiumRepository,
-    private readonly checkouts: CheckoutStore,
+    private readonly payments: PaymentGateway,
   ) {}
 
   // Lève AlreadyPremiumError si l'utilisateur a déjà un abonnement en cours.
-  async execute(userId: string): Promise<Checkout> {
+  async execute(userId: string): Promise<PaymentStart> {
     if (await this.subscriptions.findActive(userId, new Date())) {
       throw new AlreadyPremiumError();
     }
-    const purchaseToken = await this.checkouts.issue(userId, CHECKOUT_TTL_SECONDS);
-    return {
-      purchaseToken,
-      expiresAt: new Date(Date.now() + CHECKOUT_TTL_SECONDS * 1000),
-    };
+    return this.payments.start(userId);
   }
 }
 
 export class ConfirmPurchaseUseCase {
   constructor(
     private readonly subscriptions: PremiumRepository,
-    private readonly checkouts: CheckoutStore,
+    private readonly payments: PaymentGateway,
   ) {}
 
-  // Lève InvalidPurchaseTokenError si le jeton n'est pas valable pour cet utilisateur,
-  // AlreadyPremiumError s'il a déjà un abonnement en cours.
-  async execute(userId: string, purchaseToken: string): Promise<ActiveSubscription> {
-    // Le jeton est consommé dans tous les cas : il ne peut jamais servir deux fois.
-    const owner = await this.checkouts.consume(purchaseToken);
-    if (owner !== userId) {
+  // Lève InvalidPurchaseTokenError si le paiement n'est pas réglé par cet utilisateur,
+  // AlreadyPremiumError s'il a déjà un abonnement en cours, PaymentAlreadyUsedError si ce
+  // paiement a déjà accordé un abonnement.
+  async execute(
+    userId: string,
+    reference: string,
+  ): Promise<ActiveSubscription> {
+    if (!(await this.payments.isPaidBy(userId, reference))) {
       throw new InvalidPurchaseTokenError();
     }
     const now = new Date();
     if (await this.subscriptions.findActive(userId, now)) {
       throw new AlreadyPremiumError();
     }
-    return this.subscriptions.create(userId, purchaseToken, {
+    // La référence est enregistrée dans purchaseToken, unique : elle ne sert qu'une fois.
+    return this.subscriptions.create(userId, reference, {
       startedAt: now,
       expiresAt: subscriptionEnd(now),
     });
@@ -69,8 +86,8 @@ export class ConfirmPurchaseUseCase {
 export class CancelPremiumUseCase {
   constructor(private readonly subscriptions: PremiumRepository) {}
 
-  // Fin immédiate : pas de renouvellement automatique à arrêter, le paiement étant simulé.
-  // Lève NotPremiumError s'il n'y avait aucun abonnement en cours.
+  // Fin immédiate : un paiement donne un mois sans renouvellement, il n'y a rien à arrêter
+  // chez le fournisseur. Lève NotPremiumError s'il n'y avait aucun abonnement en cours.
   async execute(userId: string): Promise<void> {
     if (!(await this.subscriptions.endActive(userId, new Date()))) {
       throw new NotPremiumError();

@@ -1,11 +1,17 @@
-// Offre Premium (ADR-007) et achat simulé par notre propre backend (ADR-012).
+// Offre Premium (ADR-007), payée par Stripe en mode test ou par l'achat simulé de repli (ADR-014).
 // PREMIUM_SUBSCRIPTION est l'abonnement payant : à ne jamais confondre avec FOLLOW.
 
-// Durée d'un abonnement acheté : un mois.
+// Durée accordée par un paiement : un mois, sans renouvellement automatique (ADR-014).
 export const SUBSCRIPTION_MONTHS = 1;
 
-// Durée de validité d'un jeton d'achat entre « commencer l'achat » et « confirmer ».
+// Prix de l'offre, fixé par le serveur et jamais reçu du client : 4,99 € en centimes.
+export const PREMIUM_PRICE = { amount: 499, currency: 'eur' } as const;
+
+// Durée de validité d'un jeton d'achat simulé entre « commencer l'achat » et « confirmer ».
 export const CHECKOUT_TTL_SECONDS = 10 * 60;
+
+// stripe : PaymentSheet Stripe ; simulated : feuille de paiement simulée (repli, ADR-012).
+export type PaymentMode = 'stripe' | 'simulated';
 
 // Abonnement en cours d'un utilisateur ; null s'il n'est pas Premium.
 export interface ActiveSubscription {
@@ -13,10 +19,14 @@ export interface ActiveSubscription {
   expiresAt: Date;
 }
 
-// Achat en attente : le jeton à renvoyer pour confirmer, et sa date d'expiration.
-export interface Checkout {
-  purchaseToken: string;
-  expiresAt: Date;
+// Paiement démarré. [reference] est renvoyée pour confirmer : jeton simulé ou identifiant du
+// PaymentIntent. [clientSecret] sert à la PaymentSheet (null en mode simulé). [expiresAt] :
+// fin de validité du jeton simulé (null pour Stripe).
+export interface PaymentStart {
+  mode: PaymentMode;
+  reference: string;
+  clientSecret: string | null;
+  expiresAt: Date | null;
 }
 
 // Fin d'un abonnement acheté maintenant : même jour du mois suivant.
