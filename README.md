@@ -91,7 +91,7 @@ Si FFmpeg ne peut pas être dans le PATH, indiquer son chemin dans `backend/.env
 ### 2. Cloner le dépôt
 
 ```powershell
-git clone <url-du-depot> Youtube_project
+git clone https://github.com/ismartphone/youtube-clone.git Youtube_project
 cd Youtube_project
 ```
 
@@ -116,6 +116,12 @@ cd backend
 npm install
 Copy-Item .env.example .env
 ```
+
+`npm install` signale 18 vulnérabilités (2 faibles, 7 modérées, 9 hautes). Elles sont connues et
+n'ont pas été traitées. Toutes viennent de dépendances transitives, tirées par Prisma, NestJS et
+Vitest. Elles n'empêchent pas le projet de tourner. Deux d'entre elles touchent des paquets utilisés
+pendant l'exécution : `multer`, pour l'envoi de fichiers, et `body-parser`. Ne pas lancer
+`npm audit fix --force`, qui peut changer les versions majeures et casser le projet.
 
 Dans `backend/.env`, remplacer `JWT_ACCESS_SECRET` et `JWT_REFRESH_SECRET` par deux valeurs longues
 et différentes. Pour en générer une :
@@ -152,13 +158,17 @@ La base ne stocke que des chemins relatifs (`/media/...`). Les fichiers eux-mêm
 depuis `backend/`, et dans cet ordre :
 
 ```powershell
-npm run seed:videos             # télécharge les vidéos depuis Pexels, les vérifie et les réencode en 720p
+npm run seed:videos             # télécharge les vidéos depuis Pexels, les vérifie et les réencode
 npm run seed:banners            # tire de ces vidéos les bannières des chaînes
 npm run thumbnails:regenerate   # extrait une vraie miniature de chaque vidéo du seed
 ```
 
 Les trois commandes demandent FFmpeg. L'ordre compte : les bannières et les miniatures sont tirées
 des vidéos téléchargées par `seed:videos`.
+
+Le réencodage ramène le petit côté de chaque vidéo à 720 pixels, en gardant les proportions de la
+source. Une vidéo horizontale sort en 1280×720. Pour une vidéo verticale, la largeur fait 720 pixels
+et la hauteur dépend de la source : un Short est par exemple sorti en 720×1366.
 
 **Ne pas sauter `thumbnails:regenerate`.** Le seed ne pose que des miniatures génériques : une
 image grise portant le titre en texte. Cette commande les remplace par une image extraite de la
@@ -195,7 +205,9 @@ npm run dev
 ```
 
 Le back-office appelle l'API par son relais `/api`. L'adresse de l'API (`API_URL`, par défaut
-`http://localhost:3000`) est lue **à la build** : la changer impose de relancer `npm run build`.
+`http://localhost:3000`) est lue au démarrage de `npm run dev` : pour la changer, il suffit
+d'arrêter le serveur et de le relancer. Dans une version compilée (`npm run build` puis
+`npm start`), elle est lue au moment de la build, et il faut reconstruire.
 
 **Application Android** :
 
@@ -259,4 +271,4 @@ paiement simulé ([ADR-012](docs/adr/ADR-012-paiement-simule-backend.md)), sans 
 | Miniatures grises avec le titre en texte | `npm run thumbnails:regenerate` n'a pas été lancé |
 | `gradlew.bat` : « JAVA_HOME is not set » ou SDK introuvable | Ouvrir une fois `android/` dans Android Studio, et faire pointer `JAVA_HOME` vers son dossier `jbr` |
 | L'application Android n'atteint pas l'API | Backend arrêté, ou téléphone réel avec `10.0.2.2` : mettre l'IP locale du PC |
-| Le back-office appelle une mauvaise adresse d'API | `API_URL` est lue à la build : relancer `npm run build` |
+| Le back-office appelle une mauvaise adresse d'API | `API_URL` est lue au démarrage : arrêter `npm run dev` et le relancer (version compilée : relancer `npm run build`) |
