@@ -69,6 +69,18 @@ Si la génération HLS échoue, la vidéo reste publiée et lue en MP4, et l'éc
 - Nouveau champ `subtitleUrl` sur VIDEO, facultatif, ajouté par une migration Prisma.
 - Une commande npm génère les sous-titres manquants pour les vidéos déjà en base.
 
+#### Garde-fou contre les répliques inventées
+- Sur un fond sonore sans parole (bruit de rue, musique), la reconnaissance vocale invente des phrases. C'est une limite connue de la technique, pas un défaut du code.
+- Constat : sur un clip Pexels de 30 s de bruit de rue, whisper a produit « We should put that. That's our station. » entre des annotations « [Music] » et « (crickets chirping) ».
+- Règle : une vidéo de plus de 20 secondes dont la transcription compte moins de 10 mots est considérée comme sans parole et ne reçoit pas de sous-titres. Pour une vidéo de 20 s ou moins, un seul mot suffit.
+- Les annotations de bruit entre crochets ou parenthèses, et le symbole ♪, ne comptent pas comme des mots.
+- La vraie parole d'une vidéo de 37 s (cc-04) passe le garde-fou.
+
+#### Longueur des répliques
+- Règle du sous-titrage : deux lignes à l'écran au plus, environ 40 caractères par ligne. Trois lignes masquent l'image.
+- Le filtre whisper est appelé avec l'option `max_len=80`, qui coupe les répliques entre les mots.
+- La conversion SRT → WebVTT répartit ensuite chaque réplique sur deux lignes équilibrées de 42 caractères au plus. Une réplique encore trop longue est scindée en plusieurs, son temps étant réparti au prorata des caractères.
+
 #### La génération ne bloque jamais la publication
 - La transcription a un temps maximal : deux fois la durée de la vidéo, et cinq minutes au plus. Au-delà, elle est abandonnée.
 - Si la génération échoue ou dépasse ce temps, la vidéo reste publiée sans sous-titres, et l'échec est journalisé.
@@ -77,6 +89,8 @@ Si la génération HLS échoue, la vidéo reste publiée et lue en MP4, et l'éc
 #### Lecteur Android
 - Un bouton active ou désactive les sous-titres.
 - Le menu indique que les sous-titres sont « générés automatiquement ».
+- Seul le lecteur des vidéos classiques propose le bouton CC, désactivé au démarrage comme sur YouTube, et la mention « générés automatiquement » dans son menu.
+- Les Shorts reçoivent des sous-titres générés, mais le lecteur vertical des Shorts n'a ni bouton ni menu de sous-titres : ils n'y sont pas affichés. Ce point est laissé en l'état.
 
 ### Suppression d'une vidéo
 Quand une vidéo est supprimée, son dossier HLS et son fichier de sous-titres sont supprimés du stockage, ainsi que son fichier MP4 quand il est hébergé chez nous. Cela corrige un défaut actuel : jusqu'ici, le MP4 d'une vidéo supprimée restait sur le disque.
@@ -133,6 +147,8 @@ Le lecteur ne propose ni Chromecast ni diffusion sur une télé. Le serveur de d
 - Une transcription abandonnée au bout du temps maximal laisse la vidéo sans sous-titres.
 - Un modèle Whisper est à télécharger sur chaque poste et au déploiement, dans un dossier non versionné.
 - La qualité de la transcription est variable : erreurs de mots, détection de langue imparfaite, vidéos sans parole ou avec musique seule ; d'où la mention « générés automatiquement ».
+- Le garde-fou contre les répliques inventées retire aussi les sous-titres d'un vrai dialogue très bref : une vidéo de plus de 20 secondes dont la parole compte moins de 10 mots perd ses sous-titres.
+- Les Shorts ont des sous-titres générés, mais ils n'y sont pas affichés : le lecteur vertical des Shorts n'a ni bouton ni menu de sous-titres. Seul le lecteur des vidéos classiques les propose.
 - Au déploiement, le CDN Cloudflare R2 sert beaucoup plus de fichiers par vidéo (segments, manifestes, sous-titres) qu'un seul MP4.
 - L'identifiant aléatoire du dossier HLS n'est que de l'obscurité : comme pour tout fichier servi en statique sous `/media` (MP4, sous-titres), la vérification de l'API ne protège que la remise du chemin, pas le fichier lui-même. Une adresse obtenue peut être rejouée par n'importe qui. Limite connue, faute d'URL signées ou de relais authentifié.
 - Les vidéos référencées par une URL externe n'ont ni choix de qualité ni sous-titres.
