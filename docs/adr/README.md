@@ -17,4 +17,3 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-011](ADR-011-ffmpeg-chemins-medias.md) | FFmpeg en dépendance système et chemins relatifs pour les fichiers hébergés | Accepté |
 | [ADR-012](ADR-012-paiement-simule-backend.md) | Achat Premium simulé par notre propre backend | Accepté |
 | [ADR-013](ADR-013-mesures-donnees-personnelles.md) | Mesures d'audience et données personnelles | Accepté |
-
