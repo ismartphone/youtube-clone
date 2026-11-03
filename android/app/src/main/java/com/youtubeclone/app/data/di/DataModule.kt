@@ -1,6 +1,7 @@
 package com.youtubeclone.app.data.di
 
 import com.youtubeclone.app.BuildConfig
+import com.youtubeclone.app.data.analytics.PostHogAnalytics
 import com.youtubeclone.app.data.realtime.LiveVideoClient
 import com.youtubeclone.app.data.remote.AuthApi
 import com.youtubeclone.app.data.remote.AuthInterceptor
@@ -18,6 +19,7 @@ import com.youtubeclone.app.data.repository.CommentRepositoryImpl
 import com.youtubeclone.app.data.repository.PreferencesRepositoryImpl
 import com.youtubeclone.app.data.repository.PremiumRepositoryImpl
 import com.youtubeclone.app.data.repository.VideoRepositoryImpl
+import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.repository.AuthRepository
 import com.youtubeclone.app.domain.repository.CategoryRepository
 import com.youtubeclone.app.domain.repository.ChannelRepository
@@ -137,4 +139,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPremiumRepository(impl: PremiumRepositoryImpl): PremiumRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAnalytics(impl: PostHogAnalytics): Analytics
 }

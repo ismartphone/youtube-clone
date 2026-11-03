@@ -8,6 +8,9 @@ interface AuthRepository {
     /** Vaut true tant qu'une session est ouverte. Passe à false à la déconnexion ou si la session expire. */
     val isLoggedIn: Flow<Boolean>
 
+    /** Identifiant interne (UUID) du compte connecté, ou null hors session. */
+    val currentUserId: Flow<String?>
+
     /** Crée le compte, sans ouvrir de session. */
     suspend fun register(email: String, password: String, displayName: String)
 

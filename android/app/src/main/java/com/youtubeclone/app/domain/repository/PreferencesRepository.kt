@@ -13,8 +13,13 @@ interface PreferencesRepository {
     /** Identifiants des catégories choisies comme centres d'intérêt, éventuellement vide. */
     val interests: Flow<Set<String>>
 
+    /** « Partager des statistiques d'usage » (ADR-013) : true par défaut ; false coupe tout envoi à PostHog. */
+    val shareUsageStats: Flow<Boolean>
+
     /** Marque l'écran d'accueil comme vu. */
     suspend fun completeOnboarding()
 
     suspend fun setInterests(interests: Set<String>)
+
+    suspend fun setShareUsageStats(enabled: Boolean)
 }

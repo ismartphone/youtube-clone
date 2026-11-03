@@ -25,6 +25,8 @@ class AuthRepositoryImpl @Inject constructor(
     override val isLoggedIn: Flow<Boolean> =
         tokenStore.changes.map { it != null }.distinctUntilChanged()
 
+    override val currentUserId: Flow<String?> = tokenStore.userId
+
     override suspend fun register(email: String, password: String, displayName: String) {
         apiCall(json) { api.register(RegisterRequestDto(email, password, displayName)) }
     }

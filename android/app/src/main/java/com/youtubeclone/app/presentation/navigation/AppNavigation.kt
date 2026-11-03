@@ -42,6 +42,7 @@ import com.youtubeclone.app.presentation.library.LibraryScreen
 import com.youtubeclone.app.presentation.premium.PaywallScreen
 import com.youtubeclone.app.presentation.profile.YouListScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
+import com.youtubeclone.app.presentation.settings.SettingsScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
 import com.youtubeclone.app.presentation.subscriptions.SubscriptionsScreen
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
@@ -59,6 +60,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object RegisterRoute
 @Serializable data object InterestsRoute
 @Serializable data object SubscriptionsRoute
+@Serializable data object SettingsRoute
 @Serializable data class WatchRoute(val videoId: String)
 @Serializable data class ChannelRoute(val channelId: String)
 // Lecteur Shorts plein écran ouvert sur un Short précis (depuis une page de chaîne).
@@ -95,6 +97,7 @@ private enum class Tab(
 @Composable
 fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit = {}) {
     val navController = rememberNavController()
+    TrackScreens(navController)
     LaunchedEffect(openLoginAtStart) {
         if (openLoginAtStart) {
             navController.navigate(LoginRoute)
@@ -215,8 +218,10 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
                     onSubscriptionsClick = { openTab(SubscriptionsRoute) },
                     onPremiumClick = openPaywall,
+                    onSettingsClick = { navController.navigate(SettingsRoute) },
                 )
             }
+            composable<SettingsRoute> { SettingsScreen() }
             composable<YouListRoute> { YouListScreen(onVideoClick = openVideo) }
             // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
             // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute).

@@ -77,6 +77,7 @@ class YouActions(
     val onLogoutClick: () -> Unit = {},
     val onPremiumClick: () -> Unit = {},
     val onCancelPremium: () -> Unit = {},
+    val onSettingsClick: () -> Unit = {},
 )
 
 @Composable
@@ -88,6 +89,7 @@ fun YouScreen(
     onListClick: (YouList) -> Unit,
     onSubscriptionsClick: () -> Unit,
     onPremiumClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: YouViewModel = hiltViewModel(),
 ) {
@@ -102,11 +104,12 @@ fun YouScreen(
         onListClick = onListClick,
         onSubscriptionsClick = onSubscriptionsClick,
         onEditInterests = onEditInterests,
-        // Paramètres et Aide n'ont pas encore d'écran.
+        // Aide n'a pas encore d'écran.
         onUnavailableClick = { Toast.makeText(context, R.string.you_soon, Toast.LENGTH_SHORT).show() },
         onLogoutClick = viewModel::onLogoutClick,
         onPremiumClick = onPremiumClick,
         onCancelPremium = viewModel::onCancelPremium,
+        onSettingsClick = onSettingsClick,
     )
 
     when (val current = state) {
@@ -336,7 +339,7 @@ private fun SettingsList(isLoggedIn: Boolean, actions: YouActions) {
     Column {
         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
         SettingsRow(R.drawable.ic_interests, R.string.you_edit_interests, actions.onEditInterests)
-        SettingsRow(R.drawable.ic_settings, R.string.you_settings, actions.onUnavailableClick)
+        SettingsRow(R.drawable.ic_settings, R.string.you_settings, actions.onSettingsClick)
         SettingsRow(R.drawable.ic_help, R.string.you_help, actions.onUnavailableClick)
         if (isLoggedIn) {
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)

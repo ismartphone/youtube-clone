@@ -37,6 +37,9 @@ class PreferencesRepositoryImpl @Inject constructor(
     override val interests: Flow<Set<String>> =
         preferences.map { it[INTERESTS] ?: emptySet() }.distinctUntilChanged()
 
+    override val shareUsageStats: Flow<Boolean> =
+        preferences.map { it[SHARE_USAGE_STATS] ?: true }.distinctUntilChanged()
+
     override suspend fun completeOnboarding() {
         dataStore.edit { it[ONBOARDING_COMPLETED] = true }
     }
@@ -45,8 +48,13 @@ class PreferencesRepositoryImpl @Inject constructor(
         dataStore.edit { it[INTERESTS] = interests }
     }
 
+    override suspend fun setShareUsageStats(enabled: Boolean) {
+        dataStore.edit { it[SHARE_USAGE_STATS] = enabled }
+    }
+
     private companion object {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val INTERESTS = stringSetPreferencesKey("interest_category_ids")
+        val SHARE_USAGE_STATS = booleanPreferencesKey("share_usage_stats")
     }
 }

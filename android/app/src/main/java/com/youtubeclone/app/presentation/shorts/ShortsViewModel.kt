@@ -177,7 +177,7 @@ class ShortsViewModel @Inject constructor(
         if (page == _playback.value.page) return
 
         _playback.value = ShortsPlayback(page = page)
-        recordViewOnce(video.id)
+        recordViewOnce(video)
         _comments.value = CommentsController(viewModelScope, video.id, getComments, postComment)
             .also { it.loadFirstPage() }
         loadFollowStatus(video.channel.id)
@@ -312,11 +312,11 @@ class ShortsViewModel @Inject constructor(
     }
 
     // Une vue par vidéo, dès qu'elle devient visible. Un échec d'envoi est ignoré.
-    private fun recordViewOnce(id: String) {
-        if (!viewedIds.add(id)) return
+    private fun recordViewOnce(video: Video) {
+        if (!viewedIds.add(video.id)) return
         viewModelScope.launch {
             try {
-                recordView(id)
+                recordView(video)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {

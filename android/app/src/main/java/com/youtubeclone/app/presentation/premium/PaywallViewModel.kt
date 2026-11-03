@@ -2,6 +2,8 @@ package com.youtubeclone.app.presentation.premium
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.youtubeclone.app.domain.analytics.Analytics
+import com.youtubeclone.app.domain.analytics.AnalyticsEvent
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.usecase.ConfirmPremiumPurchaseUseCase
@@ -42,6 +44,7 @@ class PaywallViewModel @Inject constructor(
     private val refreshPremium: RefreshPremiumStatusUseCase,
     private val startCheckout: StartPremiumCheckoutUseCase,
     private val confirmPurchase: ConfirmPremiumPurchaseUseCase,
+    private val analytics: Analytics,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PaywallUiState())
@@ -51,6 +54,7 @@ class PaywallViewModel @Inject constructor(
     val errors: SharedFlow<UiError> = _errors.asSharedFlow()
 
     init {
+        analytics.track(AnalyticsEvent.PaywallViewed)
         viewModelScope.launch {
             observeSession().collect { loggedIn -> _uiState.update { it.copy(isLoggedIn = loggedIn) } }
         }
@@ -68,6 +72,7 @@ class PaywallViewModel @Inject constructor(
     fun startPurchase() {
         if (_uiState.value.isBusy) return
         _uiState.update { it.copy(isBusy = true) }
+        analytics.track(AnalyticsEvent.PurchaseStarted)
         viewModelScope.launch {
             try {
                 val token = startCheckout()
@@ -91,6 +96,7 @@ class PaywallViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val status: PremiumStatus = confirmPurchase(token)
+                if (status.isPremium) analytics.track(AnalyticsEvent.PurchaseConfirmed)
                 _uiState.update {
                     it.copy(isBusy = false, checkoutToken = null, isPurchased = status.isPremium)
                 }
@@ -108,6 +114,12 @@ class PaywallViewModel @Inject constructor(
     fun dismissCheckout() {
         if (_uiState.value.isBusy) return
         _uiState.update { it.copy(checkoutToken = null) }
+    }
+
+    // Écran quitté sans achat confirmé : abandon du paywall. Un membre déjà Premium n'est pas compté.
+    override fun onCleared() {
+        val state = _uiState.value
+        if (!state.isPurchased && !state.isAlreadyPremium) analytics.track(AnalyticsEvent.PaywallDismissed)
     }
 
     private suspend fun refreshQuietly() {

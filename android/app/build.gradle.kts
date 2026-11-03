@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -24,6 +26,14 @@ android {
         // URL de l'API, définie dans gradle.properties (apiBaseUrl).
         val apiBaseUrl = providers.gradleProperty("apiBaseUrl").get()
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+
+        // Clés PostHog (ADR-006), lues dans android/secrets.properties, jamais versionné.
+        // Fichier absent : clé vide, l'application fonctionne sans envoyer de mesures.
+        val secrets = Properties().apply {
+            rootProject.file("secrets.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+        }
+        buildConfigField("String", "POSTHOG_API_KEY", "\"${secrets.getProperty("posthogApiKey", "")}\"")
+        buildConfigField("String", "POSTHOG_HOST", "\"${secrets.getProperty("posthogHost", "")}\"")
     }
 
     buildTypes {
@@ -76,6 +86,9 @@ dependencies {
 
     // Stockage local (tokens de session, chiffrés)
     implementation(libs.androidx.datastore.preferences)
+
+    // Mesures d'audience et test A/B (ADR-006)
+    implementation(libs.posthog.android)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

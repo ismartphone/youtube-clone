@@ -14,12 +14,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
@@ -71,6 +74,11 @@ class TokenStore @Inject constructor(
         emitAll(tokens)
     }
 
+    /** Identifiant du compte connecté (champ "sub" du token), ou null hors session. */
+    val userId: Flow<String?> = changes
+        .map { tokens -> tokens?.let { runCatching { claims(it.accessToken).getValue("sub").jsonPrimitive.content }.getOrNull() } }
+        .distinctUntilChanged()
+
     suspend fun save(newTokens: AuthTokens) {
         loaded.await()
         val encrypted = cipher.encrypt(json.encodeToString(newTokens))
@@ -95,13 +103,16 @@ class TokenStore @Inject constructor(
         return stored
     }
 
-    // Lit la date d'expiration (champ "exp") sans vérifier la signature : seul le serveur en est capable.
     private fun isExpired(jwt: String): Boolean = runCatching {
+        claims(jwt).getValue("exp").jsonPrimitive.long * 1000 <= System.currentTimeMillis()
+    }.getOrDefault(true)
+
+    // Lit le contenu du token sans vérifier la signature : seul le serveur en est capable.
+    private fun claims(jwt: String): JsonObject {
         val payload = jwt.split('.')[1]
         val decoded = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
-        val exp = json.parseToJsonElement(String(decoded, Charsets.UTF_8)).jsonObject.getValue("exp").jsonPrimitive.long
-        exp * 1000 <= System.currentTimeMillis()
-    }.getOrDefault(true)
+        return json.parseToJsonElement(String(decoded, Charsets.UTF_8)).jsonObject
+    }
 
     private companion object {
         val TOKENS_KEY = stringPreferencesKey("tokens")

@@ -14,6 +14,8 @@ build/
 # Android
 .gradle/
 local.properties
+# Clés des services externes (PostHog), jamais versionnées.
+android/secrets.properties
 *.apk
 *.aab
 captures/

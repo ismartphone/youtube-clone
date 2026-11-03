@@ -112,6 +112,9 @@ class WatchViewModel @Inject constructor(
 
     private var viewRecorded = false
 
+    // Vidéo confiée au lecteur, décrite dans la mesure de lecture.
+    private var playingVideo: Video? = null
+
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (isPlaying) recordViewOnce()
@@ -149,6 +152,7 @@ class WatchViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = try {
                 val detail = getVideoDetail(videoId)
+                playingVideo = detail.video
                 detail.videoUrl?.let(::startPlayback)
                 showStats(detail)
                 loadSuggestions(detail.video)
@@ -298,11 +302,12 @@ class WatchViewModel @Inject constructor(
     // Une vue par ouverture de l'écran, au premier démarrage effectif de la lecture.
     // Un échec d'envoi est ignoré : il ne doit pas gêner la lecture.
     private fun recordViewOnce() {
+        val video = playingVideo ?: return
         if (viewRecorded) return
         viewRecorded = true
         viewModelScope.launch {
             try {
-                recordView(videoId)
+                recordView(video)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {

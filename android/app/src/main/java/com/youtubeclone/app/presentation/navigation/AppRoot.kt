@@ -31,7 +31,10 @@ fun AppRoot(viewModel: AppStartViewModel = hiltViewModel()) {
     Box(Modifier.fillMaxSize()) {
         when (state) {
             AppStartState.Loading -> Unit // préférences en cours de lecture, sous l'animation
-            AppStartState.Onboarding -> OnboardingScreen(onLoginClick = { loginRequested = true })
+            AppStartState.Onboarding -> {
+                TrackScreen("Onboarding")
+                OnboardingScreen(onLoginClick = { loginRequested = true })
+            }
             AppStartState.Ready -> AppNavigation(
                 openLoginAtStart = loginRequested,
                 onLoginOpened = { loginRequested = false },
