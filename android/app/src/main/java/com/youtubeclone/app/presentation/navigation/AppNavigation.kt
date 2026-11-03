@@ -49,6 +49,7 @@ import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.create.CreateSheet
+import com.youtubeclone.app.presentation.create.PublishVideoScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
 import com.youtubeclone.app.presentation.premium.PaywallScreen
@@ -81,6 +82,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class ShortsPlayerRoute(val startVideoId: String)
 // Offre Premium. [videoId] : vidéo exclusive refusée, rouverte une fois l'achat confirmé.
 @Serializable data class PaywallRoute(val videoId: String? = null)
+// Publication d'une vidéo choisie dans la galerie. [format] : nom d'une valeur de VideoFormat.
+@Serializable data class PublishVideoRoute(val uri: String, val format: String)
 // Nom d'une valeur de YouList : historique, vidéos aimées ou vos vidéos.
 @Serializable data class YouListRoute(val list: String)
 
@@ -92,6 +95,7 @@ private val FULL_SCREEN_ROUTES = listOf(
     LoginRoute::class,
     RegisterRoute::class,
     InterestsRoute::class,
+    PublishVideoRoute::class,
 )
 
 private enum class Tab(
@@ -162,6 +166,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             CreateSheet(
                 onDismiss = { showCreateSheet = false },
                 onLoginRequired = { navController.navigate(LoginRoute) },
+                onPublishVideo = { uri, format -> navController.navigate(PublishVideoRoute(uri, format.name)) },
             )
         }
         NavHost(
@@ -269,6 +274,17 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                         navController.navigate(LoginRoute) { popUpTo<RegisterRoute> { inclusive = true } }
                     },
                     onContinueAsVisitor = { navController.popBackStack() },
+                )
+            }
+            composable<PublishVideoRoute> {
+                PublishVideoScreen(
+                    onClose = { navController.popBackStack() },
+                    // La chaîne s'ouvre à la place de l'écran de publication, avec la nouvelle vidéo.
+                    onPublished = { channelId ->
+                        navController.navigate(ChannelRoute(channelId)) {
+                            popUpTo<PublishVideoRoute> { inclusive = true }
+                        }
+                    },
                 )
             }
             composable<InterestsRoute> {

@@ -3,6 +3,7 @@ import type { Redis } from 'ioredis';
 import { REDIS_CLIENT } from '../../shared/infrastructure/infrastructure.module.js';
 import {
   ffmpegCommand,
+  ffprobeCommand,
   mediaDirectory,
 } from '../../shared/infrastructure/media.config.js';
 import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
@@ -36,6 +37,7 @@ import { ResolveViewerUseCase } from './application/resolve-viewer.use-case.js';
 import { SearchUseCase } from './application/search.use-case.js';
 import { RegenerateThumbnailUseCase } from './application/regenerate-thumbnail.use-case.js';
 import { UpdateVideoUseCase } from './application/update-video.use-case.js';
+import { UploadVideoUseCase } from './application/upload-video.use-case.js';
 import {
   CATALOG_STATS,
   CATEGORY_REPOSITORY,
@@ -49,10 +51,7 @@ import {
   THUMBNAIL_GENERATOR,
   type ThumbnailGenerator,
 } from './domain/thumbnail-generator.js';
-import {
-  PREMIUM_ACCESS,
-  type PremiumAccess,
-} from './domain/premium-access.js';
+import { PREMIUM_ACCESS, type PremiumAccess } from './domain/premium-access.js';
 import {
   SEARCH_REPOSITORY,
   type SearchRepository,
@@ -66,10 +65,21 @@ import {
   type VideoRepository,
 } from './domain/video.repository.js';
 import {
+  CHANNEL_OWNERSHIP,
+  VIDEO_FILE_STORE,
+  VIDEO_PROBER,
+  type ChannelOwnership,
+  type VideoFileStore,
+  type VideoProber,
+} from './domain/video-upload.js';
+import {
   WATCH_HISTORY_REPOSITORY,
   type WatchHistoryRepository,
 } from './domain/watch-history.repository.js';
 import { FfmpegThumbnailGenerator } from './infrastructure/ffmpeg-thumbnail-generator.js';
+import { FfprobeVideoProber } from './infrastructure/ffprobe-video-prober.js';
+import { LocalVideoFileStore } from './infrastructure/local-video-file-store.js';
+import { PrismaChannelOwnership } from './infrastructure/prisma-channel-ownership.js';
 import { PrismaCatalogStats } from './infrastructure/prisma-catalog-stats.js';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category.repository.js';
 import { PrismaLikeRepository } from './infrastructure/prisma-like.repository.js';
@@ -87,6 +97,7 @@ import {
 import { CategoriesController } from './interfaces/http/categories.controller.js';
 import { FeedController } from './interfaces/http/feed.controller.js';
 import { SearchController } from './interfaces/http/search.controller.js';
+import { UploadController } from './interfaces/http/upload.controller.js';
 import { VideosController } from './interfaces/http/videos.controller.js';
 
 // Chaque compteur est un fournisseur à part : NestJS appelle ainsi ses hooks
@@ -110,6 +121,7 @@ const CATEGORY_USE_CASES = [
     FeedController,
     SearchController,
     CategoriesController,
+    UploadController,
     AdminVideosController,
     AdminCategoriesController,
     AdminStatsController,
@@ -264,6 +276,36 @@ const CATEGORY_USE_CASES = [
         thumbnails: ThumbnailGenerator,
       ) => new CreateVideoUseCase(catalog, counters, thumbnails),
       inject: [VIDEO_CATALOG, VIDEO_COUNTERS, THUMBNAIL_GENERATOR],
+    },
+    // Envoi depuis l'application mobile (ADR-015). ffprobe est cherché au démarrage ;
+    // absent, seul l'envoi est refusé.
+    {
+      provide: VIDEO_PROBER,
+      useFactory: () => new FfprobeVideoProber(ffprobeCommand()),
+    },
+    {
+      provide: VIDEO_FILE_STORE,
+      useFactory: () => new LocalVideoFileStore(mediaDirectory()),
+    },
+    {
+      provide: CHANNEL_OWNERSHIP,
+      useFactory: (prisma: PrismaService) => new PrismaChannelOwnership(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: UploadVideoUseCase,
+      useFactory: (
+        ownership: ChannelOwnership,
+        prober: VideoProber,
+        files: VideoFileStore,
+        createVideo: CreateVideoUseCase,
+      ) => new UploadVideoUseCase(ownership, prober, files, createVideo),
+      inject: [
+        CHANNEL_OWNERSHIP,
+        VIDEO_PROBER,
+        VIDEO_FILE_STORE,
+        CreateVideoUseCase,
+      ],
     },
     {
       provide: UpdateVideoUseCase,

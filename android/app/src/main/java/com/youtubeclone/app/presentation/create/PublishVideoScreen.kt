@@ -1,0 +1,285 @@
+package com.youtubeclone.app.presentation.create
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.model.VideoFormat
+import com.youtubeclone.app.presentation.common.asText
+import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/**
+ * Publication d'une vidéo choisie dans la galerie : aperçu, titre, description, catégorie, puis
+ * envoi avec sa progression. [onClose] annule un envoi en cours ; [onPublished] ouvre la chaîne.
+ */
+@Composable
+fun PublishVideoScreen(
+    onClose: () -> Unit,
+    onPublished: (channelId: String) -> Unit,
+    viewModel: PublishVideoViewModel = hiltViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(state.publishedChannelId) {
+        state.publishedChannelId?.let(onPublished)
+    }
+    PublishVideoContent(
+        state = state,
+        onClose = onClose,
+        onTitleChange = viewModel::onTitleChange,
+        onDescriptionChange = viewModel::onDescriptionChange,
+        onCategorySelected = viewModel::onCategorySelected,
+        onPublish = viewModel::publish,
+        onCancel = viewModel::cancel,
+    )
+}
+
+@Composable
+private fun PublishVideoContent(
+    state: PublishVideoUiState,
+    onClose: () -> Unit,
+    onTitleChange: (String) -> Unit,
+    onDescriptionChange: (String) -> Unit,
+    onCategorySelected: (String?) -> Unit,
+    onPublish: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    val editable = !state.isUploading
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .imePadding()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onClose) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_close),
+                    contentDescription = stringResource(R.string.publish_close),
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
+            Text(
+                text = stringResource(
+                    if (state.format == VideoFormat.SHORT) R.string.create_short_title else R.string.create_video_title,
+                ),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            VideoPreview(uri = state.uri, format = state.format)
+            OutlinedTextField(
+                value = state.title,
+                onValueChange = onTitleChange,
+                label = { Text(stringResource(R.string.publish_title_label)) },
+                supportingText = { Text("${state.title.length} / $TITLE_MAX_LENGTH") },
+                singleLine = true,
+                enabled = editable,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = state.description,
+                onValueChange = onDescriptionChange,
+                label = { Text(stringResource(R.string.publish_description_label)) },
+                minLines = 3,
+                enabled = editable,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            CategoryField(state = state, enabled = editable, onCategorySelected = onCategorySelected)
+            state.message?.let { message ->
+                Text(
+                    text = message.asText(),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+            if (state.isUploading) {
+                UploadProgressRow(progress = state.progress, onCancel = onCancel)
+            } else {
+                Button(
+                    onClick = onPublish,
+                    enabled = state.canPublish,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.publish_submit))
+                }
+            }
+        }
+    }
+}
+
+// Aperçu : une image tirée de la vidéo, au format de l'onglet (paysage ou portrait).
+@Composable
+private fun VideoPreview(uri: String, format: VideoFormat) {
+    val context = LocalContext.current
+    val frame by produceState<Bitmap?>(initialValue = null, uri) {
+        value = withContext(Dispatchers.IO) { firstFrame(context, uri) }
+    }
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+        val modifier = if (format == VideoFormat.SHORT) {
+            Modifier
+                .height(PREVIEW_SHORT_HEIGHT)
+                .aspectRatio(9f / 16f)
+        } else {
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+        }
+        Box(
+            modifier = modifier
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            frame?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = stringResource(R.string.publish_preview),
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+    }
+}
+
+private val PREVIEW_SHORT_HEIGHT = 280.dp
+
+private fun firstFrame(context: Context, uri: String): Bitmap? {
+    val retriever = MediaMetadataRetriever()
+    return try {
+        retriever.setDataSource(context, uri.toUri())
+        retriever.getFrameAtTime(0)
+    } catch (_: RuntimeException) {
+        null
+    } finally {
+        retriever.release()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoryField(
+    state: PublishVideoUiState,
+    enabled: Boolean,
+    onCategorySelected: (String?) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val none = stringResource(R.string.publish_category_none)
+    val selectedName = state.categories.firstOrNull { it.id == state.categoryId }?.name ?: none
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (enabled) expanded = it },
+    ) {
+        OutlinedTextField(
+            value = selectedName,
+            onValueChange = {},
+            readOnly = true,
+            enabled = enabled,
+            label = { Text(stringResource(R.string.publish_category_label)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(none) },
+                onClick = {
+                    onCategorySelected(null)
+                    expanded = false
+                },
+            )
+            state.categories.forEach { category ->
+                DropdownMenuItem(
+                    text = { Text(category.name) },
+                    onClick = {
+                        onCategorySelected(category.id)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UploadProgressRow(progress: Float?, onCancel: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (progress != null) {
+            LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+        } else {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+        // Fichier entièrement envoyé : le serveur l'analyse et prépare la miniature.
+        Text(
+            text = when {
+                progress == null -> stringResource(R.string.publish_sending)
+                progress >= 1f -> stringResource(R.string.publish_processing)
+                else -> stringResource(R.string.publish_progress, (progress * 100).roundToInt())
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.publish_cancel))
+        }
+    }
+}

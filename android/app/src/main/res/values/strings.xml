@@ -24,6 +24,25 @@
     <string name="create_login_message">Il faut un compte et une chaîne pour publier des vidéos, des Shorts et des posts.</string>
     <string name="create_no_channel_title">Créez votre chaîne pour publier</string>
     <string name="create_no_channel_message">Vos vidéos, vos Shorts et vos posts sont publiés sur votre chaîne. Créez-en une pour commencer.</string>
+    <string name="create_pick_video">Choisir une vidéo</string>
+    <string name="create_problem_unreadable">Cette vidéo est illisible. Choisissez-en une autre.</string>
+    <string name="create_problem_too_large">Cette vidéo dépasse %1$d Mo. Choisissez-en une plus légère.</string>
+    <string name="create_problem_not_vertical">Un Short doit être une vidéo verticale. Choisissez une vidéo filmée en hauteur, ou publiez-la dans l\'onglet Vidéo.</string>
+    <string name="create_problem_too_long">Un Short dure %1$d secondes au plus. Choisissez une vidéo plus courte, ou publiez-la dans l\'onglet Vidéo.</string>
+
+    <!-- Écran de publication d'une vidéo (ADR-015) -->
+    <string name="publish_close">Fermer</string>
+    <string name="publish_preview">Aperçu de la vidéo</string>
+    <string name="publish_title_label">Titre</string>
+    <string name="publish_description_label">Description (facultative)</string>
+    <string name="publish_category_label">Catégorie</string>
+    <string name="publish_category_none">Aucune catégorie</string>
+    <string name="publish_submit">Publier</string>
+    <string name="publish_cancel">Annuler l\'envoi</string>
+    <string name="publish_sending">Envoi en cours…</string>
+    <string name="publish_progress">Envoi en cours… %1$d %%</string>
+    <string name="publish_processing">Finalisation de la publication…</string>
+    <string name="publish_canceled">Envoi annulé. Rien n\'a été publié.</string>
 
     <string name="home_empty">Aucune vidéo pour le moment.</string>
     <string name="home_filter_all">Tout</string>

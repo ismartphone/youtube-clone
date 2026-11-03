@@ -13,13 +13,14 @@ import { execFile } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import { copyFile, mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream } from 'node:stream/web';
 import { promisify } from 'node:util';
 import {
   ffmpegCommand,
+  ffprobeCommand,
   mediaDirectory,
 } from '../src/shared/infrastructure/media.config.js';
 import {
@@ -42,15 +43,7 @@ try {
 }
 
 const ffmpeg = ffmpegCommand();
-// ffprobe est livré avec FFmpeg : par défaut, à côté de l'exécutable indiqué dans FFMPEG_PATH.
-const ffprobe =
-  process.env.FFPROBE_PATH ??
-  (process.env.FFMPEG_PATH
-    ? join(
-        dirname(process.env.FFMPEG_PATH),
-        basename(process.env.FFMPEG_PATH).replace(/ffmpeg/i, 'ffprobe'),
-      )
-    : 'ffprobe');
+const ffprobe = ffprobeCommand();
 
 interface Probe {
   duration: number;
