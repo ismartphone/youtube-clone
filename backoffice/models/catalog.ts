@@ -7,6 +7,15 @@ export const VIDEO_FORMATS: { value: VideoFormat; label: string }[] = [
   { value: "SHORT", label: "Short" },
 ];
 
+// Qui voit la vidéo (ADR-016) : tout le monde, ceux qui ont le lien, ou son propriétaire seul.
+export type VideoVisibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
+
+export const VIDEO_VISIBILITIES: { value: VideoVisibility; label: string }[] = [
+  { value: "PUBLIC", label: "Publique" },
+  { value: "UNLISTED", label: "Non répertoriée" },
+  { value: "PRIVATE", label: "Privée" },
+];
+
 export interface ChannelSummary {
   id: string;
   name: string;
@@ -31,6 +40,8 @@ export interface Video {
   durationSeconds: number;
   format: VideoFormat;
   isPremium: boolean;
+  visibility: VideoVisibility;
+  commentsEnabled: boolean;
   viewCount: number;
   publishedAt: string;
   channel: ChannelSummary;

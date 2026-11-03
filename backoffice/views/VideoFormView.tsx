@@ -1,6 +1,11 @@
 import Image from "next/image";
 import type { RemoteData } from "@/controllers/useRemoteData";
-import { VIDEO_FORMATS, type CategoryWithCount, type ChannelSummary } from "@/models/catalog";
+import {
+  VIDEO_FORMATS,
+  VIDEO_VISIBILITIES,
+  type CategoryWithCount,
+  type ChannelSummary,
+} from "@/models/catalog";
 import { mediaUrl } from "@/models/media";
 import type { VideoFormErrors, VideoFormValues } from "@/models/videoForm";
 import {
@@ -206,6 +211,37 @@ export function VideoFormView({
               <span>
                 <span className="font-medium">Vidéo exclusive Premium</span>
                 <span className="block text-muted">L&apos;API ne donne son URL qu&apos;aux membres Premium.</span>
+              </span>
+            </label>
+          </FormSection>
+
+          {/* Réglages de publication (ADR-016) : le back-office est le seul endroit où ils se
+              modifient après la publication. */}
+          <FormSection title="Réglages de publication">
+            <Field
+              id="visibility"
+              label="Visibilité"
+              hint="Non répertoriée : accessible par son lien seulement. Privée : visible de son propriétaire seul."
+            >
+              <Select
+                id="visibility"
+                value={values.visibility}
+                onChange={(v) => onChange("visibility", v as VideoFormValues["visibility"])}
+                options={VIDEO_VISIBILITIES}
+              />
+            </Field>
+            <label className="flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={values.commentsEnabled}
+                onChange={(event) => onChange("commentsEnabled", event.target.checked)}
+                className="mt-0.5 size-4 accent-accent"
+              />
+              <span>
+                <span className="font-medium">Commentaires activés</span>
+                <span className="block text-muted">
+                  Désactivés, ils sont masqués sans être supprimés et l&apos;API refuse les nouveaux.
+                </span>
               </span>
             </label>
           </FormSection>

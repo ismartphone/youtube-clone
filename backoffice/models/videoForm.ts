@@ -1,4 +1,4 @@
-import type { VideoDetail, VideoFormat } from "./catalog";
+import type { VideoDetail, VideoFormat, VideoVisibility } from "./catalog";
 
 // Formulaire de création et de modification d'une vidéo.
 // Mêmes règles que la validation de l'API (admin.bodies.ts), pour signaler l'erreur avant l'envoi.
@@ -10,6 +10,8 @@ export interface VideoFormValues {
   categoryId: string; // "" : aucune catégorie
   format: VideoFormat;
   isPremium: boolean;
+  visibility: VideoVisibility;
+  commentsEnabled: boolean;
   videoUrl: string;
   thumbnailUrl: string;
   durationSeconds: string; // saisi en texte, converti à l'envoi
@@ -25,6 +27,8 @@ export interface VideoPayload {
   categoryId: string | null;
   format: VideoFormat;
   isPremium: boolean;
+  visibility: VideoVisibility;
+  commentsEnabled: boolean;
   videoUrl: string;
   thumbnailUrl: string | null; // null : le serveur génère une image extraite de la vidéo
   durationSeconds: number;
@@ -39,6 +43,8 @@ export const EMPTY_VIDEO_FORM: VideoFormValues = {
   categoryId: "",
   format: "LONG",
   isPremium: false,
+  visibility: "PUBLIC",
+  commentsEnabled: true,
   videoUrl: "",
   thumbnailUrl: "",
   durationSeconds: "",
@@ -52,6 +58,8 @@ export function videoToFormValues(video: VideoDetail): VideoFormValues {
     categoryId: video.category?.id ?? "",
     format: video.format,
     isPremium: video.isPremium,
+    visibility: video.visibility,
+    commentsEnabled: video.commentsEnabled,
     videoUrl: video.videoUrl ?? "",
     thumbnailUrl: video.thumbnailUrl,
     durationSeconds: String(video.durationSeconds),
@@ -115,6 +123,8 @@ export function toVideoPayload(values: VideoFormValues): VideoPayload {
     categoryId: values.categoryId === "" ? null : values.categoryId,
     format: values.format,
     isPremium: values.isPremium,
+    visibility: values.visibility,
+    commentsEnabled: values.commentsEnabled,
     videoUrl: values.videoUrl.trim(),
     thumbnailUrl: values.thumbnailUrl.trim() || null,
     durationSeconds: Number(values.durationSeconds),

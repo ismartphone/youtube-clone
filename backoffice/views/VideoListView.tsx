@@ -112,6 +112,10 @@ export function VideoListView({
                     <div className="flex flex-wrap gap-1.5">
                       <Badge>{video.format === "SHORT" ? "Short" : "Vidéo"}</Badge>
                       {video.isPremium && <Badge tone="accent">Premium</Badge>}
+                      {video.visibility !== "PUBLIC" && (
+                        <Badge>{video.visibility === "PRIVATE" ? "Privée" : "Non répertoriée"}</Badge>
+                      )}
+                      {!video.commentsEnabled && <Badge>Commentaires désactivés</Badge>}
                     </div>
                   </Td>
                   <Td align="right">{formatNumber(video.viewCount)}</Td>
