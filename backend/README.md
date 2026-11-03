@@ -31,6 +31,7 @@ npx prisma db seed            # données de démonstration (efface les données 
 npm run seed:videos           # vidéos de démonstration dans storage/ (FFmpeg, Internet)
 npm run seed:banners          # bannières des chaînes, après seed:videos
 npm run thumbnails:regenerate # vraies miniatures à la place des images génériques du seed
+npm run seed:cc-videos        # vidéos Creative Commons, si les fichiers cc-*.mp4 sont fournis
 npm run start:dev             # http://localhost:3000
 ```
 
@@ -48,6 +49,7 @@ Autres commandes :
 | `npm run test:e2e` | Tests de bout en bout |
 | `npm run lint` | Analyse statique (oxlint) |
 | `npm run thumbnails:regenerate` | Remplace les miniatures génériques (placehold.co) par une image extraite de la vidéo |
+| `npm run seed:cc-videos` | Ajoute les six vidéos Creative Commons à la base existante, sans rien effacer ni dupliquer. Les fichiers `cc-*.mp4` ne se retéléchargent pas : ils doivent être fournis à la main dans `storage/media/videos/`. Voir [docs/sources-videos.md](../docs/sources-videos.md) |
 
 ## Variables d'environnement
 
@@ -63,7 +65,8 @@ l'environnement en production.
 | `PORT` | non | Port de l'API et de la WebSocket | `3000` |
 | `MEDIA_DIR` | non | Dossier des fichiers servis sous `/media` | `storage/media` |
 | `FFMPEG_PATH` | non | Chemin de l'exécutable FFmpeg | `ffmpeg` du PATH |
-| `FFPROBE_PATH` | non | Chemin de ffprobe, pour `seed:videos` | à côté de `FFMPEG_PATH`, sinon `ffprobe` du PATH |
+| `FFPROBE_PATH` | non | Chemin de ffprobe (vérification des envois et des vidéos du seed) | à côté de `FFMPEG_PATH`, sinon `ffprobe` du PATH |
+| `AVATAR_FONT` | non | Police (`.ttf`) des initiales des avatars, pour `seed:cc-videos` | Arial sous Windows, DejaVu sous Linux |
 | `STRIPE_SECRET_KEY` | non | Clé secrète Stripe **de test** (`sk_test_…`). Absente : achat simulé de repli ([ADR-014](../docs/adr/ADR-014-paiement-stripe-mode-test.md)). Ne quitte jamais le backend | — |
 | `STRIPE_PUBLISHABLE_KEY` | si `STRIPE_SECRET_KEY` | Clé publiable Stripe de test (`pk_test_…`), transmise à l'application par `GET /me/premium/config` | — |
 

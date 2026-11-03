@@ -2,7 +2,7 @@
 // auteurs et hébergées chez nous (ADR-002). Attribution obligatoire : voir docs/sources-videos.md.
 //
 // Contrairement aux vidéos Pexels (seed-videos.ts), ces fichiers ne peuvent pas être retéléchargés
-// par un script : ils sont fournis à la main dans storage/media/videos (cc-01.mp4 à cc-07.mp4),
+// par un script : ils sont fournis à la main dans storage/media/videos (cc-01.mp4 à cc-06.mp4),
 // dossier non versionné. Le seed et « npm run seed:cc-videos » lisent cette même liste.
 import { execFile } from 'node:child_process';
 import { mkdir, stat } from 'node:fs/promises';
@@ -50,15 +50,11 @@ const HAMXTON = {
   name: 'Hamxton',
   link: 'https://www.youtube.com/channel/UC0KiP4me3XkJmuCFxmZio0w',
 };
-const GYGII = {
-  name: 'TheRealGYGII',
-  link: 'https://www.youtube.com/@TheRealGYGII',
-};
 
 export const CC_VIDEOS: CcVideo[] = [
   {
     file: 'cc-01.mp4',
-    title: 'I Buy EVERY Nintendo Switch 2 Game!',
+    title: "I Spent $5000 on Nintendo Switch 2 Games So You Don't Have To",
     creator: BEAT_EM_UPS,
     category: 'Gaming',
     format: 'LONG',
@@ -71,7 +67,8 @@ export const CC_VIDEOS: CcVideo[] = [
     creator: GAMING_BEAVER,
     category: 'Gaming',
     format: 'LONG',
-    durationSeconds: 19265,
+    // Raccourcie aux cinq premières minutes (la vidéo d'origine dure 5 h 21) : voir docs/sources-videos.md.
+    durationSeconds: 300,
   },
   {
     file: 'cc-03.mp4',
@@ -106,14 +103,6 @@ export const CC_VIDEOS: CcVideo[] = [
     category: 'Musique',
     format: 'LONG',
     durationSeconds: 233,
-  },
-  {
-    file: 'cc-07.mp4',
-    title: 'Learned from the best',
-    creator: GYGII,
-    category: 'Gaming',
-    format: 'SHORT',
-    durationSeconds: 47,
   },
 ];
 
