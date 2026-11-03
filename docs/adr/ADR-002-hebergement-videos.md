@@ -26,7 +26,7 @@ Les vidéos sont servies en MP4 progressif, lu directement par ExoPlayer. Le str
 Requête SQL simple sur le titre de la vidéo et le nom de la chaîne, via Prisma. C'est suffisant pour un catalogue de cette taille, sans moteur de recherche dédié.
 
 ### Origine des vidéos
-Les vidéos proviennent de Pexels et Pixabay, libres de droits pour un usage gratuit. Elles sont téléchargées puis importées dans notre stockage via le back-office, qui reste seul maître du catalogue.
+Les vidéos proviennent de Pexels et Pixabay, libres de droits pour un usage gratuit. Elles sont téléchargées puis importées dans notre stockage via le back-office, hors données de démonstration préparées par le seed (voir ADR-011), et le back-office reste seul maître du catalogue.
 
 ## Alternatives
 - API YouTube Data : avantages, vraies vidéos et vraie recherche. Inconvénients, elle ne fournit pas les fichiers vidéo, il faudrait donc intégrer le lecteur web de YouTube dans une WebView, ce qui est de l'hybride ; on ne peut pas administrer le contenu de YouTube ; les quotas journaliers sont limités.
