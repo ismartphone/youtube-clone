@@ -91,6 +91,14 @@
     <string name="you_history">Historique</string>
     <string name="you_your_videos">Vos vidéos</string>
     <string name="you_liked_videos">Vidéos aimées</string>
+    <string name="search_hint">Rechercher</string>
+    <string name="search_back">Retour</string>
+    <string name="search_clear">Effacer la recherche</string>
+    <string name="search_initial">Recherchez des vidéos et des chaînes.</string>
+    <string name="search_no_results">Aucun résultat pour « %1$s »</string>
+    <string name="search_no_results_message">Essayez avec d\'autres mots.</string>
+    <string name="search_section_channels">Chaînes</string>
+    <string name="search_section_videos">Vidéos</string>
     <string name="you_settings">Paramètres</string>
     <string name="settings_share_usage_stats">Partager des statistiques d\'usage</string>
     <string name="settings_share_usage_stats_detail">Aide à améliorer l\'application. Votre email et votre nom ne sont jamais transmis.</string>

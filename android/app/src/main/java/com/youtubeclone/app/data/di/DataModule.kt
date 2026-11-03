@@ -10,6 +10,7 @@ import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.CommentApi
 import com.youtubeclone.app.data.remote.PremiumApi
 import com.youtubeclone.app.data.remote.RefreshApi
+import com.youtubeclone.app.data.remote.SearchApi
 import com.youtubeclone.app.data.remote.TokenAuthenticator
 import com.youtubeclone.app.data.remote.VideoApi
 import com.youtubeclone.app.data.repository.AuthRepositoryImpl
@@ -18,6 +19,7 @@ import com.youtubeclone.app.data.repository.ChannelRepositoryImpl
 import com.youtubeclone.app.data.repository.CommentRepositoryImpl
 import com.youtubeclone.app.data.repository.PreferencesRepositoryImpl
 import com.youtubeclone.app.data.repository.PremiumRepositoryImpl
+import com.youtubeclone.app.data.repository.SearchRepositoryImpl
 import com.youtubeclone.app.data.repository.VideoRepositoryImpl
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.analytics.Experiments
@@ -28,6 +30,7 @@ import com.youtubeclone.app.domain.repository.CommentRepository
 import com.youtubeclone.app.domain.repository.LiveVideoRepository
 import com.youtubeclone.app.domain.repository.PreferencesRepository
 import com.youtubeclone.app.domain.repository.PremiumRepository
+import com.youtubeclone.app.domain.repository.SearchRepository
 import com.youtubeclone.app.domain.repository.VideoRepository
 import dagger.Binds
 import dagger.Module
@@ -94,6 +97,10 @@ object NetworkModule {
     @Singleton
     fun provideCategoryApi(retrofit: Retrofit): CategoryApi = retrofit.create(CategoryApi::class.java)
 
+    @Provides
+    @Singleton
+    fun provideSearchApi(retrofit: Retrofit): SearchApi = retrofit.create(SearchApi::class.java)
+
     // Client à part, sans intercepteur ni authenticator : voir RefreshApi.
     @Provides
     @Singleton
@@ -140,6 +147,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPremiumRepository(impl: PremiumRepositoryImpl): PremiumRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindSearchRepository(impl: SearchRepositoryImpl): SearchRepository
 
     @Binds
     @Singleton

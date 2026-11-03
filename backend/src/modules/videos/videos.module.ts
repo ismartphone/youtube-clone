@@ -33,6 +33,7 @@ import {
 } from './application/manage-categories.use-case.js';
 import { RecordViewUseCase } from './application/record-view.use-case.js';
 import { ResolveViewerUseCase } from './application/resolve-viewer.use-case.js';
+import { SearchUseCase } from './application/search.use-case.js';
 import { RegenerateThumbnailUseCase } from './application/regenerate-thumbnail.use-case.js';
 import { UpdateVideoUseCase } from './application/update-video.use-case.js';
 import {
@@ -53,6 +54,10 @@ import {
   type PremiumAccess,
 } from './domain/premium-access.js';
 import {
+  SEARCH_REPOSITORY,
+  type SearchRepository,
+} from './domain/search.repository.js';
+import {
   LIKE_REPOSITORY,
   type LikeRepository,
 } from './domain/like.repository.js';
@@ -69,6 +74,7 @@ import { PrismaCatalogStats } from './infrastructure/prisma-catalog-stats.js';
 import { PrismaCategoryRepository } from './infrastructure/prisma-category.repository.js';
 import { PrismaLikeRepository } from './infrastructure/prisma-like.repository.js';
 import { PrismaPremiumAccess } from './infrastructure/prisma-premium-access.js';
+import { PrismaSearchRepository } from './infrastructure/prisma-search.repository.js';
 import { PrismaVideoCatalog } from './infrastructure/prisma-video-catalog.js';
 import { PrismaVideoRepository } from './infrastructure/prisma-video.repository.js';
 import { PrismaWatchHistoryRepository } from './infrastructure/prisma-watch-history.repository.js';
@@ -80,6 +86,7 @@ import {
 } from './interfaces/http/admin.controllers.js';
 import { CategoriesController } from './interfaces/http/categories.controller.js';
 import { FeedController } from './interfaces/http/feed.controller.js';
+import { SearchController } from './interfaces/http/search.controller.js';
 import { VideosController } from './interfaces/http/videos.controller.js';
 
 // Chaque compteur est un fournisseur à part : NestJS appelle ainsi ses hooks
@@ -101,6 +108,7 @@ const CATEGORY_USE_CASES = [
   controllers: [
     VideosController,
     FeedController,
+    SearchController,
     CategoriesController,
     AdminVideosController,
     AdminCategoriesController,
@@ -165,6 +173,17 @@ const CATEGORY_USE_CASES = [
         new UseCase(videos, counters),
       inject: [VIDEO_REPOSITORY, VIDEO_COUNTERS],
     })),
+    {
+      provide: SEARCH_REPOSITORY,
+      useFactory: (prisma: PrismaService) => new PrismaSearchRepository(prisma),
+      inject: [PrismaService],
+    },
+    {
+      provide: SearchUseCase,
+      useFactory: (search: SearchRepository, counters: VideoCounters) =>
+        new SearchUseCase(search, counters),
+      inject: [SEARCH_REPOSITORY, VIDEO_COUNTERS],
+    },
     {
       provide: PREMIUM_ACCESS,
       useFactory: (prisma: PrismaService) => new PrismaPremiumAccess(prisma),

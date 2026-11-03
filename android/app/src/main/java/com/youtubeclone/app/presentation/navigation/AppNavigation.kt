@@ -42,6 +42,7 @@ import com.youtubeclone.app.presentation.library.LibraryScreen
 import com.youtubeclone.app.presentation.premium.PaywallScreen
 import com.youtubeclone.app.presentation.profile.YouListScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
+import com.youtubeclone.app.presentation.search.SearchScreen
 import com.youtubeclone.app.presentation.settings.SettingsScreen
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
 import com.youtubeclone.app.presentation.subscriptions.SubscriptionsScreen
@@ -61,6 +62,7 @@ import kotlinx.serialization.Serializable
 @Serializable data object InterestsRoute
 @Serializable data object SubscriptionsRoute
 @Serializable data object SettingsRoute
+@Serializable data object SearchRoute
 @Serializable data class WatchRoute(val videoId: String)
 @Serializable data class ChannelRoute(val channelId: String)
 // Lecteur Shorts plein écran ouvert sur un Short précis (depuis une page de chaîne).
@@ -75,6 +77,7 @@ private val FULL_SCREEN_ROUTES = listOf(
     WatchRoute::class,
     ShortsPlayerRoute::class,
     PaywallRoute::class,
+    SearchRoute::class,
     LoginRoute::class,
     RegisterRoute::class,
     InterestsRoute::class,
@@ -160,9 +163,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onVideoClick = openVideo,
                     onChannelClick = openChannel,
                     onAccountClick = { openTab(YouRoute) },
-                    // La recherche n'est pas encore développée (périmètre « Ensuite ») : l'icône est
-                    // en place, l'écran de recherche viendra s'y brancher.
-                    onSearchClick = {},
+                    onSearchClick = { navController.navigate(SearchRoute) },
                 )
             }
             composable<ShortsRoute> {
@@ -222,6 +223,13 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                 )
             }
             composable<SettingsRoute> { SettingsScreen() }
+            composable<SearchRoute> {
+                SearchScreen(
+                    onBack = { navController.popBackStack() },
+                    onVideoClick = openVideo,
+                    onChannelClick = openChannel,
+                )
+            }
             composable<YouListRoute> { YouListScreen(onVideoClick = openVideo) }
             // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
             // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute).
