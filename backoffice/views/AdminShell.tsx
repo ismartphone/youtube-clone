@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/videos", label: "Vidéos" },
   { href: "/categories", label: "Catégories" },
   { href: "/channels", label: "Chaînes" },
+  { href: "/payments", label: "Paiements" },
 ];
 
 /** Cadre des pages d'administration : barre latérale, administrateur connecté, déconnexion. */

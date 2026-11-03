@@ -48,6 +48,11 @@ Le montant est fixé par le serveur, jamais reçu du client.
 - STRIPE_SECRET_KEY et STRIPE_PUBLISHABLE_KEY dans backend/.env, non versionné.
 - La clé secrète ne quitte jamais le backend.
 
+### Données de paiement et administration
+PREMIUM_SUBSCRIPTION enregistre, au moment de l'achat, le montant et la devise réellement payés : montant encaissé relu sur le PaymentIntent en mode « stripe », prix figé au démarrage de l'achat en mode « simulated ». Le prix étant fixé dans le code, l'historique reste juste s'il change un jour ; les abonnements antérieurs ont été remplis à 4,99 €, seul prix pratiqué jusqu'ici.
+
+Une section « Paiements » du back-office consulte ces données par GET /admin/premium/subscriptions (abonnements avec nom et email de l'utilisateur, dates de souscription et de fin, actif ou expiré, montant, référence du paiement, liée à sa fiche dans le tableau de bord Stripe en mode test) et GET /admin/premium/stats (total encaissé, abonnements actifs et expirés, recettes par mois). Ces données étant personnelles et financières, ces routes sont réservées au rôle ADMIN, comme tout le back-office.
+
 ### Ce qui ne change pas
 Restent valables, comme décidé par l'ADR-007 :
 - le contenu de l'offre : 4,99 € pour un mois, sans renouvellement automatique, sans publicité, vidéos exclusives, lecture en arrière-plan ;
@@ -70,6 +75,7 @@ Restent valables, comme décidé par l'ADR-012 :
 - Le serveur reste seul juge de l'activation : il vérifie le PaymentIntent auprès de Stripe, le montant est fixé par lui, et un PaymentIntent ne sert qu'une fois.
 - La clé secrète reste sur le backend ; la clé publiable n'est pas embarquée en dur dans l'application.
 - La démonstration reste possible sans réseau grâce au repli sur l'adaptateur simulé de l'ADR-012.
+- L'administration consulte les paiements depuis le back-office avec des montants historiques fiables, même si le prix change.
 
 ### Négatives
 - Réserve : pour un contenu numérique distribué sur le Play Store, Google impose sa propre facturation. Stripe n'est acceptable ici que parce que l'application n'est pas publiée.
