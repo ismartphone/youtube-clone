@@ -71,6 +71,10 @@ export class FfmpegHlsGenerator implements HlsGenerator {
     const id = randomUUID();
     const folder = join(this.config.mediaDir, HLS_FOLDER, id);
     await mkdir(folder, { recursive: true });
+    // FFmpeg recopie ces chemins dans le manifeste principal (« 720p/index.m3u8 ») : ils doivent
+    // utiliser des barres obliques, même sous Windows, sinon les lecteurs ne trouvent plus les
+    // segments de chaque qualité.
+    const output = folder.replace(/\\/g, '/');
     // Chaque qualité est mise à l'échelle sur son petit côté, l'autre suivant les proportions.
     const scales = rungs
       .map((rung, i) => {
@@ -122,12 +126,12 @@ export class FfmpegHlsGenerator implements HlsGenerator {
           '-hls_playlist_type',
           'vod',
           '-hls_segment_filename',
-          join(folder, '%v', 'seg_%03d.ts'),
+          `${output}/%v/seg_%03d.ts`,
           '-master_pl_name',
           MASTER,
           '-var_stream_map',
           streamMap,
-          join(folder, '%v', 'index.m3u8'),
+          `${output}/%v/index.m3u8`,
         ],
         { timeout: ENCODING_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 },
       );
