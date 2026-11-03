@@ -19,8 +19,8 @@ NestJS (TypeScript), PostgreSQL avec Prisma 7, Redis. Architecture hexagonale en
 
 ## Lancer
 
-Prérequis : Node.js 24, FFmpeg, et PostgreSQL et Redis démarrés par `docker compose up -d` à la
-racine du dépôt. **Docker doit tourner avant le backend.**
+Prérequis : Node.js 24, FFmpeg, et PostgreSQL et Redis démarrés par `docker compose up -d --wait`
+à la racine du dépôt. **Docker doit tourner avant le backend.**
 
 ```powershell
 npm install
@@ -30,8 +30,11 @@ npx prisma generate           # génère le client Prisma dans src/generated (no
 npx prisma db seed            # données de démonstration (efface les données existantes)
 npm run seed:videos           # vidéos de démonstration dans storage/ (FFmpeg, Internet)
 npm run seed:banners          # bannières des chaînes, après seed:videos
+npm run thumbnails:regenerate # vraies miniatures à la place des images génériques du seed
 npm run start:dev             # http://localhost:3000
 ```
+
+Vérification : http://localhost:3000/videos doit renvoyer du JSON.
 
 Le pas à pas complet, avec les comptes de démonstration, est dans le [README de la racine](../README.md).
 
@@ -44,7 +47,7 @@ Autres commandes :
 | `npm run test` | Tests unitaires (Vitest) |
 | `npm run test:e2e` | Tests de bout en bout |
 | `npm run lint` | Analyse statique (oxlint) |
-| `npm run thumbnails:regenerate` | Régénère les miniatures avec FFmpeg |
+| `npm run thumbnails:regenerate` | Remplace les miniatures génériques (placehold.co) par une image extraite de la vidéo |
 
 ## Variables d'environnement
 

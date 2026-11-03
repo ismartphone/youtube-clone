@@ -45,9 +45,41 @@ développé.
 | Node.js | 24 | [nodejs.org](https://nodejs.org) |
 | Docker Desktop | récente | [docker.com](https://www.docker.com/products/docker-desktop/) |
 | FFmpeg (avec ffprobe) | récente | `winget install Gyan.FFmpeg` |
-| Android Studio | récente | [developer.android.com](https://developer.android.com/studio), avec un émulateur |
+| Android Studio | récente (compatible AGP 9.4) | [developer.android.com](https://developer.android.com/studio) |
+| SDK Platform Android 37 | API 37 | Android Studio → *SDK Manager* → *SDK Platforms* |
+| Émulateur Android | API 26 ou plus | Android Studio → *Device Manager* |
 
-> **Piège n° 1 — fermer VS Code en entier après une installation qui touche au PATH.**
+**Connexion Internet.** Elle est nécessaire pendant toute l'installation, pas seulement pour le seed :
+`npm install`, premier build Gradle, téléchargement des vidéos et des bannières de démonstration.
+Elle reste nécessaire ensuite pour lire les vidéos du seed hébergées à l'extérieur et pour envoyer
+les mesures PostHog.
+
+**Docker Desktop sous Windows** s'appuie sur WSL 2 et sur la virtualisation du processeur. Au
+premier lancement, il peut demander d'installer WSL (`wsl --install`) puis de redémarrer le PC.
+Si la virtualisation est désactivée, il faut l'activer dans le BIOS.
+
+**Ports utilisés.** Ils doivent être libres :
+
+| Port | Service |
+|---|---|
+| 5432 | PostgreSQL (conteneur Docker) |
+| 6379 | Redis (conteneur Docker) |
+| 3000 | API du backend |
+| 3001 | Back-office |
+
+Un PostgreSQL déjà installé sur la machine occupe souvent le port 5432. Le conteneur ne peut alors
+pas démarrer, ou le backend se connecte à la mauvaise base. Arrêter ce service Windows avant de
+continuer.
+
+> **Piège n° 1 — PowerShell bloque `npm` et `npx`.** Sur un Windows neuf, PowerShell refuse
+> d'exécuter des scripts. `npm install` échoue alors avec « l'exécution de scripts est désactivée
+> sur ce système ». Autoriser les scripts locaux pour son seul compte, une fois pour toutes :
+>
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+> ```
+
+> **Piège n° 2 — fermer VS Code en entier après une installation qui touche au PATH.**
 > Node.js et FFmpeg s'ajoutent au PATH. Un terminal déjà ouvert, y compris le terminal intégré de
 > VS Code, garde l'ancien PATH : `node` ou `ffmpeg` y restent introuvables. Fermer **toutes** les
 > fenêtres de VS Code (pas seulement le terminal), puis le rouvrir.
@@ -65,16 +97,17 @@ cd Youtube_project
 
 ### 3. Démarrer PostgreSQL et Redis
 
-> **Piège n° 2 — Docker avant le backend.** Le backend a besoin de PostgreSQL et de Redis dès son
+> **Piège n° 3 — Docker avant le backend.** Le backend a besoin de PostgreSQL et de Redis dès son
 > démarrage, comme les migrations et le seed. Lancer d'abord Docker Desktop et attendre qu'il soit
 > prêt, puis :
 
 ```powershell
-docker compose up -d
+docker compose up -d --wait
 ```
 
-Les deux services tournent alors sur `localhost:5432` (PostgreSQL, utilisateur, mot de passe et base
-`youtube`) et `localhost:6379` (Redis). Vérifier avec `docker compose ps`.
+`--wait` ne rend la main qu'une fois les conteneurs démarrés et PostgreSQL prêt à répondre. Les
+deux services tournent alors sur `localhost:5432` (PostgreSQL : utilisateur, mot de passe et base
+`youtube`) et `localhost:6379` (Redis).
 
 ### 4. Configurer et préparer le backend
 
@@ -102,19 +135,28 @@ npx prisma db seed          # données de démonstration
 Le seed **efface** les données existantes avant de les recréer : 3 catégories, 4 comptes,
 2 chaînes, des abonnements et des vidéos.
 
-### 5. Récupérer les vidéos et les bannières
+### 5. Récupérer les vidéos, les bannières et les miniatures
 
 La base ne stocke que des chemins relatifs (`/media/...`). Les fichiers eux-mêmes sont dans
-`backend/storage/`, qui n'est pas versionné : après un clone, il faut les reconstituer.
+`backend/storage/`, qui n'est pas versionné : après un clone, il faut les reconstituer. Toujours
+depuis `backend/`, et dans cet ordre :
 
 ```powershell
-npm run seed:videos    # télécharge les vidéos depuis Pexels, les vérifie et les réencode en 720p
-npm run seed:banners   # tire de ces vidéos les bannières des chaînes
+npm run seed:videos             # télécharge les vidéos depuis Pexels, les vérifie et les réencode en 720p
+npm run seed:banners            # tire de ces vidéos les bannières des chaînes
+npm run thumbnails:regenerate   # extrait une vraie miniature de chaque vidéo du seed
 ```
 
-Les deux commandes demandent FFmpeg, et `seed:videos` une connexion Internet. L'ordre compte :
-`seed:banners` utilise les vidéos téléchargées par `seed:videos`. Une vidéo ou une bannière déjà
-présente est gardée ; `--force` refait tout (`npm run seed:videos -- --force`).
+Les trois commandes demandent FFmpeg. L'ordre compte : les bannières et les miniatures sont tirées
+des vidéos téléchargées par `seed:videos`.
+
+**Ne pas sauter `thumbnails:regenerate`.** Le seed ne pose que des miniatures génériques : une
+image grise portant le titre en texte. Cette commande les remplace par une image extraite de la
+vidéo, à 10 % de sa durée. Elle ne touche que les miniatures génériques : une miniature saisie
+dans le back-office ou déjà générée est gardée. Une vidéo en échec est signalée et passée.
+
+Une vidéo ou une bannière déjà présente est gardée ; `--force` refait tout
+(`npm run seed:videos -- --force`).
 
 ### 6. Lancer les trois projets
 
@@ -126,6 +168,10 @@ Chaque projet dans son propre terminal.
 cd backend
 npm run start:dev
 ```
+
+**Vérification :** ouvrir http://localhost:3000/videos dans un navigateur. Une page de JSON listant
+les vidéos du seed doit s'afficher. Sinon, ne pas passer à la suite : relire les journaux du
+backend (voir aussi les pièges courants plus bas).
 
 Si FFmpeg est introuvable, le serveur démarre quand même et l'écrit dans ses journaux : seule la
 génération de miniatures est refusée.
@@ -143,9 +189,25 @@ Le back-office appelle l'API par son relais `/api`. L'adresse de l'API (`API_URL
 
 **Application Android** :
 
-1. Ouvrir le dossier `android/` dans Android Studio et laisser Gradle se synchroniser.
-2. Démarrer un émulateur.
-3. Lancer la configuration `app` (ou `.\gradlew.bat installDebug` depuis `android/`).
+1. Ouvrir le dossier `android/` dans Android Studio et laisser Gradle se synchroniser. Cette
+   première ouverture crée `android/local.properties` (chemin du SDK), qui n'est pas versionné.
+2. Si Android Studio le propose, installer les composants manquants (SDK Platform 37, outils de
+   build).
+3. Démarrer un émulateur (API 26 ou plus).
+4. Lancer la configuration `app`.
+
+**En ligne de commande**, `.\gradlew.bat installDebug` (depuis `android/`) ne fonctionne qu'à deux
+conditions :
+- le projet a déjà été ouvert une fois dans Android Studio, qui crée `local.properties` ;
+- `JAVA_HOME` pointe vers le JDK fourni avec Android Studio :
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"   # pour ce terminal seulement
+.\gradlew.bat installDebug
+```
+
+Pour rendre `JAVA_HOME` permanent, le définir dans les variables d'environnement de Windows, puis
+fermer VS Code en entier (piège n° 2).
 
 L'émulateur joint l'API par `http://10.0.2.2:3000/` (valeur `apiBaseUrl` de
 `android/gradle.properties`). Sur un téléphone réel, remplacer cette valeur par l'IP locale du PC,
@@ -177,9 +239,14 @@ paiement simulé ([ADR-012](docs/adr/ADR-012-paiement-simule-backend.md)), sans 
 
 | Symptôme | Cause et solution |
 |---|---|
+| « L'exécution de scripts est désactivée sur ce système » au lancement de `npm` ou `npx` | Politique PowerShell par défaut : `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
 | `node`, `npm` ou `ffmpeg` introuvable juste après l'installation | PATH pas encore relu : fermer VS Code **en entier** et le rouvrir |
-| Le backend, les migrations ou le seed échouent sur la connexion à la base ou à Redis | Docker Desktop n'est pas lancé, ou `docker compose up -d` n'a pas été fait |
+| Docker Desktop ne démarre pas | WSL 2 absent (`wsl --install`, puis redémarrer) ou virtualisation désactivée dans le BIOS |
+| Le conteneur PostgreSQL ne démarre pas, ou le backend ne trouve pas la base `youtube` | Port 5432 déjà pris, souvent par un PostgreSQL installé sur la machine : arrêter ce service |
+| Le backend, les migrations ou le seed échouent sur la connexion à la base ou à Redis | Docker Desktop n'est pas lancé, ou `docker compose up -d --wait` n'a pas été fait |
 | Le backend ne compile pas : client Prisma introuvable | `npx prisma generate` n'a pas été lancé après le clone |
-| Vidéos ou miniatures qui ne s'affichent pas | `backend/storage/` vide : lancer `npm run seed:videos` puis `npm run seed:banners` |
+| Vidéos ou bannières qui ne s'affichent pas | `backend/storage/` vide : lancer `npm run seed:videos` puis `npm run seed:banners` |
+| Miniatures grises avec le titre en texte | `npm run thumbnails:regenerate` n'a pas été lancé |
+| `gradlew.bat` : « JAVA_HOME is not set » ou SDK introuvable | Ouvrir une fois `android/` dans Android Studio, et faire pointer `JAVA_HOME` vers son dossier `jbr` |
 | L'application Android n'atteint pas l'API | Backend arrêté, ou téléphone réel avec `10.0.2.2` : mettre l'IP locale du PC |
 | Le back-office appelle une mauvaise adresse d'API | `API_URL` est lue à la build : relancer `npm run build` |
