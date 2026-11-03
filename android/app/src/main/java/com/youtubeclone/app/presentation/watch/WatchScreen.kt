@@ -1,6 +1,7 @@
 package com.youtubeclone.app.presentation.watch
 
 import android.widget.Toast
+import androidx.activity.compose.LocalActivity
 import androidx.annotation.DrawableRes
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
@@ -68,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -127,8 +129,15 @@ fun WatchScreen(
     ErrorToast(viewModel.errors)
     ErrorToast(viewModel.comments.errors)
 
-    // Application en arrière-plan : pause, sauf pour un compte Premium (lecture en arrière-plan).
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onAppBackground() }
+    // Écran masqué. Si l'activité reste visible, c'est une autre destination qui le recouvre
+    // (autre vidéo, chaîne…) : pause. Sinon l'application passe en arrière-plan : un compte
+    // Premium garde le son (lecture en arrière-plan).
+    val activity = LocalActivity.current as? LifecycleOwner
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        val appInBackground = activity?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) != true
+        viewModel.onScreenStopped(appInBackground)
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onScreenStarted() }
 
     // Connexion temps réel ouverte tant que l'écran est visible : fermée quand on le quitte
     // (autre écran, application en arrière-plan), rouverte au retour.

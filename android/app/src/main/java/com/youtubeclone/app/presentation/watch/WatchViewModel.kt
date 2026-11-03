@@ -207,11 +207,22 @@ class WatchViewModel @Inject constructor(
     }
 
     /**
-     * Application en arrière-plan : un compte Premium garde le son (lecture en arrière-plan,
-     * via [BackgroundPlayback]) ; sinon la lecture se met en pause, sans libérer le lecteur.
+     * Écran masqué. Application en arrière-plan : un compte Premium garde le son (lecture en
+     * arrière-plan, via [BackgroundPlayback]). Dans tous les autres cas, notamment une autre
+     * vidéo ouverte par-dessus, la lecture se met en pause, sans libérer le lecteur.
      */
-    fun onAppBackground() {
-        if (observePremium().value?.isPremium != true) player.pause()
+    fun onScreenStopped(appInBackground: Boolean) {
+        if (!appInBackground || observePremium().value?.isPremium != true) player.pause()
+    }
+
+    /**
+     * Écran de nouveau visible, par exemple au retour d'une autre vidéo qui avait pris la
+     * lecture en arrière-plan : ce lecteur la reprend.
+     */
+    fun onScreenStarted() {
+        if (playbackJob?.isCompleted == true && observePremium().value?.isPremium == true) {
+            backgroundPlayback.start(player)
+        }
     }
 
     private fun showStats(detail: VideoDetail) {
