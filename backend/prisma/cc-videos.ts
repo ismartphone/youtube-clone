@@ -4,12 +4,9 @@
 // Contrairement aux vidéos Pexels (seed-videos.ts), ces fichiers ne peuvent pas être retéléchargés
 // par un script : ils sont fournis à la main dans storage/media/videos (cc-01.mp4 à cc-06.mp4),
 // dossier non versionné. Le seed et « npm run seed:cc-videos » lisent cette même liste.
-import { execFile } from 'node:child_process';
-import { mkdir, stat } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
-
-const run = promisify(execFile);
+import { FfmpegAvatarGenerator } from '../src/modules/channels/infrastructure/ffmpeg-avatar-generator.js';
 
 export interface CcCreator {
   name: string;
@@ -135,110 +132,27 @@ export function ccAvatarUrl(creator: CcCreator): string {
   return `/media/avatars/${ccHandle(creator)}.png`;
 }
 
-// Initiales : premières lettres des deux premiers mots, ou des deux premières parties d'un nom
-// en un seul mot écrit en CamelCase (« Jazon Gaming » : JG, « BeatEmUps » : BE, « Hamxton » : H).
-export function ccInitials(name: string): string {
-  const words = name.trim().split(/\s+/);
-  const parts =
-    words.length > 1
-      ? words
-      : (name.match(/[A-Z][a-z0-9]*|[a-z0-9]+/g) ?? [name]);
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0].toUpperCase())
-    .join('');
-}
-
-// Couleur de fond déduite du nom, stable d'un lancement à l'autre : teinte tirée d'un hachage
-// du nom, saturation et luminosité fixes pour que les initiales blanches restent lisibles.
-export function ccAvatarColor(name: string): string {
-  let hash = 0;
-  for (const char of name) {
-    hash = (hash * 31 + char.codePointAt(0)!) >>> 0;
-  }
-  return hslToHex(hash % 360, 0.55, 0.42);
-}
-
-function hslToHex(hue: number, saturation: number, lightness: number): string {
-  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
-  const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
-  const m = lightness - chroma / 2;
-  const [r, g, b] =
-    hue < 60
-      ? [chroma, x, 0]
-      : hue < 120
-        ? [x, chroma, 0]
-        : hue < 180
-          ? [0, chroma, x]
-          : hue < 240
-            ? [0, x, chroma]
-            : hue < 300
-              ? [x, 0, chroma]
-              : [chroma, 0, x];
-  return [r, g, b]
-    .map((c) =>
-      Math.round((c + m) * 255)
-        .toString(16)
-        .padStart(2, '0'),
-    )
-    .join('');
-}
-
-const AVATAR_SIZE = 256;
-
-// Police des initiales : AVATAR_FONT si elle est définie, sinon une police courante du système.
-// FFmpeg ne trouve pas toujours de police par défaut (fontconfig absent sous Windows).
-const FONT_CANDIDATES = [
-  process.env.AVATAR_FONT,
-  'C:/Windows/Fonts/arialbd.ttf',
-  '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
-  '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
-].filter((font): font is string => Boolean(font));
-
-async function exists(file: string): Promise<boolean> {
-  return stat(file).then(
-    () => true,
-    () => false,
-  );
-}
-
-async function avatarFont(): Promise<string> {
-  for (const font of FONT_CANDIDATES) {
-    if (await exists(font)) return font;
-  }
-  throw new Error(
-    'Aucune police trouvée pour les avatars : indiquez un fichier .ttf dans AVATAR_FONT.',
-  );
-}
-
 /**
- * Génère l'avatar PNG de la chaîne (initiales blanches sur fond de couleur) dans
- * <mediaDir>/avatars, avec FFmpeg. Un avatar déjà présent est gardé. Renvoie true s'il a été créé.
+ * Génère l'avatar de la chaîne (initiales sur fond de couleur, comme pour toute chaîne créée par
+ * POST /channels) sous <mediaDir>/avatars/<handle>.png. Un avatar déjà présent est gardé.
+ * Renvoie true s'il a été créé ; lève une erreur si la génération échoue.
  */
 export async function ensureCcAvatar(
   creator: CcCreator,
   ffmpeg: string,
   mediaDir: string,
 ): Promise<boolean> {
-  const folder = join(mediaDir, 'avatars');
-  const output = join(folder, `${ccHandle(creator)}.png`);
-  if (await exists(output)) return false;
-  await mkdir(folder, { recursive: true });
-  // Dans un filtre FFmpeg, « : » sépare les options : celui d'un chemin Windows est échappé.
-  const font = (await avatarFont()).replace(/\\/g, '/').replace(/:/g, '\\:');
-  await run(ffmpeg, [
-    '-v',
-    'error',
-    '-f',
-    'lavfi',
-    '-i',
-    `color=c=0x${ccAvatarColor(creator.name)}:s=${AVATAR_SIZE}x${AVATAR_SIZE}:d=1`,
-    '-frames:v',
-    '1',
-    '-vf',
-    `drawtext=text='${ccInitials(creator.name)}':fontfile='${font}':fontcolor=white:fontsize=110:x=(w-text_w)/2:y=(h-text_h)/2`,
-    '-y',
-    output,
-  ]);
+  const handle = ccHandle(creator);
+  const exists = await stat(join(mediaDir, 'avatars', `${handle}.png`)).then(
+    () => true,
+    () => false,
+  );
+  if (exists) return false;
+  const url = await new FfmpegAvatarGenerator({
+    command: ffmpeg,
+    mediaDir,
+  }).generate(creator.name, handle);
+  if (!url)
+    throw new Error(`avatar de ${creator.name} non généré (voir le journal)`);
   return true;
 }

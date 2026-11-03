@@ -115,6 +115,25 @@ export class PrismaChannelRepository implements ChannelRepository {
     return channel ?? null;
   }
 
+  async updateAvatar(
+    channelId: string,
+    avatarUrl: string,
+  ): Promise<ChannelSummary | null> {
+    const [channel] = await this.prisma.channel.updateManyAndReturn({
+      where: { id: channelId },
+      data: { avatarUrl },
+      select: CHANNEL_SUMMARY_SELECT,
+    });
+    return channel ?? null;
+  }
+
+  findWithoutAvatar(): Promise<ChannelSummary[]> {
+    return this.prisma.channel.findMany({
+      where: { avatarUrl: null },
+      select: CHANNEL_SUMMARY_SELECT,
+    });
+  }
+
   findAll(): Promise<ChannelSummary[]> {
     return this.prisma.channel.findMany({
       orderBy: { name: 'asc' },

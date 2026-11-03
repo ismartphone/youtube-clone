@@ -21,6 +21,7 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "thumbnails:regenerate": "tsx src/scripts/regenerate-thumbnails.ts",
+    "avatars:generate": "tsx src/scripts/generate-missing-avatars.ts",
     "seed:videos": "tsx prisma/fetch-seed-videos.ts",
     "seed:banners": "tsx prisma/generate-seed-banners.ts",
     "seed:cc-videos": "tsx prisma/import-cc-videos.ts"
