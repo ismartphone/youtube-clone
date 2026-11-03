@@ -1,7 +1,7 @@
 # ADR-012 — Achat Premium simulé par notre propre backend
 
 ## Statut
-Accepté
+Remplacé par l'ADR-014
 
 ## Contexte
 ADR-007 prévoit que le paiement de l'offre Premium est simulé avec Google Play Billing en mode test. Ce mode test n'est pas utilisable dans le projet.
