@@ -24,17 +24,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
-// Paramètres, ouverts depuis l'onglet « Vous ». Un seul réglage pour l'instant : le partage
-// des statistiques d'usage (ADR-013).
+// Paramètres, ouverts depuis l'onglet « Vous » : lecture automatique, et partage des
+// statistiques d'usage (ADR-013).
 
 @Composable
 fun SettingsScreen(modifier: Modifier = Modifier, viewModel: SettingsViewModel = hiltViewModel()) {
+    val autoplay by viewModel.autoplay.collectAsStateWithLifecycle()
     val shareUsageStats by viewModel.shareUsageStats.collectAsStateWithLifecycle()
-    SettingsContent(shareUsageStats, viewModel::onShareUsageStatsChange, modifier)
+    SettingsContent(
+        autoplay = autoplay,
+        onAutoplayChange = viewModel::onAutoplayChange,
+        shareUsageStats = shareUsageStats,
+        onShareUsageStatsChange = viewModel::onShareUsageStatsChange,
+        modifier = modifier,
+    )
 }
 
 @Composable
 private fun SettingsContent(
+    autoplay: Boolean?,
+    onAutoplayChange: (Boolean) -> Unit,
     shareUsageStats: Boolean?,
     onShareUsageStatsChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -46,32 +55,50 @@ private fun SettingsContent(
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
         )
-        if (shareUsageStats != null) {
-            // Toute la ligne bascule le réglage, pas seulement l'interrupteur.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .toggleable(value = shareUsageStats, role = Role.Switch, onValueChange = onShareUsageStatsChange)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = stringResource(R.string.settings_share_usage_stats),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground,
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_share_usage_stats_detail),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                // onCheckedChange null : le clic est géré par la ligne entière.
-                Switch(checked = shareUsageStats, onCheckedChange = null)
-            }
+        if (autoplay != null) {
+            SwitchRow(
+                title = stringResource(R.string.settings_autoplay),
+                detail = stringResource(R.string.settings_autoplay_detail),
+                checked = autoplay,
+                onCheckedChange = onAutoplayChange,
+            )
         }
+        if (shareUsageStats != null) {
+            SwitchRow(
+                title = stringResource(R.string.settings_share_usage_stats),
+                detail = stringResource(R.string.settings_share_usage_stats_detail),
+                checked = shareUsageStats,
+                onCheckedChange = onShareUsageStatsChange,
+            )
+        }
+    }
+}
+
+// Toute la ligne bascule le réglage, pas seulement l'interrupteur.
+@Composable
+private fun SwitchRow(title: String, detail: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // onCheckedChange null : le clic est géré par la ligne entière.
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -79,6 +106,6 @@ private fun SettingsContent(
 @Composable
 private fun SettingsContentPreview() {
     YoutubeCloneTheme {
-        SettingsContent(shareUsageStats = true, onShareUsageStatsChange = {})
+        SettingsContent(autoplay = true, onAutoplayChange = {}, shareUsageStats = true, onShareUsageStatsChange = {})
     }
 }

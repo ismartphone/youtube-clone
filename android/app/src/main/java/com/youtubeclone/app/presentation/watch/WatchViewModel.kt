@@ -13,11 +13,13 @@ import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.LiveVideoEvent
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
+import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetCommentsUseCase
 import com.youtubeclone.app.domain.usecase.GetSuggestedVideosUseCase
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
 import com.youtubeclone.app.domain.usecase.IsPremiumUseCase
+import com.youtubeclone.app.domain.usecase.ObserveAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveLiveVideoUseCase
@@ -43,6 +45,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -56,6 +59,12 @@ sealed interface WatchUiState {
 
 /** Durée de la publicité simulée avant la lecture, pour les comptes non Premium (ADR-007). */
 private const val AD_SECONDS = 5
+
+/** Décompte affiché avant d'enchaîner sur la vidéo suggérée (lecture automatique). */
+private const val AUTOPLAY_SECONDS = 5
+
+/** Vidéo suivante de la lecture automatique, et secondes restantes avant de l'ouvrir. */
+data class AutoplayCountdown(val next: Video, val secondsLeft: Int)
 
 /** Compteurs affichés sous le lecteur, mis à jour en direct (ADR-004). */
 data class LiveStats(
@@ -84,6 +93,7 @@ class WatchViewModel @Inject constructor(
     private val isPremium: IsPremiumUseCase,
     private val observePremium: ObservePremiumStatusUseCase,
     private val backgroundPlayback: BackgroundPlayback,
+    private val observeAutoplay: ObserveAutoplayUseCase,
 ) : ViewModel() {
 
     val videoId = savedStateHandle.toRoute<WatchRoute>().videoId
@@ -103,6 +113,16 @@ class WatchViewModel @Inject constructor(
     private val _suggestions = MutableStateFlow<List<Video>>(emptyList())
     val suggestions: StateFlow<List<Video>> = _suggestions.asStateFlow()
 
+    // Décompte de la lecture automatique ; null hors décompte.
+    private val _autoplay = MutableStateFlow<AutoplayCountdown?>(null)
+    val autoplay: StateFlow<AutoplayCountdown?> = _autoplay.asStateFlow()
+
+    // Vidéo à ouvrir à la fin du décompte.
+    private val _autoplayNext = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val autoplayNext: SharedFlow<String> = _autoplayNext.asSharedFlow()
+    private var autoplayJob: Job? = null
+    private var isScreenVisible = true
+
     private val _errors = MutableSharedFlow<UiError>(extraBufferCapacity = 1)
     val errors: SharedFlow<UiError> = _errors.asSharedFlow()
 
@@ -117,7 +137,15 @@ class WatchViewModel @Inject constructor(
 
     private val playerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            if (isPlaying) recordViewOnce()
+            if (isPlaying) {
+                recordViewOnce()
+                // Relancée (retour en arrière dans la vidéo, rejouer) : plus de vidéo suivante.
+                cancelAutoplay()
+            }
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_ENDED) startAutoplay()
         }
     }
 
@@ -216,6 +244,8 @@ class WatchViewModel @Inject constructor(
      * vidéo ouverte par-dessus, la lecture se met en pause, sans libérer le lecteur.
      */
     fun onScreenStopped(appInBackground: Boolean) {
+        isScreenVisible = false
+        cancelAutoplay()
         if (!appInBackground || observePremium().value?.isPremium != true) player.pause()
     }
 
@@ -224,8 +254,37 @@ class WatchViewModel @Inject constructor(
      * lecture en arrière-plan : ce lecteur la reprend.
      */
     fun onScreenStarted() {
+        isScreenVisible = true
         if (playbackJob?.isCompleted == true && observePremium().value?.isPremium == true) {
             backgroundPlayback.start(player)
+        }
+    }
+
+    /** Bouton Annuler du décompte, ou lecture relancée : la vidéo reste à l'écran. */
+    fun cancelAutoplay() {
+        autoplayJob?.cancel()
+        autoplayJob = null
+        _autoplay.value = null
+    }
+
+    /**
+     * Fin de la vidéo : décompte puis ouverture de la première vidéo suggérée, si le réglage est
+     * activé. Jamais pour un Short, qui boucle déjà, ni quand l'écran n'est pas visible
+     * (application en arrière-plan, autre écran par-dessus).
+     */
+    private fun startAutoplay() {
+        val video = playingVideo ?: return
+        val next = _suggestions.value.firstOrNull() ?: return
+        if (video.format == VideoFormat.SHORT || !isScreenVisible) return
+        autoplayJob?.cancel()
+        autoplayJob = viewModelScope.launch {
+            if (!observeAutoplay().first()) return@launch
+            for (left in AUTOPLAY_SECONDS downTo 1) {
+                _autoplay.value = AutoplayCountdown(next, left)
+                delay(1_000)
+            }
+            _autoplay.value = null
+            _autoplayNext.tryEmit(next.id)
         }
     }
 

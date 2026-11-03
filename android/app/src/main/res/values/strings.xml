@@ -143,6 +143,10 @@
     <string name="search_section_channels">Chaînes</string>
     <string name="search_section_videos">Vidéos</string>
     <string name="you_settings">Paramètres</string>
+    <string name="settings_autoplay">Lecture automatique</string>
+    <string name="settings_autoplay_detail">À la fin d\'une vidéo, la première vidéo suggérée démarre après 5 secondes.</string>
+    <string name="autoplay_next_in">Vidéo suivante dans %1$d s</string>
+    <string name="autoplay_cancel">Annuler</string>
     <string name="settings_share_usage_stats">Partager des statistiques d\'usage</string>
     <string name="settings_share_usage_stats_detail">Aide à améliorer l\'application. Votre email et votre nom ne sont jamais transmis.</string>
     <string name="you_help">Aide</string>

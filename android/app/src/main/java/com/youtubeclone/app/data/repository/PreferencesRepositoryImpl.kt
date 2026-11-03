@@ -40,6 +40,9 @@ class PreferencesRepositoryImpl @Inject constructor(
     override val shareUsageStats: Flow<Boolean> =
         preferences.map { it[SHARE_USAGE_STATS] ?: true }.distinctUntilChanged()
 
+    override val autoplay: Flow<Boolean> =
+        preferences.map { it[AUTOPLAY] ?: true }.distinctUntilChanged()
+
     override suspend fun completeOnboarding() {
         dataStore.edit { it[ONBOARDING_COMPLETED] = true }
     }
@@ -52,9 +55,14 @@ class PreferencesRepositoryImpl @Inject constructor(
         dataStore.edit { it[SHARE_USAGE_STATS] = enabled }
     }
 
+    override suspend fun setAutoplay(enabled: Boolean) {
+        dataStore.edit { it[AUTOPLAY] = enabled }
+    }
+
     private companion object {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val INTERESTS = stringSetPreferencesKey("interest_category_ids")
         val SHARE_USAGE_STATS = booleanPreferencesKey("share_usage_stats")
+        val AUTOPLAY = booleanPreferencesKey("autoplay")
     }
 }

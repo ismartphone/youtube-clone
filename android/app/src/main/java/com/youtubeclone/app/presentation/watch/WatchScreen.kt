@@ -125,6 +125,11 @@ fun WatchScreen(
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val commentsState by viewModel.comments.state.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
+    val autoplay by viewModel.autoplay.collectAsStateWithLifecycle()
+    // Fin du décompte de lecture automatique : la vidéo suivante s'ouvre comme une suggestion.
+    LaunchedEffect(viewModel) {
+        viewModel.autoplayNext.collect(onVideoClick)
+    }
     ErrorToast(viewModel.follow.errors)
     ErrorToast(viewModel.errors)
     ErrorToast(viewModel.comments.errors)
@@ -170,7 +175,16 @@ fun WatchScreen(
                 followState = followState,
                 comments = commentsState,
                 suggestions = suggestions,
-                player = { PlayerArea(state.detail, viewModel.player, adSecondsLeft, onRemoveAdsClick) },
+                player = {
+                    PlayerArea(
+                        detail = state.detail,
+                        player = viewModel.player,
+                        adSecondsLeft = adSecondsLeft,
+                        onRemoveAdsClick = onRemoveAdsClick,
+                        autoplay = autoplay,
+                        onCancelAutoplay = viewModel::cancelAutoplay,
+                    )
+                },
                 onChannelClick = { onChannelClick(video.channel.id) },
                 onFollowClick = { requireLogin(viewModel.follow::toggle) },
                 onLikeClick = { requireLogin(viewModel::toggleLike) },
@@ -242,6 +256,8 @@ private fun PlayerArea(
     player: Player,
     adSecondsLeft: Int?,
     onRemoveAdsClick: () -> Unit,
+    autoplay: AutoplayCountdown?,
+    onCancelAutoplay: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -255,6 +271,9 @@ private fun PlayerArea(
             if (adSecondsLeft != null) {
                 AdOverlay(adSecondsLeft, onRemoveAdsClick, Modifier.fillMaxSize())
             }
+            if (autoplay != null) {
+                AutoplayOverlay(autoplay, onCancelAutoplay, Modifier.fillMaxSize())
+            }
         } else {
             // Le serveur n'a pas donné l'URL : accès refusé, par exemple vidéo Premium.
             Text(
@@ -265,6 +284,43 @@ private fun PlayerArea(
                 modifier = Modifier.padding(24.dp),
             )
         }
+    }
+}
+
+// Fin de la vidéo, lecture automatique activée : décompte avant la première suggestion, avec
+// son titre et un bouton Annuler. Par-dessus le lecteur, qui reste sur sa dernière image.
+@Composable
+private fun AutoplayOverlay(countdown: AutoplayCountdown, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.8f))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+    ) {
+        Text(
+            text = stringResource(R.string.autoplay_next_in, countdown.secondsLeft),
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White.copy(alpha = 0.8f),
+        )
+        Text(
+            text = countdown.next.title,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = stringResource(R.string.autoplay_cancel),
+            style = MaterialTheme.typography.labelLarge,
+            color = Color.White,
+            modifier = Modifier
+                .clip(RoundedCornerShape(18.dp))
+                .clickable(onClick = onCancel, role = Role.Button)
+                .background(Color.White.copy(alpha = 0.15f))
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+        )
     }
 }
 

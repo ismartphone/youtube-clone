@@ -2,7 +2,9 @@ package com.youtubeclone.app.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.youtubeclone.app.domain.usecase.ObserveAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.ObserveShareUsageStatsUseCase
+import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.SetShareUsageStatsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,7 +17,17 @@ import kotlinx.coroutines.launch
 class SettingsViewModel @Inject constructor(
     observeShareUsageStats: ObserveShareUsageStatsUseCase,
     private val setShareUsageStats: SetShareUsageStatsUseCase,
+    observeAutoplay: ObserveAutoplayUseCase,
+    private val setAutoplay: SetAutoplayUseCase,
 ) : ViewModel() {
+
+    /** null tant que la préférence n'est pas lue. */
+    val autoplay: StateFlow<Boolean?> = observeAutoplay()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun onAutoplayChange(enabled: Boolean) {
+        viewModelScope.launch { setAutoplay(enabled) }
+    }
 
     /** null tant que la préférence n'est pas lue : l'interrupteur n'est pas encore affiché. */
     val shareUsageStats: StateFlow<Boolean?> = observeShareUsageStats()
