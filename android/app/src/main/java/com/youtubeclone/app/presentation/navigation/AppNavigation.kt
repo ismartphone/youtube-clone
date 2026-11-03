@@ -132,13 +132,16 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
     }
     // Feuille de création du bouton + (ADR-015), ouverte par-dessus l'onglet courant.
     var showCreateSheet by rememberSaveable { mutableStateOf(false) }
-    // Un seul exemplaire de chaque onglet, état conservé entre les onglets.
+    // Un seul exemplaire de chaque onglet, état conservé entre les onglets (défilement du fil...).
+    // L'onglet s'ouvre toujours sur son écran principal : les pages empilées par-dessus (chaîne,
+    // Short, liste...) sont retirées, sinon « Vous » rouvrirait la dernière chaîne visitée.
     val openTab = { route: Any ->
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
             launchSingleTop = true
             restoreState = true
         }
+        navController.popBackStack(route, inclusive = false)
     }
 
     Scaffold(
