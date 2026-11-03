@@ -36,6 +36,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -128,6 +129,23 @@ fun WatchScreen(
     val commentsState by viewModel.comments.state.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val autoplay by viewModel.autoplay.collectAsStateWithLifecycle()
+    val qualities by viewModel.qualities.collectAsStateWithLifecycle()
+    val selectedQuality by viewModel.selectedQuality.collectAsStateWithLifecycle()
+    val autoplayEnabled by viewModel.autoplayEnabled.collectAsStateWithLifecycle()
+    var showPlayerMenu by rememberSaveable { mutableStateOf(false) }
+    if (showPlayerMenu) {
+        PlayerMenuSheet(
+            qualities = qualities.map { it.size },
+            selectedQuality = selectedQuality,
+            onQualitySelected = {
+                viewModel.selectQuality(it)
+                showPlayerMenu = false
+            },
+            autoplayEnabled = autoplayEnabled,
+            onAutoplayChange = viewModel::onAutoplayChange,
+            onDismiss = { showPlayerMenu = false },
+        )
+    }
     // Fin du décompte de lecture automatique : la vidéo suivante s'ouvre comme une suggestion.
     LaunchedEffect(viewModel) {
         viewModel.autoplayNext.collect(onVideoClick)
@@ -186,6 +204,7 @@ fun WatchScreen(
                         autoplay = autoplay,
                         onCancelAutoplay = viewModel::cancelAutoplay,
                         onBack = onBack,
+                        onMenuClick = { showPlayerMenu = true },
                     )
                 },
                 onChannelClick = { onChannelClick(video.channel.id) },
@@ -265,6 +284,7 @@ private fun PlayerArea(
     autoplay: AutoplayCountdown?,
     onCancelAutoplay: () -> Unit,
     onBack: () -> Unit,
+    onMenuClick: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -282,6 +302,14 @@ private fun PlayerArea(
                 AutoplayOverlay(autoplay, onCancelAutoplay, Modifier.fillMaxSize())
             }
             BackTopBar(title = "", onBack = onBack, contentColor = Color.White, modifier = Modifier.align(Alignment.TopStart))
+            // Menu du lecteur : qualité et lecture automatique (ADR-017).
+            IconButton(onClick = onMenuClick, modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_settings),
+                    contentDescription = stringResource(R.string.player_menu),
+                    tint = Color.White,
+                )
+            }
         } else {
             // Le serveur n'a pas donné l'URL : accès refusé, par exemple vidéo Premium.
             Text(

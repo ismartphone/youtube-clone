@@ -4,9 +4,15 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.TrackGroup
+import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.Tracks
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.DataError
@@ -20,12 +26,13 @@ import com.youtubeclone.app.domain.usecase.GetSuggestedVideosUseCase
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
 import com.youtubeclone.app.domain.usecase.IsPremiumUseCase
 import com.youtubeclone.app.domain.usecase.ObserveAutoplayUseCase
-import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveLiveVideoUseCase
+import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.domain.usecase.PostCommentUseCase
 import com.youtubeclone.app.domain.usecase.RecordViewUseCase
+import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
 import com.youtubeclone.app.domain.usecase.SetLikedUseCase
 import com.youtubeclone.app.playback.BackgroundPlayback
@@ -42,10 +49,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -63,6 +72,12 @@ private const val AD_SECONDS = 5
 /** Décompte affiché avant d'enchaîner sur la vidéo suggérée (lecture automatique). */
 private const val AUTOPLAY_SECONDS = 5
 
+/**
+ * Qualité proposée dans le menu du lecteur, désignée par le petit côté de l'image (720p...).
+ * [group] et [trackIndex] désignent la piste correspondante, pour l'imposer au lecteur.
+ */
+data class QualityOption(val size: Int, val group: TrackGroup, val trackIndex: Int)
+
 /** Vidéo suivante de la lecture automatique, et secondes restantes avant de l'ouvrir. */
 data class AutoplayCountdown(val next: Video, val secondsLeft: Int)
 
@@ -78,7 +93,7 @@ data class LiveStats(
 @HiltViewModel
 class WatchViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val getVideoDetail: GetVideoDetailUseCase,
     private val recordView: RecordViewUseCase,
     private val getChannelPage: GetChannelPageUseCase,
@@ -94,6 +109,7 @@ class WatchViewModel @Inject constructor(
     private val observePremium: ObservePremiumStatusUseCase,
     private val backgroundPlayback: BackgroundPlayback,
     private val observeAutoplay: ObserveAutoplayUseCase,
+    private val setAutoplay: SetAutoplayUseCase,
 ) : ViewModel() {
 
     val videoId = savedStateHandle.toRoute<WatchRoute>().videoId
@@ -112,6 +128,18 @@ class WatchViewModel @Inject constructor(
     // Vidéos suggérées sous la vidéo ; liste vide tant qu'elles ne sont pas chargées.
     private val _suggestions = MutableStateFlow<List<Video>>(emptyList())
     val suggestions: StateFlow<List<Video>> = _suggestions.asStateFlow()
+
+    // Qualités réellement disponibles pour cette vidéo, de la meilleure à la plus faible.
+    private val _qualities = MutableStateFlow<List<QualityOption>>(emptyList())
+    val qualities: StateFlow<List<QualityOption>> = _qualities.asStateFlow()
+
+    // Qualité imposée au lecteur ; null : « Auto », le lecteur choisit selon le débit (HLS).
+    private val _selectedQuality = MutableStateFlow<Int?>(null)
+    val selectedQuality: StateFlow<Int?> = _selectedQuality.asStateFlow()
+
+    /** Réglage « Lecture automatique », partagé avec Vous → Paramètres ; null tant qu'il n'est pas lu. */
+    val autoplayEnabled: StateFlow<Boolean?> = observeAutoplay()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     // Décompte de la lecture automatique ; null hors décompte.
     private val _autoplay = MutableStateFlow<AutoplayCountdown?>(null)
@@ -147,6 +175,23 @@ class WatchViewModel @Inject constructor(
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (playbackState == Player.STATE_ENDED) startAutoplay()
         }
+
+        // Pistes connues (manifeste HLS lu, ou MP4 ouvert) : la liste des qualités suit.
+        override fun onTracksChanged(tracks: Tracks) {
+            _qualities.value = tracks.groups
+                .filter { it.type == C.TRACK_TYPE_VIDEO }
+                .flatMap { group ->
+                    (0 until group.length)
+                        .filter { group.isTrackSupported(it) }
+                        .map { index ->
+                            val format = group.getTrackFormat(index)
+                            QualityOption(minOf(format.width, format.height), group.mediaTrackGroup, index)
+                        }
+                }
+                .filter { it.size > 0 }
+                .distinctBy { it.size }
+                .sortedByDescending { it.size }
+        }
     }
 
     private val _isLoggedIn = MutableStateFlow(false)
@@ -181,7 +226,11 @@ class WatchViewModel @Inject constructor(
             _uiState.value = try {
                 val detail = getVideoDetail(videoId)
                 playingVideo = detail.video
-                detail.videoUrl?.let(::startPlayback)
+                // HLS quand il existe (choix de la qualité), MP4 sinon (ADR-017).
+                when {
+                    detail.hlsUrl != null -> startPlayback(detail.hlsUrl, isHls = true)
+                    detail.videoUrl != null -> startPlayback(detail.videoUrl, isHls = false)
+                }
                 showStats(detail)
                 loadSuggestions(detail.video)
                 loadFollowStatus(detail.video.channel.id)
@@ -258,6 +307,37 @@ class WatchViewModel @Inject constructor(
         if (playbackJob?.isCompleted == true && observePremium().value?.isPremium == true) {
             backgroundPlayback.start(player)
         }
+    }
+
+    /**
+     * Menu du lecteur : [size] null rend la main au lecteur (« Auto ») ; sinon la qualité de ce
+     * petit côté lui est imposée, jusqu'à nouvel ordre.
+     */
+    fun selectQuality(size: Int?) {
+        val option = _qualities.value.firstOrNull { it.size == size }
+        val parameters = player.trackSelectionParameters.buildUpon()
+        player.trackSelectionParameters = if (option == null) {
+            parameters.clearOverridesOfType(C.TRACK_TYPE_VIDEO).build()
+        } else {
+            parameters.setOverrideForType(TrackSelectionOverride(option.group, option.trackIndex)).build()
+        }
+        _selectedQuality.value = option?.size
+        // Changement de résolution en cours de lecture : certains décodeurs logiciels (celui de
+        // l'émulateur, notamment) gardent leur configuration et affichent une image brouillée. Le
+        // lecteur repart donc à la même position, ce qui recrée ses décodeurs pour la nouvelle
+        // qualité, au prix d'une courte remise en mémoire tampon.
+        val position = player.currentPosition
+        val playWhenReady = player.playWhenReady
+        player.stop()
+        player.prepare()
+        player.seekTo(position)
+        player.playWhenReady = playWhenReady
+    }
+
+    /** Interrupteur du menu du lecteur : même réglage que Vous → Paramètres. */
+    fun onAutoplayChange(enabled: Boolean) {
+        viewModelScope.launch { setAutoplay(enabled) }
+        if (!enabled) cancelAutoplay()
     }
 
     /** Bouton Annuler du décompte, ou lecture relancée : la vidéo reste à l'écran. */
@@ -339,8 +419,14 @@ class WatchViewModel @Inject constructor(
 
     // La vidéo se charge tout de suite mais ne démarre qu'après la publicité simulée, que les
     // comptes Premium ne voient pas. Un abonnement pris pendant la publicité l'interrompt.
-    private fun startPlayback(url: String) {
-        player.setMediaItem(MediaItem.fromUri(url))
+    private fun startPlayback(url: String, isHls: Boolean) {
+        val item = MediaItem.fromUri(url)
+        if (isHls) {
+            // Media3 lit le HLS et adapte la qualité au débit ; une qualité choisie lui est imposée.
+            player.setMediaSource(HlsMediaSource.Factory(DefaultDataSource.Factory(context)).createMediaSource(item))
+        } else {
+            player.setMediaItem(item)
+        }
         player.playWhenReady = false
         player.prepare()
         playbackJob?.cancel()

@@ -237,4 +237,12 @@
     <string name="publish_settings_comments_on">Commentaires activés</string>
     <string name="publish_settings_comments_off">Commentaires désactivés</string>
     <string name="publish_settings_later">Ces réglages se modifient ensuite depuis l\'administration.</string>
+
+    <!-- Menu du lecteur (ADR-017) -->
+    <string name="player_menu">Menu du lecteur</string>
+    <string name="player_menu_quality">Qualité</string>
+    <string name="player_menu_quality_auto">Auto</string>
+    <string name="player_menu_quality_value">%1$dp</string>
+    <string name="player_menu_single_quality">Une seule qualité pour cette vidéo : %1$dp.</string>
+    <string name="player_menu_quality_unknown">Qualité disponible au démarrage de la vidéo.</string>
 </resources>

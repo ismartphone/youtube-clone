@@ -44,6 +44,8 @@ data class VideoDetail(
     val video: Video,
     val description: String?,
     val videoUrl: String?,
+    /** Manifeste HLS multi-qualités (ADR-017) ; null sans HLS : le MP4 sert alors de repli. */
+    val hlsUrl: String? = null,
     val likeStatus: LikeStatus,
 )
 
