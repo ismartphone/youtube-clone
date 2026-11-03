@@ -29,7 +29,7 @@ export interface FfmpegHlsConfig {
 
 /**
  * Échelle HLS encodée par FFmpeg (ADR-017) : un manifeste principal et un manifeste par qualité,
- * chaque qualité dans son sous-dossier (1080p/, 720p/...). Le serveur sert ensuite ces fichiers
+ * chaque qualité dans son sous-dossier (720p/, 480p/...). Le serveur sert ensuite ces fichiers
  * en statique, sans transcodage à la lecture.
  */
 export class FfmpegHlsGenerator implements HlsGenerator {

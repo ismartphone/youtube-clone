@@ -39,7 +39,9 @@ Les deux parties sont indépendantes et peuvent être livrées séparément. Si 
 #### Génération
 - À l'import (seed et ses commandes) et à l'envoi depuis l'application (ADR-015, en tâche de fond), FFmpeg génère une échelle HLS de la vidéo.
 - Segments d'environ 4 secondes, un manifeste principal et un manifeste par qualité, rangés sous `/media/hls/<identifiant aléatoire>/`. Cet identifiant est généré par le serveur et distinct de celui de la vidéo, comme le nom des fichiers MP4 envoyés depuis l'application (ADR-015).
-- Qualités possibles : 1080p, 720p, 480p, 360p. Seules sont générées celles qui ne dépassent pas la source : une vidéo n'est jamais agrandie. La comparaison porte sur le petit côté de l'image : la hauteur pour une vidéo horizontale, la largeur pour un Short vertical. Certaines vidéos n'ont donc qu'une ou deux qualités.
+- Qualités possibles : 720p, 480p, 360p. Seules sont générées celles qui ne dépassent pas la source : une vidéo n'est jamais agrandie. La comparaison porte sur le petit côté de l'image : la hauteur pour une vidéo horizontale, la largeur pour un Short vertical. Certaines vidéos n'ont donc qu'une ou deux qualités.
+- L'échelle est plafonnée à 720p : la qualité 1080p, prévue au départ, est retirée. La démonstration se fait sur l'émulateur Android, dont le décodeur logiciel plante sur le flux 1080p (code de sortie 139, erreur de segmentation, observé deux fois). C'est un choix de fiabilité sur émulateur : le décodeur matériel d'un vrai appareil n'a pas cette limite. Une seule vidéo du catalogue était en 1080p, et l'écart ne se voit pas sur un écran de téléphone.
+- Les vidéos du seed, réencodées en 720p (ADR-011), reçoivent les trois qualités.
 - Une commande npm génère le HLS manquant pour les vidéos déjà en base.
 - C'est un transcodage hors ligne, fait une fois. Il n'y a aucun transcodage à la lecture : le serveur sert les segments et les manifestes en statique sous `/media`, comme les autres fichiers.
 
@@ -100,6 +102,7 @@ Le lecteur ne propose ni Chromecast ni diffusion sur une télé. Le serveur de d
 - Faire bloquer la publication par la génération HLS ou celle des sous-titres : avantage, toute vidéo publiée aurait son échelle de qualités et ses sous-titres. Inconvénient, un échec ou une lenteur de l'encodage ou de la transcription empêcherait de publier, et l'envoi depuis l'application attendrait la fin des traitements.
 - Nommer le dossier HLS d'après l'identifiant de la vidéo (`/media/hls/<id>/`) : avantage, aucun identifiant de plus. Inconvénient, le chemin se déduit de l'identifiant, connu de quiconque voit l'entrée de la vidéo dans une liste.
 - URL signées ou relais authentifié devant les fichiers : avantage, le fichier lui-même est protégé, et pas seulement la remise de son chemin. Inconvénient, du travail en plus ; écarté faute de temps, la limite est documentée.
+- Garder la qualité 1080p dans l'échelle : avantage, une qualité de plus pour les sources 1080p, que le décodeur matériel d'un vrai appareil lit sans difficulté. Inconvénient, le décodeur logiciel de l'émulateur Android, utilisé pour la démonstration, plante sur ce flux (code de sortie 139) ; une seule vidéo du catalogue est concernée, et l'écart ne se voit pas sur un écran de téléphone.
 - Chromecast ou diffusion sur télé : avantage, fonction attendue d'un clone de YouTube. Inconvénient, le serveur de développement n'est pas joignable depuis une télé : la lecture échouerait après la connexion.
 
 ## Conséquences
@@ -117,10 +120,13 @@ Le lecteur ne propose ni Chromecast ni diffusion sur une télé. Le serveur de d
 - Les deux parties sont livrables séparément : un échec de la transcription n'emporte pas la diffusion HLS.
 - Les vidéos déjà en base peuvent être rattrapées par les deux commandes npm.
 - Pas de bouton de diffusion sur télé qui échouerait en démonstration.
+- L'échelle plafonnée à 720p évite le plantage du décodeur logiciel de l'émulateur sur le flux 1080p : la démonstration est plus fiable.
 
 ### Négatives
-- L'espace disque est multiplié : chaque vidéo garde son MP4 et ajoute une échelle HLS jusqu'à quatre qualités, plus un fichier WebVTT. Mesures : une vidéo 1080p de 3 min 53 (63 Mo) donne une échelle de quatre qualités de 280 Mo ; une vidéo 360p de 15 min (60 Mo) donne une seule qualité, de 102 Mo. Estimation pour tout le catalogue : environ 1,1 Go de HLS pour environ 330 Mo de MP4.
-- Le temps de traitement à l'import et à l'envoi augmente : plusieurs encodages par vidéo, plus une transcription. Mesures (préréglage veryfast, machine de 16 cœurs) : 1 min 51 d'encodage pour la vidéo 1080p de 3 min 53, 41 s pour la vidéo 360p de 15 min. Estimation pour tout le catalogue : environ 8 minutes d'encodage, transcription non comprise.
+- L'espace disque est multiplié : chaque vidéo garde son MP4 et ajoute une échelle HLS jusqu'à trois qualités, plus un fichier WebVTT. Mesures, faites sur l'échelle à quatre qualités, avant son plafonnement à 720p : une vidéo 1080p de 3 min 53 (63 Mo) donnait une échelle de quatre qualités de 280 Mo ; une vidéo 360p de 15 min (60 Mo) donne une seule qualité, de 102 Mo. Estimation pour tout le catalogue : environ 1,1 Go de HLS pour environ 330 Mo de MP4. Avec l'échelle plafonnée, ces chiffres sont désormais inférieurs ; ils n'ont pas été mesurés à nouveau.
+- Le temps de traitement à l'import et à l'envoi augmente : plusieurs encodages par vidéo, plus une transcription. Mesures (préréglage veryfast, machine de 16 cœurs), faites sur l'échelle à quatre qualités, avant son plafonnement à 720p : 1 min 51 d'encodage pour la vidéo 1080p de 3 min 53, 41 s pour la vidéo 360p de 15 min. Estimation pour tout le catalogue : environ 8 minutes d'encodage, transcription non comprise. Avec l'échelle plafonnée, ces temps sont désormais inférieurs ; ils n'ont pas été mesurés à nouveau.
+- Aucune qualité 1080p n'est proposée, même pour une source 1080p lue sur un vrai appareil dont le décodeur matériel l'aurait supportée.
+- Après un choix de qualité dans le menu, le lecteur repart à la même position pour recréer ses décodeurs, au prix d'une courte remise en mémoire tampon. Sans cela, le décodeur logiciel de l'émulateur affichait une image brouillée lors d'un changement de résolution en cours de lecture.
 - Une vidéo envoyée depuis l'application est d'abord lue en MP4, sans choix de qualité ni sous-titres, jusqu'à la fin de la génération en tâche de fond.
 - Le backend dépend d'un FFmpeg compilé avec le filtre whisper, et non plus seulement d'un FFmpeg quelconque (ADR-011) : il faut s'assurer que la version installée sur chaque poste et dans l'image de déploiement contient ce filtre. Sans lui, les vidéos sont publiées sans sous-titres.
 - Le filtre whisper ne produit pas de WebVTT : une conversion du SRT en WebVTT est à écrire et à maintenir.
@@ -132,7 +138,6 @@ Le lecteur ne propose ni Chromecast ni diffusion sur une télé. Le serveur de d
 - Les vidéos référencées par une URL externe n'ont ni choix de qualité ni sous-titres.
 - Le modèle VIDEO reçoit deux nouveaux champs (`hlsUrl`, `subtitleUrl`), avec une migration Prisma ; l'API, les modèles de l'application et son lecteur doivent les prendre en compte.
 - Deux formats de lecture coexistent dans l'application (HLS et MP4), avec deux chemins à tester.
-- Les vidéos du seed sont réencodées en 720p (ADR-011) : elles n'auront jamais de qualité 1080p.
 
 ## Liens
 - [ADR-002](ADR-002-hebergement-videos.md) : hébergement des vidéos ; cet ADR fait évoluer son format de diffusion. Le MP4 progressif reste en repli, HLS multi-qualités s'y ajoute, et le serveur continue de servir des fichiers statiques sans transcodage à la lecture.

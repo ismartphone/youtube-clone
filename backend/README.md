@@ -51,7 +51,7 @@ Autres commandes :
 | `npm run test:e2e` | Tests de bout en bout |
 | `npm run lint` | Analyse statique (oxlint) |
 | `npm run thumbnails:regenerate` | Remplace les miniatures génériques (placehold.co) par une image extraite de la vidéo |
-| `npm run hls:generate` | Génère l'échelle HLS (1080p à 360p, jamais au-dessus de la source) des vidéos hébergées chez nous qui n'en ont pas : seed, Creative Commons, ou génération en tâche de fond interrompue. Environ 8 minutes et 1,1 Go pour tout le catalogue (ADR-017) |
+| `npm run hls:generate` | Génère l'échelle HLS (720p, 480p et 360p, jamais au-dessus de la source) des vidéos hébergées chez nous qui n'en ont pas : seed, Creative Commons, ou génération en tâche de fond interrompue. Quelques minutes pour tout le catalogue (ADR-017) |
 | `npm run avatars:generate` | Génère un avatar (initiales sur fond de couleur) pour chaque chaîne qui n'en a pas. Les chaînes créées par `POST /channels` reçoivent déjà le leur |
 | `npm run seed:cc-videos` | Ajoute les six vidéos Creative Commons à la base existante, sans rien effacer ni dupliquer. Les fichiers `cc-*.mp4` ne se retéléchargent pas : ils doivent être fournis à la main dans `storage/media/videos/`. Voir [docs/sources-videos.md](../docs/sources-videos.md) |
 

@@ -5,9 +5,10 @@ export const HLS_GENERATOR = Symbol('HLS_GENERATOR');
 export const HLS_QUEUE = Symbol('HLS_QUEUE');
 
 // Qualités proposées, désignées par leur petit côté (hauteur d'une vidéo horizontale, largeur
-// d'un Short vertical), avec leur débit vidéo cible en kbit/s.
+// d'un Short vertical), avec leur débit vidéo cible en kbit/s. Plafond à 720p : le décodeur
+// logiciel de l'émulateur, où se fait la démonstration, plante sur le 1080p (ADR-017) ; le
+// décodeur matériel d'un vrai appareil n'a pas cette limite.
 export const HLS_LADDER = [
-  { size: 1080, videoKbps: 5000 },
   { size: 720, videoKbps: 2800 },
   { size: 480, videoKbps: 1400 },
   { size: 360, videoKbps: 800 },
