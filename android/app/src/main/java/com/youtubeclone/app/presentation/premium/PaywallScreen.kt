@@ -134,7 +134,9 @@ private fun PaywallContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 16.dp),
             )
-            // Seul le titre change entre les variantes du test A/B : le reste de l'écran est identique.
+            // Test A/B : le titre change selon la variante. La variante prix annonce déjà le prix
+            // dans son titre : le sous-titre, qui le répéterait, n'est pas affiché.
+            val showPriceSubtitle = state.variant != PaywallVariant.PRICE
             Text(
                 text = stringResource(
                     when (state.variant) {
@@ -145,14 +147,16 @@ private fun PaywallContent(
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.padding(top = 4.dp, bottom = if (showPriceSubtitle) 0.dp else 32.dp),
             )
-            Text(
-                text = stringResource(R.string.premium_price),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(top = 8.dp, bottom = 32.dp),
-            )
+            if (showPriceSubtitle) {
+                Text(
+                    text = stringResource(R.string.premium_price),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 32.dp),
+                )
+            }
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 Benefit(R.drawable.ic_no_ads, R.string.premium_benefit_no_ads, R.string.premium_benefit_no_ads_detail)
                 Benefit(R.drawable.ic_premium, R.string.premium_benefit_exclusive, R.string.premium_benefit_exclusive_detail)

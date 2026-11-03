@@ -11,7 +11,7 @@ Un titre qui annonce le prix dès l'ouverture du paywall rassure sur le coût et
 | `benefits` | « Passez à Premium » | Témoin, variante par défaut |
 | `price` | « Premium pour 4,99 € par mois » | Variante testée |
 
-Seul le titre change. Le reste de l'écran est identique dans les deux variantes : prix sous le titre, avantages, bouton.
+Seul le titre change. Le reste de l'écran est identique dans les deux variantes (avantages, bouton), à une exception près : la variante `price` n'affiche pas le sous-titre « 4,99 € par mois », qui répéterait son titre.
 
 ## Métrique regardée
 
