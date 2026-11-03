@@ -29,6 +29,39 @@ export interface PaymentStart {
   expiresAt: Date | null;
 }
 
+// Montant réellement payé, en centimes, et sa devise ISO en minuscules (« eur »).
+export interface Payment {
+  amount: number;
+  currency: string;
+}
+
+// Abonnement tel que le voit l'administration (données personnelles et financières).
+export interface SubscriptionRecord {
+  id: string;
+  user: { displayName: string; email: string };
+  startedAt: Date;
+  expiresAt: Date;
+  amount: number;
+  currency: string;
+  // Identifiant du PaymentIntent Stripe (pi_…), ou jeton simulé de repli.
+  paymentReference: string;
+}
+
+// Recettes d'un mois (« 2026-11 ») dans une devise.
+export interface MonthlyRevenue {
+  month: string;
+  currency: string;
+  amount: number;
+}
+
+export interface RevenueStats {
+  // Total encaissé, par devise.
+  totals: Payment[];
+  activeCount: number;
+  expiredCount: number;
+  monthly: MonthlyRevenue[];
+}
+
 // Fin d'un abonnement acheté maintenant : même jour du mois suivant.
 export function subscriptionEnd(start: Date): Date {
   const end = new Date(start);

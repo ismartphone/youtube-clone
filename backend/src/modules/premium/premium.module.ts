@@ -9,6 +9,8 @@ import {
   ConfirmPurchaseUseCase,
   GetPaymentConfigUseCase,
   GetPremiumStatusUseCase,
+  GetRevenueStatsUseCase,
+  ListSubscriptionsUseCase,
   StartCheckoutUseCase,
 } from './application/premium.use-cases.js';
 import {
@@ -20,6 +22,7 @@ import {
 import { PrismaPremiumRepository } from './infrastructure/prisma-premium.repository.js';
 import { SimulatedPaymentGateway } from './infrastructure/simulated-payment-gateway.js';
 import { StripePaymentGateway } from './infrastructure/stripe-payment-gateway.js';
+import { AdminPaymentsController } from './interfaces/http/admin-payments.controller.js';
 import { PremiumController } from './interfaces/http/premium.controller.js';
 
 // Stripe en mode test si STRIPE_SECRET_KEY est définie, sinon l'achat simulé de repli
@@ -42,7 +45,7 @@ function createPaymentGateway(redis: Redis): PaymentGateway {
 // L'accès aux vidéos exclusives est vérifié par le module videos (ADR-007).
 @Module({
   imports: [AuthModule],
-  controllers: [PremiumController],
+  controllers: [PremiumController, AdminPaymentsController],
   providers: [
     {
       provide: PREMIUM_REPOSITORY,
@@ -55,7 +58,12 @@ function createPaymentGateway(redis: Redis): PaymentGateway {
       useFactory: createPaymentGateway,
       inject: [REDIS_CLIENT],
     },
-    ...[GetPremiumStatusUseCase, CancelPremiumUseCase].map((UseCase) => ({
+    ...[
+      GetPremiumStatusUseCase,
+      CancelPremiumUseCase,
+      ListSubscriptionsUseCase,
+      GetRevenueStatsUseCase,
+    ].map((UseCase) => ({
       provide: UseCase,
       useFactory: (subscriptions: PremiumRepository) =>
         new UseCase(subscriptions),

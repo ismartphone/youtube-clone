@@ -174,6 +174,10 @@ model PremiumSubscription {
   purchaseToken String   @unique // référence du paiement : identifiant du PaymentIntent Stripe, ou jeton simulé de repli (ADR-014)
   startedAt     DateTime @default(now())
   expiresAt     DateTime
+  // Ce qui a réellement été payé, enregistré à l'achat (en centimes, devise ISO en minuscules) :
+  // l'historique reste juste même si le prix de l'offre change.
+  amount        Int
+  currency      String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -1,7 +1,12 @@
 import { Prisma } from '../../../generated/prisma/client.js';
 import type { PrismaService } from '../../../shared/infrastructure/prisma.service.js';
 import { PaymentAlreadyUsedError } from '../domain/premium.errors.js';
-import type { ActiveSubscription } from '../domain/premium.js';
+import type {
+  ActiveSubscription,
+  Payment,
+  RevenueStats,
+  SubscriptionRecord,
+} from '../domain/premium.js';
 import type { PremiumRepository } from '../domain/ports.js';
 
 const SUBSCRIPTION_SELECT = { startedAt: true, expiresAt: true } as const;
@@ -26,10 +31,11 @@ export class PrismaPremiumRepository implements PremiumRepository {
     userId: string,
     purchaseToken: string,
     subscription: ActiveSubscription,
+    payment: Payment,
   ): Promise<ActiveSubscription> {
     try {
       return await this.prisma.premiumSubscription.create({
-        data: { userId, purchaseToken, ...subscription },
+        data: { userId, purchaseToken, ...subscription, ...payment },
         select: SUBSCRIPTION_SELECT,
       });
     } catch (error) {
@@ -49,5 +55,76 @@ export class PrismaPremiumRepository implements PremiumRepository {
       data: { expiresAt: now },
     });
     return count > 0;
+  }
+
+  // Données personnelles (nom, email) et financières : lues pour l'administration seulement.
+  async findPage(
+    page: number,
+    pageSize: number,
+  ): Promise<{ items: SubscriptionRecord[]; total: number }> {
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.premiumSubscription.findMany({
+        orderBy: [{ startedAt: 'desc' }, { id: 'asc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          startedAt: true,
+          expiresAt: true,
+          amount: true,
+          currency: true,
+          purchaseToken: true,
+          user: { select: { displayName: true, email: true } },
+        },
+      }),
+      this.prisma.premiumSubscription.count(),
+    ]);
+    return {
+      items: rows.map(({ purchaseToken, ...row }) => ({
+        ...row,
+        paymentReference: purchaseToken,
+      })),
+      total,
+    };
+  }
+
+  async revenueStats(now: Date): Promise<RevenueStats> {
+    const [totals, activeCount, expiredCount, monthly] = await Promise.all([
+      this.prisma.premiumSubscription.groupBy({
+        by: ['currency'],
+        _sum: { amount: true },
+        orderBy: { currency: 'asc' },
+      }),
+      this.prisma.premiumSubscription.count({
+        where: { expiresAt: { gt: now } },
+      }),
+      this.prisma.premiumSubscription.count({
+        where: { expiresAt: { lte: now } },
+      }),
+      // Douze derniers mois, mois de souscription, en heure de Paris.
+      this.prisma.$queryRaw<
+        { month: string; currency: string; amount: bigint }[]
+      >`
+        SELECT to_char(date_trunc('month', "startedAt" AT TIME ZONE 'Europe/Paris'), 'YYYY-MM') AS month,
+               currency,
+               sum(amount) AS amount
+        FROM premium_subscriptions
+        WHERE "startedAt" >= date_trunc('month', ${now}::timestamptz AT TIME ZONE 'Europe/Paris') - interval '11 months'
+        GROUP BY 1, 2
+        ORDER BY 1, 2`,
+    ]);
+    return {
+      totals: totals.map((row) => ({
+        currency: row.currency,
+        amount: row._sum.amount ?? 0,
+      })),
+      activeCount,
+      expiredCount,
+      monthly: monthly.map((row) => ({
+        month: row.month,
+        currency: row.currency,
+        amount: Number(row.amount),
+      })),
+    };
   }
 }

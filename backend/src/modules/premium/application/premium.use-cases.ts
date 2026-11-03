@@ -68,7 +68,8 @@ export class ConfirmPurchaseUseCase {
     userId: string,
     reference: string,
   ): Promise<ActiveSubscription> {
-    if (!(await this.payments.isPaidBy(userId, reference))) {
+    const payment = await this.payments.verifyPayment(userId, reference);
+    if (!payment) {
       throw new InvalidPurchaseTokenError();
     }
     const now = new Date();
@@ -76,10 +77,37 @@ export class ConfirmPurchaseUseCase {
       throw new AlreadyPremiumError();
     }
     // La référence est enregistrée dans purchaseToken, unique : elle ne sert qu'une fois.
-    return this.subscriptions.create(userId, reference, {
-      startedAt: now,
-      expiresAt: subscriptionEnd(now),
-    });
+    return this.subscriptions.create(
+      userId,
+      reference,
+      { startedAt: now, expiresAt: subscriptionEnd(now) },
+      payment,
+    );
+  }
+}
+
+// Administration (section Paiements du back-office) : abonnements et recettes. Données
+// personnelles et financières, réservées aux administrateurs.
+export class ListSubscriptionsUseCase {
+  constructor(private readonly subscriptions: PremiumRepository) {}
+
+  async execute(page: number, pageSize: number) {
+    const now = new Date();
+    const { items, total } = await this.subscriptions.findPage(page, pageSize);
+    return {
+      items: items.map((item) => ({ ...item, isActive: item.expiresAt > now })),
+      page,
+      pageSize,
+      total,
+    };
+  }
+}
+
+export class GetRevenueStatsUseCase {
+  constructor(private readonly subscriptions: PremiumRepository) {}
+
+  execute() {
+    return this.subscriptions.revenueStats(new Date());
   }
 }
 

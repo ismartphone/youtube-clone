@@ -1,11 +1,21 @@
 import { randomBytes } from 'node:crypto';
 import type { Redis } from 'ioredis';
-import { CHECKOUT_TTL_SECONDS, type PaymentStart } from '../domain/premium.js';
+import {
+  CHECKOUT_TTL_SECONDS,
+  PREMIUM_PRICE,
+  type Payment,
+  type PaymentStart,
+} from '../domain/premium.js';
 import type { PaymentGateway } from '../domain/ports.js';
 
 // Achats en attente dans Redis : la clé expire d'elle-même, et GETDEL la lit et l'efface
 // en une seule opération, ce qui garantit l'usage unique du jeton.
 const KEY_PREFIX = 'premium:checkout:';
+
+// Achat en attente : l'acheteur et le prix au moment où l'achat a commencé.
+interface PendingCheckout extends Payment {
+  userId: string;
+}
 
 // Achat simulé par notre propre backend (ADR-012), gardé en repli quand STRIPE_SECRET_KEY est
 // absente (ADR-014) : la démonstration reste possible sans réseau. Notre serveur émet le jeton,
@@ -18,9 +28,11 @@ export class SimulatedPaymentGateway implements PaymentGateway {
 
   async start(userId: string): Promise<PaymentStart> {
     const reference = randomBytes(24).toString('base64url');
+    // Le prix est figé au démarrage de l'achat : c'est lui qui sera enregistré.
+    const pending: PendingCheckout = { userId, ...PREMIUM_PRICE };
     await this.redis.set(
       KEY_PREFIX + reference,
-      userId,
+      JSON.stringify(pending),
       'EX',
       CHECKOUT_TTL_SECONDS,
     );
@@ -33,7 +45,17 @@ export class SimulatedPaymentGateway implements PaymentGateway {
   }
 
   // Le jeton est consommé dans tous les cas : il ne peut jamais servir deux fois.
-  async isPaidBy(userId: string, reference: string): Promise<boolean> {
-    return (await this.redis.getdel(KEY_PREFIX + reference)) === userId;
+  async verifyPayment(
+    userId: string,
+    reference: string,
+  ): Promise<Payment | null> {
+    const stored = await this.redis.getdel(KEY_PREFIX + reference);
+    if (!stored) {
+      return null;
+    }
+    const pending = JSON.parse(stored) as PendingCheckout;
+    return pending.userId === userId
+      ? { amount: pending.amount, currency: pending.currency }
+      : null;
   }
 }
