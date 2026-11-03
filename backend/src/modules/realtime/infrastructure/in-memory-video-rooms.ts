@@ -9,8 +9,12 @@ import type {
 export class InMemoryVideoRooms implements VideoRoomPublisher {
   private readonly rooms = new Map<string, Set<WebSocket>>();
   private readonly roomsByClient = new Map<WebSocket, Set<string>>();
+  // Utilisateur de chaque client présent dans une salle (null pour un visiteur), pour revérifier
+  // son accès quand la visibilité d'une vidéo change (ADR-016).
+  private readonly users = new Map<WebSocket, string | null>();
 
-  join(client: WebSocket, videoId: string): void {
+  join(client: WebSocket, videoId: string, userId: string | null): void {
+    this.users.set(client, userId);
     let members = this.rooms.get(videoId);
     if (!members) {
       members = new Set();
@@ -40,6 +44,15 @@ export class InMemoryVideoRooms implements VideoRoomPublisher {
       this.leave(client, videoId);
     }
     this.roomsByClient.delete(client);
+    this.users.delete(client);
+  }
+
+  // Membres de la salle, avec leur utilisateur.
+  members(videoId: string): { client: WebSocket; userId: string | null }[] {
+    return [...(this.rooms.get(videoId) ?? [])].map((client) => ({
+      client,
+      userId: this.users.get(client) ?? null,
+    }));
   }
 
   publish<E extends keyof RealtimeEvents>(

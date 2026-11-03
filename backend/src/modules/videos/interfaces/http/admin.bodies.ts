@@ -14,6 +14,10 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { VIDEO_FORMATS, type VideoFormat } from '../../domain/video.js';
+import {
+  VIDEO_VISIBILITIES,
+  type VideoVisibility,
+} from '../../domain/visibility.js';
 
 // Corps des routes d'administration du catalogue, validés avant d'atteindre les cas d'usage.
 
@@ -132,6 +136,11 @@ export class UpdateVideoBody {
   @IsOptional()
   @IsBoolean()
   isPremium?: boolean;
+
+  // Réglage modifiable après publication depuis le back-office seulement (ADR-016).
+  @IsOptional()
+  @IsIn(VIDEO_VISIBILITIES)
+  visibility?: VideoVisibility;
 
   @Transform(trim)
   @ValidateIf(

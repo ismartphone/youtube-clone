@@ -7,6 +7,7 @@ import {
 } from '../domain/thumbnail-generator.js';
 import { ADMIN_VIEWER } from '../domain/video.js';
 import type { VideoRepository } from '../domain/video.repository.js';
+import type { VideoRoomGuard } from '../../realtime/domain/video-room-guard.js';
 import { toVideoViews, type VideoView } from './video-view.js';
 
 export class UpdateVideoUseCase {
@@ -15,6 +16,7 @@ export class UpdateVideoUseCase {
     private readonly catalog: VideoCatalog,
     private readonly counters: VideoCounters,
     private readonly thumbnails: ThumbnailGenerator,
+    private readonly rooms: VideoRoomGuard,
   ) {}
 
   // Renvoie null si la vidéo n'existe pas.
@@ -57,6 +59,11 @@ export class UpdateVideoUseCase {
     // L'ancienne miniature générée n'est plus référencée.
     if (current.thumbnailUrl !== thumbnailUrl) {
       await this.thumbnails.remove(current.thumbnailUrl);
+    }
+    // Visibilité changée : les spectateurs qui n'y ont plus droit quittent la salle temps réel,
+    // sinon ils continueraient de recevoir commentaires et compteurs (ADR-016).
+    if (video.visibility !== current.visibility) {
+      await this.rooms.revalidate(id);
     }
     const [view] = await toVideoViews([video], ADMIN_VIEWER, this.counters);
     return view;

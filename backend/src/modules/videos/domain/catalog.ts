@@ -1,4 +1,5 @@
 import type { CategorySummary, Video, VideoFormat } from './video.js';
+import type { VideoVisibility } from './visibility.js';
 
 // Administration du catalogue, réservée au back-office (ADR-005).
 // La base ne stocke que les URL des fichiers : pas d'import pour l'instant, les URL sont saisies à la main.
@@ -12,6 +13,8 @@ export interface VideoInput {
   categoryId: string | null;
   format: VideoFormat;
   isPremium: boolean;
+  // Absente à la création : publique par défaut (ADR-016).
+  visibility?: VideoVisibility;
   videoUrl: string;
   thumbnailUrl: string;
   durationSeconds: number;

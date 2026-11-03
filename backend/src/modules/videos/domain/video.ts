@@ -1,4 +1,5 @@
 // Modèles de lecture du domaine vidéo, indépendants de Prisma et de NestJS.
+import type { VideoVisibility } from './visibility.js';
 
 export const VIDEO_FORMATS = ['SHORT', 'LONG'] as const;
 export type VideoFormat = (typeof VIDEO_FORMATS)[number];
@@ -24,6 +25,7 @@ export interface Video {
   durationSeconds: number;
   format: VideoFormat;
   isPremium: boolean;
+  visibility: VideoVisibility;
   viewCount: number;
   likeCount: number;
   publishedAt: Date;

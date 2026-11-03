@@ -27,6 +27,7 @@ export const VIDEO_SELECT = {
   durationSeconds: true,
   format: true,
   isPremium: true,
+  visibility: true,
   viewCount: true,
   likeCount: true,
   publishedAt: true,

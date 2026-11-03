@@ -13,6 +13,7 @@ import {
   TOKEN_SERVICE,
   type TokenService,
 } from '../../../auth/domain/ports.js';
+import { VideoRoomGuardService } from '../../application/video-room-guard.service.js';
 import { InMemoryVideoRooms } from '../../infrastructure/in-memory-video-rooms.js';
 
 // Code de fermeture renvoyé quand le token du handshake est invalide ou expiré :
@@ -30,14 +31,22 @@ const UUID_PATTERN =
  * commentaires et « j'aime » sont envoyés par l'API REST, puis diffusés ici.
  *
  * Messages du client : { "event": "join" | "leave", "data": { "videoId": "..." } }.
+ * La salle d'une vidéo privée n'est ouverte qu'à son propriétaire (ADR-016) : pour tout autre,
+ * join ne fait rien, exactement comme pour une vidéo qui n'existe pas.
  * Messages du serveur : { "event": "comment:new" | "views:update" | "likes:update", "data": ... }.
  */
 @WebSocketGateway({ path: '/realtime' })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RealtimeGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   constructor(
     @Inject(TOKEN_SERVICE) private readonly tokens: TokenService,
     private readonly rooms: InMemoryVideoRooms,
+    private readonly guard: VideoRoomGuardService,
   ) {}
+
+  // Utilisateur authentifié au handshake ; absent pour un visiteur.
+  private readonly users = new WeakMap<WebSocket, string>();
 
   async handleConnection(client: WebSocket, request: IncomingMessage) {
     const header = request.headers.authorization;
@@ -52,7 +61,9 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     if (!user) {
       // Comme sur l'API : un token présent mais invalide est refusé, pas ignoré.
       client.close(INVALID_TOKEN_CLOSE_CODE, 'Access token invalide ou expiré');
+      return;
     }
+    this.users.set(client, user.id);
   }
 
   handleDisconnect(client: WebSocket) {
@@ -60,10 +71,13 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   }
 
   @SubscribeMessage('join')
-  join(@ConnectedSocket() client: WebSocket, @MessageBody() data: unknown) {
+  async join(
+    @ConnectedSocket() client: WebSocket,
+    @MessageBody() data: unknown,
+  ) {
     const videoId = readVideoId(data);
     if (videoId) {
-      this.rooms.join(client, videoId);
+      await this.guard.join(client, videoId, this.users.get(client) ?? null);
     }
   }
 

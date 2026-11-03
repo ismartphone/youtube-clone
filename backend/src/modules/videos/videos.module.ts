@@ -9,6 +9,10 @@ import {
 import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
 import { AuthModule } from '../auth/auth.module.js';
 import {
+  VIDEO_ROOM_GUARD,
+  type VideoRoomGuard,
+} from '../realtime/domain/video-room-guard.js';
+import {
   VIDEO_ROOM_PUBLISHER,
   type VideoRoomPublisher,
 } from '../realtime/domain/video-room-publisher.js';
@@ -314,12 +318,14 @@ const CATEGORY_USE_CASES = [
         catalog: VideoCatalog,
         counters: VideoCounters,
         thumbnails: ThumbnailGenerator,
-      ) => new UpdateVideoUseCase(videos, catalog, counters, thumbnails),
+        rooms: VideoRoomGuard,
+      ) => new UpdateVideoUseCase(videos, catalog, counters, thumbnails, rooms),
       inject: [
         VIDEO_REPOSITORY,
         VIDEO_CATALOG,
         VIDEO_COUNTERS,
         THUMBNAIL_GENERATOR,
+        VIDEO_ROOM_GUARD,
       ],
     },
     ...[DeleteVideoUseCase, RegenerateThumbnailUseCase].map((UseCase) => ({

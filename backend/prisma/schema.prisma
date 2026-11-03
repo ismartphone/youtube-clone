@@ -19,6 +19,12 @@ enum Role {
   ADMIN
 }
 
+enum VideoVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
 enum VideoFormat {
   SHORT
   LONG
@@ -88,20 +94,23 @@ model Post {
 
 // La base ne stocke que les URL des fichiers, jamais les fichiers eux-mêmes.
 model Video {
-  id              String      @id @default(uuid()) @db.Uuid
-  channelId       String      @db.Uuid
-  categoryId      String?     @db.Uuid
+  id              String          @id @default(uuid()) @db.Uuid
+  channelId       String          @db.Uuid
+  categoryId      String?         @db.Uuid
   title           String
   description     String?
   videoUrl        String
   thumbnailUrl    String
   durationSeconds Int
   format          VideoFormat
-  isPremium       Boolean     @default(false)
-  viewCount       Int         @default(0)
+  isPremium       Boolean         @default(false)
+  // Qui voit l'entrée (ADR-016) : publique, non répertoriée (lien direct seulement) ou privée
+  // (propriétaire seulement). Indépendant de isPremium, qui dit qui peut la lire.
+  visibility      VideoVisibility @default(PUBLIC)
+  viewCount       Int             @default(0)
   // Compteur dénormalisé des lignes Like, reporté depuis Redis par lot (ADR-004).
-  likeCount       Int         @default(0)
-  publishedAt     DateTime    @default(now())
+  likeCount       Int             @default(0)
+  publishedAt     DateTime        @default(now())
 
   channel      Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
   category     Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
