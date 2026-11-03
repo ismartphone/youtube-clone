@@ -35,6 +35,7 @@ export function presentVideoDetail(video: VideoView, isLiked?: boolean) {
     description: video.description,
     videoUrl: video.videoUrl,
     hlsUrl: video.hlsUrl,
+    subtitleUrl: video.subtitleUrl,
     likeCount: video.likeCount,
     ...(isLiked === undefined ? {} : { isLiked }),
   };

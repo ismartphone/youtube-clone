@@ -7,8 +7,8 @@
 //   conforme au format) ; absent ou non conforme, la vidéo est signalée et passée ;
 // - la chaîne de son créateur est créée si besoin, avec un compte propriétaire et un avatar
 //   (initiales sur fond de couleur) généré dans storage/media/avatars ;
-// - l'échelle HLS multi-qualités est générée (ADR-017), y compris pour une vidéo déjà présente
-//   qui n'en a pas ;
+// - l'échelle HLS multi-qualités et les sous-titres sont générés (ADR-017), y compris pour une
+//   vidéo déjà présente qui n'en a pas ;
 // - la miniature est générée par le service FFmpeg du backend, réutilisé tel quel. Une vidéo
 //   déjà présente avec une miniature de remplacement (seed) reçoit la sienne.
 // Nécessite FFmpeg et ffprobe (FFMPEG_PATH, FFPROBE_PATH), et la base à jour (migrations).
@@ -25,12 +25,15 @@ import {
   thumbnailPosition,
   thumbnailSize,
 } from '../src/modules/videos/domain/thumbnail-generator.js';
+import { transcriptionTimeoutMs } from '../src/modules/videos/domain/subtitles.js';
 import { FfmpegHlsGenerator } from '../src/modules/videos/infrastructure/ffmpeg-hls-generator.js';
+import { FfmpegSubtitleGenerator } from '../src/modules/videos/infrastructure/ffmpeg-subtitle-generator.js';
 import { FfmpegThumbnailGenerator } from '../src/modules/videos/infrastructure/ffmpeg-thumbnail-generator.js';
 import {
   ffmpegCommand,
   ffprobeCommand,
   mediaDirectory,
+  whisperModelPath,
 } from '../src/shared/infrastructure/media.config.js';
 import {
   CC_VIDEOS,
@@ -72,6 +75,34 @@ async function generateHls(videoId: string, video: CcVideo) {
     console.warn(
       `  ✗ HLS non généré, lue en MP4 : ${(error as Error).message}`,
     );
+  }
+}
+
+const subtitles = new FfmpegSubtitleGenerator({
+  ffmpeg: ffmpegCommand(),
+  ffprobe: ffprobeCommand(),
+  mediaDir,
+  model: whisperModelPath(),
+});
+
+// Sous-titres de la vidéo (ADR-017). Un échec ou un abandon est signalé sans arrêter l'import :
+// la vidéo reste sans sous-titres, et « npm run subtitles:generate » pourra la reprendre.
+async function generateSubtitles(videoId: string, video: CcVideo) {
+  const startedAt = Date.now();
+  try {
+    const subtitleUrl = await subtitles.generate(
+      ccVideoUrl(video),
+      transcriptionTimeoutMs(video.durationSeconds),
+    );
+    await prisma.video.update({
+      where: { id: videoId },
+      data: { subtitleUrl },
+    });
+    console.log(
+      `  sous-titres générés (${Math.round((Date.now() - startedAt) / 1000)} s)`,
+    );
+  } catch (error) {
+    console.warn(`  ✗ sous-titres non générés : ${(error as Error).message}`);
   }
 }
 
@@ -222,7 +253,7 @@ async function main() {
     }
     const existing = await prisma.video.findFirst({
       where: { videoUrl: ccVideoUrl(video) },
-      select: { id: true, thumbnailUrl: true, hlsUrl: true },
+      select: { id: true, thumbnailUrl: true, hlsUrl: true, subtitleUrl: true },
     });
     if (existing) {
       if (isPlaceholderThumbnail(existing.thumbnailUrl)) {
@@ -235,6 +266,7 @@ async function main() {
         console.log('  déjà présente');
       }
       if (!existing.hlsUrl) await generateHls(existing.id, video);
+      if (!existing.subtitleUrl) await generateSubtitles(existing.id, video);
       continue;
     }
     const createdVideo = await prisma.video.create({
@@ -254,6 +286,7 @@ async function main() {
     console.log('  ✓ vidéo créée');
     created++;
     await generateHls(createdVideo.id, video);
+    await generateSubtitles(createdVideo.id, video);
   }
   console.log(`Terminé : ${created} vidéo(s) créée(s), ${skipped} passée(s).`);
 }

@@ -15,6 +15,14 @@ export function ffmpegCommand(): string {
   return process.env.FFMPEG_PATH ?? 'ffmpeg';
 }
 
+// Modèle whisper.cpp des sous-titres (ADR-017), surchargeable par WHISPER_MODEL. Par défaut :
+// backend/models/ggml-base.bin (hors du dépôt, téléchargé à la main, voir README).
+export function whisperModelPath(): string {
+  return (
+    process.env.WHISPER_MODEL ?? join(process.cwd(), 'models', 'ggml-base.bin')
+  );
+}
+
 // Commande ffprobe, surchargeable par FFPROBE_PATH. ffprobe est livré avec FFmpeg : par défaut,
 // à côté de l'exécutable indiqué dans FFMPEG_PATH.
 export function ffprobeCommand(): string {

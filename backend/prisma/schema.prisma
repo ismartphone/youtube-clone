@@ -104,6 +104,9 @@ model Video {
   // Manifeste HLS multi-qualités (ADR-017), chemin relatif /media/hls/<identifiant aléatoire>/master.m3u8 ;
   // null tant qu'il n'est pas généré, ou pour une vidéo externe : le MP4 sert alors de repli.
   hlsUrl          String?
+  // Sous-titres générés automatiquement (ADR-017), chemin relatif /media/subtitles/<identifiant aléatoire>.vtt ;
+  // null tant qu'ils ne sont pas générés, pour une vidéo externe, ou si la transcription a échoué.
+  subtitleUrl     String?
   durationSeconds Int
   format          VideoFormat
   isPremium       Boolean         @default(false)

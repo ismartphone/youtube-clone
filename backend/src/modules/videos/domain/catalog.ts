@@ -21,6 +21,8 @@ export interface VideoInput {
   durationSeconds: number;
   // Rempli par la génération HLS, après la création (ADR-017).
   hlsUrl?: string | null;
+  // Rempli par la transcription, après la création (ADR-017).
+  subtitleUrl?: string | null;
 }
 
 // Vidéo envoyée par l'administrateur : thumbnailUrl null demande une miniature générée.

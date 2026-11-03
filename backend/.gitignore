@@ -10,5 +10,8 @@ node_modules
 # Fichiers générés par le serveur (miniatures), voir MEDIA_DIR
 /storage
 
+# Modèle whisper des sous-titres (ADR-017), téléchargé à la main : voir README
+/models
+
 # Clé de compte de service Firebase
 backend/*firebase-adminsdk*.json

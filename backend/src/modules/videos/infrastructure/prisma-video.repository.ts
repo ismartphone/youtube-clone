@@ -27,6 +27,7 @@ export const VIDEO_SELECT = {
   description: true,
   videoUrl: true,
   hlsUrl: true,
+  subtitleUrl: true,
   thumbnailUrl: true,
   durationSeconds: true,
   format: true,

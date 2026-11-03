@@ -5,6 +5,7 @@ import {
   ffmpegCommand,
   ffprobeCommand,
   mediaDirectory,
+  whisperModelPath,
 } from '../../shared/infrastructure/media.config.js';
 import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
 import { AuthModule } from '../auth/auth.module.js';
@@ -42,6 +43,7 @@ import { SearchUseCase } from './application/search.use-case.js';
 import { RegenerateThumbnailUseCase } from './application/regenerate-thumbnail.use-case.js';
 import { UpdateVideoUseCase } from './application/update-video.use-case.js';
 import { GenerateHlsUseCase } from './application/generate-hls.use-case.js';
+import { GenerateSubtitlesUseCase } from './application/generate-subtitles.use-case.js';
 import { UploadVideoUseCase } from './application/upload-video.use-case.js';
 import {
   CATALOG_STATS,
@@ -62,6 +64,12 @@ import {
   type HlsGenerator,
   type HlsQueue,
 } from './domain/hls.js';
+import {
+  SUBTITLE_GENERATOR,
+  SUBTITLE_QUEUE,
+  type SubtitleGenerator,
+  type SubtitleQueue,
+} from './domain/subtitles.js';
 import { PREMIUM_ACCESS, type PremiumAccess } from './domain/premium-access.js';
 import {
   SEARCH_REPOSITORY,
@@ -90,6 +98,8 @@ import {
 import { FfmpegThumbnailGenerator } from './infrastructure/ffmpeg-thumbnail-generator.js';
 import { FfmpegHlsGenerator } from './infrastructure/ffmpeg-hls-generator.js';
 import { InProcessHlsQueue } from './infrastructure/in-process-hls-queue.js';
+import { InProcessSubtitleQueue } from './infrastructure/in-process-subtitle-queue.js';
+import { FfmpegSubtitleGenerator } from './infrastructure/ffmpeg-subtitle-generator.js';
 import { FfprobeVideoProber } from './infrastructure/ffprobe-video-prober.js';
 import { LocalVideoFileStore } from './infrastructure/local-video-file-store.js';
 import { PrismaChannelOwnership } from './infrastructure/prisma-channel-ownership.js';
@@ -306,6 +316,33 @@ const CATEGORY_USE_CASES = [
         new InProcessHlsQueue(generateHls),
       inject: [GenerateHlsUseCase],
     },
+    // Sous-titres (ADR-017) : transcrits hors ligne par le filtre whisper, une vidéo à la fois,
+    // en tâche de fond. Filtre ou modèle absent : erreur au démarrage, vidéos sans sous-titres.
+    {
+      provide: SUBTITLE_GENERATOR,
+      useFactory: () =>
+        new FfmpegSubtitleGenerator({
+          ffmpeg: ffmpegCommand(),
+          ffprobe: ffprobeCommand(),
+          mediaDir: mediaDirectory(),
+          model: whisperModelPath(),
+        }),
+    },
+    {
+      provide: GenerateSubtitlesUseCase,
+      useFactory: (
+        videos: VideoRepository,
+        catalog: VideoCatalog,
+        subtitles: SubtitleGenerator,
+      ) => new GenerateSubtitlesUseCase(videos, catalog, subtitles),
+      inject: [VIDEO_REPOSITORY, VIDEO_CATALOG, SUBTITLE_GENERATOR],
+    },
+    {
+      provide: SUBTITLE_QUEUE,
+      useFactory: (generateSubtitles: GenerateSubtitlesUseCase) =>
+        new InProcessSubtitleQueue(generateSubtitles),
+      inject: [GenerateSubtitlesUseCase],
+    },
     {
       provide: CreateVideoUseCase,
       useFactory: (
@@ -313,8 +350,22 @@ const CATEGORY_USE_CASES = [
         counters: VideoCounters,
         thumbnails: ThumbnailGenerator,
         hlsQueue: HlsQueue,
-      ) => new CreateVideoUseCase(catalog, counters, thumbnails, hlsQueue),
-      inject: [VIDEO_CATALOG, VIDEO_COUNTERS, THUMBNAIL_GENERATOR, HLS_QUEUE],
+        subtitleQueue: SubtitleQueue,
+      ) =>
+        new CreateVideoUseCase(
+          catalog,
+          counters,
+          thumbnails,
+          hlsQueue,
+          subtitleQueue,
+        ),
+      inject: [
+        VIDEO_CATALOG,
+        VIDEO_COUNTERS,
+        THUMBNAIL_GENERATOR,
+        HLS_QUEUE,
+        SUBTITLE_QUEUE,
+      ],
     },
     // Envoi depuis l'application mobile (ADR-015). ffprobe est cherché au démarrage ;
     // absent, seul l'envoi est refusé.
@@ -356,6 +407,8 @@ const CATEGORY_USE_CASES = [
         rooms: VideoRoomGuard,
         hls: HlsGenerator,
         hlsQueue: HlsQueue,
+        subtitles: SubtitleGenerator,
+        subtitleQueue: SubtitleQueue,
       ) =>
         new UpdateVideoUseCase(
           videos,
@@ -365,6 +418,8 @@ const CATEGORY_USE_CASES = [
           rooms,
           hls,
           hlsQueue,
+          subtitles,
+          subtitleQueue,
         ),
       inject: [
         VIDEO_REPOSITORY,
@@ -374,6 +429,8 @@ const CATEGORY_USE_CASES = [
         VIDEO_ROOM_GUARD,
         HLS_GENERATOR,
         HLS_QUEUE,
+        SUBTITLE_GENERATOR,
+        SUBTITLE_QUEUE,
       ],
     },
     {
@@ -392,13 +449,23 @@ const CATEGORY_USE_CASES = [
         catalog: VideoCatalog,
         thumbnails: ThumbnailGenerator,
         hls: HlsGenerator,
+        subtitles: SubtitleGenerator,
         files: VideoFileStore,
-      ) => new DeleteVideoUseCase(videos, catalog, thumbnails, hls, files),
+      ) =>
+        new DeleteVideoUseCase(
+          videos,
+          catalog,
+          thumbnails,
+          hls,
+          subtitles,
+          files,
+        ),
       inject: [
         VIDEO_REPOSITORY,
         VIDEO_CATALOG,
         THUMBNAIL_GENERATOR,
         HLS_GENERATOR,
+        SUBTITLE_GENERATOR,
         VIDEO_FILE_STORE,
       ],
     },

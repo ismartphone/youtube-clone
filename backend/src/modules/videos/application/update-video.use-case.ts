@@ -1,4 +1,5 @@
 import type { HlsGenerator, HlsQueue } from '../domain/hls.js';
+import type { SubtitleGenerator, SubtitleQueue } from '../domain/subtitles.js';
 import type { VideoCatalog, VideoPatch } from '../domain/catalog.js';
 import type { VideoCounters } from '../domain/counters.js';
 import {
@@ -20,6 +21,8 @@ export class UpdateVideoUseCase {
     private readonly rooms: VideoRoomGuard,
     private readonly hls: HlsGenerator,
     private readonly hlsQueue: HlsQueue,
+    private readonly subtitles: SubtitleGenerator,
+    private readonly subtitleQueue: SubtitleQueue,
   ) {}
 
   // Renvoie null si la vidéo n'existe pas.
@@ -49,12 +52,13 @@ export class UpdateVideoUseCase {
 
     let video;
     try {
-      // Autre fichier : l'ancienne échelle HLS ne correspond plus, une nouvelle sera générée.
+      // Autre fichier : l'ancienne échelle HLS et les anciens sous-titres ne correspondent plus,
+      // de nouveaux seront générés.
       const fileChanged = videoUrl !== current.videoUrl;
       video = await this.catalog.update(id, {
         ...patch,
         thumbnailUrl,
-        ...(fileChanged ? { hlsUrl: null } : {}),
+        ...(fileChanged ? { hlsUrl: null, subtitleUrl: null } : {}),
       });
     } catch (error) {
       if (regenerate) await this.thumbnails.remove(thumbnailUrl);
@@ -71,7 +75,9 @@ export class UpdateVideoUseCase {
     }
     if (video.videoUrl !== current.videoUrl) {
       if (current.hlsUrl) await this.hls.remove(current.hlsUrl);
+      if (current.subtitleUrl) await this.subtitles.remove(current.subtitleUrl);
       this.hlsQueue.enqueue(id);
+      this.subtitleQueue.enqueue(id);
     }
     // Visibilité changée : les spectateurs qui n'y ont plus droit quittent la salle temps réel,
     // sinon ils continueraient de recevoir commentaires et compteurs (ADR-016).

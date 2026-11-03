@@ -19,7 +19,7 @@ NestJS (TypeScript), PostgreSQL avec Prisma 7, Redis. Architecture hexagonale en
 
 ## Lancer
 
-Prérequis : Node.js 24, FFmpeg, et PostgreSQL et Redis démarrés par `docker compose up -d --wait`
+Prérequis : Node.js 24, FFmpeg compilé avec le filtre whisper (sous-titres), et PostgreSQL et Redis démarrés par `docker compose up -d --wait`
 à la racine du dépôt. **Docker doit tourner avant le backend.**
 
 ```powershell
@@ -34,10 +34,27 @@ npm run thumbnails:regenerate # vraies miniatures à la place des images génér
 npm run seed:cc-videos        # vidéos Creative Commons, si les fichiers cc-*.mp4 sont fournis
 npm run avatars:generate      # avatar (initiales) des chaînes du seed, qui n'en ont pas
 npm run hls:generate          # échelle HLS multi-qualités des vidéos hébergées (quelques minutes)
+npm run subtitles:generate    # sous-titres des vidéos hébergées, après le téléchargement du modèle
 npm run start:dev             # http://localhost:3000
 ```
 
 Vérification : http://localhost:3000/videos doit renvoyer du JSON.
+
+### Sous-titres automatiques
+
+Les sous-titres sont transcrits par le filtre whisper de FFmpeg, avec le modèle `base` de whisper.cpp
+([ADR-017](../docs/adr/ADR-017-hls-multi-qualites-sous-titres.md)). Le build FFmpeg « full » de Gyan
+contient ce filtre : `ffmpeg -filters` doit afficher une ligne `whisper`. Le modèle (148 Mo) n'est
+pas versionné ; il se télécharge une fois, dans `backend/models/` :
+
+```powershell
+New-Item -ItemType Directory -Force models
+Invoke-WebRequest https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin -OutFile models/ggml-base.bin
+```
+
+Sans le filtre ou sans le modèle, le serveur démarre quand même : une erreur est journalisée et
+les vidéos sont publiées sans sous-titres. La langue est détectée automatiquement. Sur une vidéo
+sans parole (bruit d'ambiance, musique), le modèle peut inventer des répliques.
 
 Le pas à pas complet, avec les comptes de démonstration, est dans le [README de la racine](../README.md).
 
@@ -52,6 +69,7 @@ Autres commandes :
 | `npm run lint` | Analyse statique (oxlint) |
 | `npm run thumbnails:regenerate` | Remplace les miniatures génériques (placehold.co) par une image extraite de la vidéo |
 | `npm run hls:generate` | Génère l'échelle HLS (720p, 480p et 360p, jamais au-dessus de la source) des vidéos hébergées chez nous qui n'en ont pas : seed, Creative Commons, ou génération en tâche de fond interrompue. Quelques minutes pour tout le catalogue (ADR-017) |
+| `npm run subtitles:generate` | Génère les sous-titres WebVTT des vidéos hébergées chez nous qui n'en ont pas. Une vidéo à la fois ; une transcription est abandonnée au-delà de deux fois la durée de la vidéo, et de 5 minutes au plus. Les vidéos sans piste audio ou sans parole restent sans sous-titres et sont signalées à chaque lancement (ADR-017) |
 | `npm run avatars:generate` | Génère un avatar (initiales sur fond de couleur) pour chaque chaîne qui n'en a pas. Les chaînes créées par `POST /channels` reçoivent déjà le leur |
 | `npm run seed:cc-videos` | Ajoute les six vidéos Creative Commons à la base existante, sans rien effacer ni dupliquer. Les fichiers `cc-*.mp4` ne se retéléchargent pas : ils doivent être fournis à la main dans `storage/media/videos/`. Voir [docs/sources-videos.md](../docs/sources-videos.md) |
 
@@ -70,6 +88,7 @@ l'environnement en production.
 | `MEDIA_DIR` | non | Dossier des fichiers servis sous `/media` | `storage/media` |
 | `FFMPEG_PATH` | non | Chemin de l'exécutable FFmpeg | `ffmpeg` du PATH |
 | `FFPROBE_PATH` | non | Chemin de ffprobe (vérification des envois et des vidéos du seed) | à côté de `FFMPEG_PATH`, sinon `ffprobe` du PATH |
+| `WHISPER_MODEL` | non | Fichier du modèle whisper.cpp des sous-titres | `models/ggml-base.bin` |
 | `AVATAR_FONT` | non | Police (`.ttf`) des initiales des avatars générés à la création d'une chaîne | Arial sous Windows, DejaVu sous Linux |
 | `STRIPE_SECRET_KEY` | non | Clé secrète Stripe **de test** (`sk_test_…`). Absente : achat simulé de repli ([ADR-014](../docs/adr/ADR-014-paiement-stripe-mode-test.md)). Ne quitte jamais le backend | — |
 | `STRIPE_PUBLISHABLE_KEY` | si `STRIPE_SECRET_KEY` | Clé publiable Stripe de test (`pk_test_…`), transmise à l'application par `GET /me/premium/config` | — |
