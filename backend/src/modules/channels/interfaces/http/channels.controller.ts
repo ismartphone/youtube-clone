@@ -79,7 +79,10 @@ export class ChannelsController {
   ) {
     // Les vidéos de la page sont des résumés, sans URL de fichier : le statut Premium n'y change rien.
     const [channel, status] = await Promise.all([
-      this.getChannel.execute(id, ANONYMOUS_VIEWER),
+      this.getChannel.execute(id, {
+        ...ANONYMOUS_VIEWER,
+        userId: user?.id ?? null,
+      }),
       this.getFollowStatus.execute(id, user?.id),
     ]);
     if (!channel) {

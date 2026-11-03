@@ -1,6 +1,10 @@
 import type { VideoRoomPublisher } from '../../realtime/domain/video-room-publisher.js';
 import type { Comment } from '../domain/comment.js';
 import type { CommentRepository } from '../domain/ports.js';
+import {
+  canReachComments,
+  CommentsDisabledError,
+} from '../domain/comment-rules.js';
 
 // Publie un commentaire, puis le diffuse aux spectateurs de la vidéo (comment:new, ADR-004).
 export class PostCommentUseCase {
@@ -9,14 +13,19 @@ export class PostCommentUseCase {
     private readonly publisher: VideoRoomPublisher,
   ) {}
 
-  // Renvoie null si la vidéo n'existe pas.
+  // Renvoie null si la vidéo n'existe pas (ou est privée et n'appartient pas à l'auteur).
+  // Lève CommentsDisabledError si les commentaires sont désactivés.
   async execute(
     videoId: string,
     authorId: string,
     content: string,
   ): Promise<Comment | null> {
-    if (!(await this.comments.videoExists(videoId))) {
+    const target = await this.comments.findTarget(videoId);
+    if (!canReachComments(target, authorId)) {
       return null;
+    }
+    if (!target.commentsEnabled) {
+      throw new CommentsDisabledError();
     }
     const comment = await this.comments.create(
       videoId,

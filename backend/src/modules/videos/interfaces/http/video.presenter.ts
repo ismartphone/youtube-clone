@@ -11,6 +11,8 @@ export function presentVideoSummary(video: VideoView) {
     durationSeconds: video.durationSeconds,
     format: video.format,
     isPremium: video.isPremium,
+    visibility: video.visibility,
+    commentsEnabled: video.commentsEnabled,
     viewCount: video.viewCount,
     publishedAt: video.publishedAt,
     channel: {

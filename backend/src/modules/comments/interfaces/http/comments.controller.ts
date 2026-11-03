@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -12,12 +13,19 @@ import {
 import { Transform } from 'class-transformer';
 import { IsString, Length } from 'class-validator';
 import type { AuthenticatedUser } from '../../../auth/domain/user.js';
-import { CurrentUser } from '../../../auth/interfaces/http/current-user.decorator.js';
-import { JwtAuthGuard } from '../../../auth/interfaces/http/jwt-auth.guard.js';
+import {
+  CurrentUser,
+  OptionalCurrentUser,
+} from '../../../auth/interfaces/http/current-user.decorator.js';
+import {
+  JwtAuthGuard,
+  OptionalJwtAuthGuard,
+} from '../../../auth/interfaces/http/jwt-auth.guard.js';
 import { PaginationQuery } from '../../../videos/interfaces/http/list-videos.query.js';
 import { ListCommentsUseCase } from '../../application/list-comments.use-case.js';
 import { PostCommentUseCase } from '../../application/post-comment.use-case.js';
 import { COMMENT_MAX_LENGTH } from '../../domain/comment.js';
+import { CommentsDisabledError } from '../../domain/comment-rules.js';
 import { presentComment } from './comment.presenter.js';
 
 export class PostCommentBody {
@@ -36,16 +44,20 @@ export class CommentsController {
     private readonly postComment: PostCommentUseCase,
   ) {}
 
-  // Ouverte aux visiteurs. total sert de nombre de commentaires sous la vidéo.
+  // Ouverte aux visiteurs. total sert de nombre de commentaires sous la vidéo ; commentsDisabled
+  // indique que les commentaires sont désactivés (la liste est alors vide, ADR-016).
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
   async list(
     @Param('videoId', ParseUUIDPipe) videoId: string,
     @Query() query: PaginationQuery,
+    @OptionalCurrentUser() user: AuthenticatedUser | undefined,
   ) {
-    const page = await this.listComments.execute(videoId, {
-      page: query.page,
-      pageSize: query.pageSize,
-    });
+    const page = await this.listComments.execute(
+      videoId,
+      { page: query.page, pageSize: query.pageSize },
+      user?.id ?? null,
+    );
     if (!page) {
       throw new NotFoundException('Vidéo introuvable');
     }
@@ -59,11 +71,15 @@ export class CommentsController {
     @Param('videoId', ParseUUIDPipe) videoId: string,
     @Body() body: PostCommentBody,
   ) {
-    const comment = await this.postComment.execute(
-      videoId,
-      user.id,
-      body.content,
-    );
+    let comment;
+    try {
+      comment = await this.postComment.execute(videoId, user.id, body.content);
+    } catch (error) {
+      if (error instanceof CommentsDisabledError) {
+        throw new ForbiddenException(error.message);
+      }
+      throw error;
+    }
     if (!comment) {
       throw new NotFoundException('Vidéo introuvable');
     }

@@ -1,3 +1,4 @@
+import { canAccessVideo } from '../domain/visibility.js';
 import type { VideoRoomPublisher } from '../../realtime/domain/video-room-publisher.js';
 import type { VideoCounters } from '../domain/counters.js';
 import type { VideoRepository } from '../domain/video.repository.js';
@@ -16,6 +17,14 @@ export class RecordViewUseCase {
   // Le nouveau total est diffusé aux spectateurs de la vidéo (views:update).
   // Avec un utilisateur connecté, la vidéo entre aussi dans son historique.
   async execute(videoId: string, userId?: string): Promise<boolean> {
+    // Vidéo privée d'un autre : comme si elle n'existait pas (ADR-016).
+    const access = await this.videos.findAccess(videoId);
+    if (
+      !access ||
+      !canAccessVideo(access.visibility, access.ownerId, userId ?? null)
+    ) {
+      return false;
+    }
     const stored = await this.videos.findCounts(videoId);
     if (!stored) {
       return false;

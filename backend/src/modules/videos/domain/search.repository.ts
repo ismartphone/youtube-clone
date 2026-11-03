@@ -4,7 +4,8 @@ import type { Page, Pagination } from './video.repository.js';
 export const SEARCH_REPOSITORY = Symbol('SEARCH_REPOSITORY');
 
 // Chaîne trouvée par la recherche, avec son nombre d'abonnés (FOLLOW).
-export interface ChannelSearchResult extends ChannelSummary {
+// Le propriétaire n'est pas utile à la recherche de chaînes.
+export interface ChannelSearchResult extends Omit<ChannelSummary, 'ownerId'> {
   followerCount: number;
 }
 

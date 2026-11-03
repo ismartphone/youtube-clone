@@ -5,6 +5,7 @@ import type {
   Page,
   Pagination,
   StoredCounts,
+  VideoAccess,
   VideoFilter,
   VideoRepository,
 } from '../domain/video.repository.js';
@@ -16,6 +17,8 @@ const CHANNEL_SUMMARY_SELECT = {
   name: true,
   handle: true,
   avatarUrl: true,
+  // Identifiant seulement, pour les règles de visibilité : jamais renvoyé par les présentateurs.
+  ownerId: true,
 } satisfies Prisma.ChannelSelect;
 
 export const VIDEO_SELECT = {
@@ -28,6 +31,7 @@ export const VIDEO_SELECT = {
   format: true,
   isPremium: true,
   visibility: true,
+  commentsEnabled: true,
   viewCount: true,
   likeCount: true,
   publishedAt: true,
@@ -52,6 +56,7 @@ export class PrismaVideoRepository implements VideoRepository {
       channel: filter.followedBy
         ? { followers: { some: { userId: filter.followedBy } } }
         : undefined,
+      visibility: filter.publicOnly ? 'PUBLIC' : undefined,
     };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.video.findMany({
@@ -78,6 +83,24 @@ export class PrismaVideoRepository implements VideoRepository {
       where: { id },
       select: { viewCount: true, likeCount: true },
     });
+  }
+
+  async findAccess(id: string): Promise<VideoAccess | null> {
+    const video = await this.prisma.video.findUnique({
+      where: { id },
+      select: {
+        visibility: true,
+        commentsEnabled: true,
+        channel: { select: { ownerId: true } },
+      },
+    });
+    return (
+      video && {
+        visibility: video.visibility,
+        commentsEnabled: video.commentsEnabled,
+        ownerId: video.channel.ownerId,
+      }
+    );
   }
 
   findChannelWithVideos(channelId: string): Promise<Channel | null> {

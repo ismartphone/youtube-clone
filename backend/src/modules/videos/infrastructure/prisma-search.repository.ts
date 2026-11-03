@@ -26,12 +26,12 @@ export class PrismaSearchRepository implements SearchRepository {
     const [rows, [{ count }]] = await Promise.all([
       this.prisma.$queryRaw<{ id: string }[]>`
         SELECT id FROM videos
-        WHERE unaccent(title) ILIKE unaccent(${pattern})
+        WHERE unaccent(title) ILIKE unaccent(${pattern}) AND visibility = 'PUBLIC'
         ORDER BY "publishedAt" DESC, id ASC
         LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
       this.prisma.$queryRaw<{ count: bigint }[]>`
         SELECT count(*) FROM videos
-        WHERE unaccent(title) ILIKE unaccent(${pattern})`,
+        WHERE unaccent(title) ILIKE unaccent(${pattern}) AND visibility = 'PUBLIC'`,
     ]);
     const ids = rows.map((row) => row.id);
     const videos = await this.prisma.video.findMany({

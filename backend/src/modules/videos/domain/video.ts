@@ -1,5 +1,5 @@
 // Modèles de lecture du domaine vidéo, indépendants de Prisma et de NestJS.
-import type { VideoVisibility } from './visibility.js';
+import { canAccessVideo, type VideoVisibility } from './visibility.js';
 
 export const VIDEO_FORMATS = ['SHORT', 'LONG'] as const;
 export type VideoFormat = (typeof VIDEO_FORMATS)[number];
@@ -14,6 +14,8 @@ export interface ChannelSummary {
   name: string;
   handle: string;
   avatarUrl: string | null;
+  // Propriétaire, pour les règles de visibilité (ADR-016) ; jamais exposé par les présentateurs.
+  ownerId: string;
 }
 
 export interface Video {
@@ -26,6 +28,7 @@ export interface Video {
   format: VideoFormat;
   isPremium: boolean;
   visibility: VideoVisibility;
+  commentsEnabled: boolean;
   viewCount: number;
   likeCount: number;
   publishedAt: Date;
@@ -41,14 +44,32 @@ export interface Channel extends ChannelSummary {
 }
 
 // Spectateur de la requête. Sans authentification, personne n'est encore Premium.
+// userId sert aux règles de visibilité (ADR-016) ; isAdmin : le back-office voit tout.
 export interface Viewer {
   isPremium: boolean;
+  userId: string | null;
+  isAdmin?: boolean;
 }
 
-export const ANONYMOUS_VIEWER: Viewer = { isPremium: false };
+export const ANONYMOUS_VIEWER: Viewer = { isPremium: false, userId: null };
 
 // Administrateur du back-office : il voit l'URL de toutes les vidéos, exclusives comprises.
-export const ADMIN_VIEWER: Viewer = { isPremium: true };
+export const ADMIN_VIEWER: Viewer = {
+  isPremium: true,
+  userId: null,
+  isAdmin: true,
+};
+
+// Accès par le lien direct : une vidéo privée n'existe que pour son propriétaire (ADR-016).
+export function canSee(
+  video: Pick<Video, 'visibility' | 'channel'>,
+  viewer: Viewer,
+): boolean {
+  return (
+    viewer.isAdmin === true ||
+    canAccessVideo(video.visibility, video.channel.ownerId, viewer.userId)
+  );
+}
 
 // Règle d'accès (CLAUDE.md, ADR-007) : l'URL d'une vidéo exclusive n'est donnée
 // qu'à un spectateur Premium, et cette vérification se fait toujours côté serveur.

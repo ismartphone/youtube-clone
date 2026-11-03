@@ -16,3 +16,15 @@ export function canAccessVideo(
 ): boolean {
   return visibility !== 'PRIVATE' || userId === ownerId;
 }
+
+/**
+ * Présence dans les listes (fil, Shorts, recherche, abonnements, page de chaîne) : seules les
+ * vidéos publiques y figurent ; le propriétaire voit toujours les siennes, quel que soit l'état.
+ */
+export function isListedFor(
+  visibility: VideoVisibility,
+  ownerId: string,
+  userId: string | null,
+): boolean {
+  return visibility === 'PUBLIC' || userId === ownerId;
+}

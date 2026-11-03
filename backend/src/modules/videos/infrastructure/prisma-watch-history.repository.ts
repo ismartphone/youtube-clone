@@ -1,8 +1,17 @@
+import type { Prisma } from '../../../generated/prisma/client.js';
 import type { PrismaService } from '../../../shared/infrastructure/prisma.service.js';
 import type { Video } from '../domain/video.js';
 import type { Page, Pagination } from '../domain/video.repository.js';
 import type { WatchHistoryRepository } from '../domain/watch-history.repository.js';
 import { VIDEO_SELECT } from './prisma-video.repository.js';
+
+// Une vidéo privée n'apparaît que dans les listes de son propriétaire (ADR-016) : filtre à la
+// lecture, les lignes restent en base.
+function visibleTo(userId: string): Prisma.VideoWhereInput {
+  return {
+    OR: [{ visibility: { not: 'PRIVATE' } }, { channel: { ownerId: userId } }],
+  };
+}
 
 export class PrismaWatchHistoryRepository implements WatchHistoryRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -22,13 +31,15 @@ export class PrismaWatchHistoryRepository implements WatchHistoryRepository {
   ): Promise<Page<Video>> {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.watchHistory.findMany({
-        where: { userId },
+        where: { userId, video: visibleTo(userId) },
         select: { video: { select: VIDEO_SELECT } },
         orderBy: [{ watchedAt: 'desc' }, { id: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.watchHistory.count({ where: { userId } }),
+      this.prisma.watchHistory.count({
+        where: { userId, video: visibleTo(userId) },
+      }),
     ]);
     return { items: rows.map((row) => row.video), page, pageSize, total };
   }

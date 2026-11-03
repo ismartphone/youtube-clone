@@ -1,3 +1,4 @@
+import { canAccessVideo } from '../domain/visibility.js';
 import type { VideoRoomPublisher } from '../../realtime/domain/video-room-publisher.js';
 import type { VideoCounters } from '../domain/counters.js';
 import type { LikeRepository } from '../domain/like.repository.js';
@@ -25,6 +26,11 @@ export class LikeVideoUseCase {
     videoId: string,
     like: boolean,
   ): Promise<LikeStatus | null> {
+    // Vidéo privée d'un autre : comme si elle n'existait pas (ADR-016).
+    const access = await this.videos.findAccess(videoId);
+    if (!access || !canAccessVideo(access.visibility, access.ownerId, userId)) {
+      return null;
+    }
     const stored = await this.videos.findCounts(videoId);
     if (!stored) {
       return null;

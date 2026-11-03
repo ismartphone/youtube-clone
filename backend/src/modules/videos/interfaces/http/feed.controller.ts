@@ -32,7 +32,7 @@ export class FeedController {
   ) {
     return presentPage(
       await this.listVideos.execute(
-        { followedBy: user.id },
+        { followedBy: user.id, publicOnly: true },
         { page: query.page, pageSize: query.pageSize },
         ANONYMOUS_VIEWER,
       ),

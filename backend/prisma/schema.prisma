@@ -107,6 +107,8 @@ model Video {
   // Qui voit l'entrée (ADR-016) : publique, non répertoriée (lien direct seulement) ou privée
   // (propriétaire seulement). Indépendant de isPremium, qui dit qui peut la lire.
   visibility      VideoVisibility @default(PUBLIC)
+  // Commentaires activés (ADR-016). Désactivés : masqués, jamais supprimés, et refusés par l'API.
+  commentsEnabled Boolean         @default(true)
   viewCount       Int             @default(0)
   // Compteur dénormalisé des lignes Like, reporté depuis Redis par lot (ADR-004).
   likeCount       Int             @default(0)

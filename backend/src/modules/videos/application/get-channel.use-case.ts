@@ -1,4 +1,5 @@
 import type { Channel, Viewer } from '../domain/video.js';
+import { isListedFor } from '../domain/visibility.js';
 import type { VideoRepository } from '../domain/video.repository.js';
 import type { VideoCounters } from '../domain/counters.js';
 import { toVideoViews, type VideoView } from './video-view.js';
@@ -19,9 +20,15 @@ export class GetChannelUseCase {
     if (!channel) {
       return null;
     }
+    // Le propriétaire voit toutes ses vidéos (avec leur état) ; les autres, les publiques.
+    const listed = channel.videos.filter(
+      (video) =>
+        viewer.isAdmin === true ||
+        isListedFor(video.visibility, channel.ownerId, viewer.userId),
+    );
     return {
       ...channel,
-      videos: await toVideoViews(channel.videos, viewer, this.counters),
+      videos: await toVideoViews(listed, viewer, this.counters),
     };
   }
 }

@@ -52,7 +52,7 @@ export class VideosController {
   @Get()
   async list(@Query() query: ListVideosQuery) {
     const page = await this.listVideos.execute(
-      { format: query.format, categoryId: query.categoryId },
+      { format: query.format, categoryId: query.categoryId, publicOnly: true },
       { page: query.page, pageSize: query.pageSize },
       ANONYMOUS_VIEWER,
     );

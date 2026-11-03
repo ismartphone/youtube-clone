@@ -66,6 +66,15 @@ function isExternalVideo(body: { videoUrl?: unknown }): boolean {
 const MAX_DURATION_SECONDS = 12 * 60 * 60;
 
 export class CreateVideoBody {
+  // Réglages de publication (ADR-016) ; absents : publique, commentaires activés.
+  @IsOptional()
+  @IsIn(VIDEO_VISIBILITIES)
+  visibility?: VideoVisibility;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsEnabled?: boolean;
+
   @Transform(trim)
   @IsString()
   @Length(1, 100)
@@ -137,10 +146,14 @@ export class UpdateVideoBody {
   @IsBoolean()
   isPremium?: boolean;
 
-  // Réglage modifiable après publication depuis le back-office seulement (ADR-016).
+  // Réglages modifiables après publication depuis le back-office seulement (ADR-016).
   @IsOptional()
   @IsIn(VIDEO_VISIBILITIES)
   visibility?: VideoVisibility;
+
+  @IsOptional()
+  @IsBoolean()
+  commentsEnabled?: boolean;
 
   @Transform(trim)
   @ValidateIf(

@@ -14,6 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsIn,
   IsOptional,
   IsString,
@@ -29,6 +30,10 @@ import { UploadVideoUseCase } from '../../application/upload-video.use-case.js';
 import { UnknownCategoryError } from '../../domain/catalog.errors.js';
 import { ThumbnailUnavailableError } from '../../domain/thumbnail-generator.js';
 import { VIDEO_FORMATS, type VideoFormat } from '../../domain/video.js';
+import {
+  VIDEO_VISIBILITIES,
+  type VideoVisibility,
+} from '../../domain/visibility.js';
 import {
   InvalidVideoFileError,
   MAX_UPLOAD_BYTES,
@@ -73,6 +78,21 @@ export class UploadVideoBody {
 
   @IsIn(VIDEO_FORMATS, { message: 'Le format doit être SHORT ou LONG.' })
   format: VideoFormat;
+
+  // Réglages de publication (ADR-016), modifiables ensuite depuis le back-office seulement.
+  @IsOptional()
+  @IsIn(VIDEO_VISIBILITIES, {
+    message: 'La visibilité doit être PUBLIC, UNLISTED ou PRIVATE.',
+  })
+  visibility?: VideoVisibility;
+
+  // Champ multipart : il arrive en texte (« true » ou « false »).
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  @IsBoolean({ message: 'commentsEnabled doit valoir true ou false.' })
+  commentsEnabled?: boolean;
 }
 
 // Publication depuis l'application mobile (ADR-015) : réservée au propriétaire d'une chaîne.

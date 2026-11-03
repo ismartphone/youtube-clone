@@ -1,7 +1,7 @@
 import type { Prisma } from '../../../generated/prisma/client.js';
 import type { PrismaService } from '../../../shared/infrastructure/prisma.service.js';
 import type { Comment, CommentPage } from '../domain/comment.js';
-import type { CommentRepository } from '../domain/ports.js';
+import type { CommentRepository, CommentTarget } from '../domain/ports.js';
 
 // Sélection explicite : de l'auteur, seuls son nom affiché et son avatar sortent de la base.
 const COMMENT_SELECT = {
@@ -21,12 +21,22 @@ function toComment({ user, ...comment }: CommentRow): Comment {
 export class PrismaCommentRepository implements CommentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async videoExists(videoId: string): Promise<boolean> {
+  async findTarget(videoId: string): Promise<CommentTarget | null> {
     const video = await this.prisma.video.findUnique({
       where: { id: videoId },
-      select: { id: true },
+      select: {
+        visibility: true,
+        commentsEnabled: true,
+        channel: { select: { ownerId: true } },
+      },
     });
-    return video !== null;
+    return (
+      video && {
+        visibility: video.visibility,
+        commentsEnabled: video.commentsEnabled,
+        ownerId: video.channel.ownerId,
+      }
+    );
   }
 
   // Index (videoId, createdAt DESC) prévu dans le schéma pour cette requête.

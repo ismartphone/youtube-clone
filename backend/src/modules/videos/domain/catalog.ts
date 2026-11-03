@@ -13,8 +13,9 @@ export interface VideoInput {
   categoryId: string | null;
   format: VideoFormat;
   isPremium: boolean;
-  // Absente à la création : publique par défaut (ADR-016).
+  // Absents à la création : publique, commentaires activés (ADR-016).
   visibility?: VideoVisibility;
+  commentsEnabled?: boolean;
   videoUrl: string;
   thumbnailUrl: string;
   durationSeconds: number;

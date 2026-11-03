@@ -1,4 +1,5 @@
 import type { VideoFormat } from './video.js';
+import type { VideoVisibility } from './visibility.js';
 
 // Publication d'une vidéo envoyée depuis l'application mobile (ADR-015). Le fichier vient du
 // client : il n'est cru sur rien, ni son nom, ni son extension, ni le type annoncé. ffprobe
@@ -49,6 +50,9 @@ export interface UploadDetails {
   description: string | null;
   categoryId: string;
   format: VideoFormat;
+  // Réglages de publication (ADR-016) ; absents : publique, commentaires activés.
+  visibility?: VideoVisibility;
+  commentsEnabled?: boolean;
 }
 
 // Refus d'un fichier qui ne convient pas au format choisi : message destiné au créateur.

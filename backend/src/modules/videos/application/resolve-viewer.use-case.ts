@@ -10,6 +10,6 @@ export class ResolveViewerUseCase {
     if (!userId) {
       return ANONYMOUS_VIEWER;
     }
-    return { isPremium: await this.premium.isPremium(userId) };
+    return { isPremium: await this.premium.isPremium(userId), userId };
   }
 }
