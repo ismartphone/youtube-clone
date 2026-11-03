@@ -50,7 +50,7 @@ Le montant est fixé par le serveur, jamais reçu du client.
 
 ### Ce qui ne change pas
 Restent valables, comme décidé par l'ADR-007 :
-- le contenu de l'offre : 4,99 €/mois, sans publicité, vidéos exclusives, lecture en arrière-plan ;
+- le contenu de l'offre : 4,99 € pour un mois, sans renouvellement automatique, sans publicité, vidéos exclusives, lecture en arrière-plan ;
 - le statut Premium stocké côté serveur dans PREMIUM_SUBSCRIPTION, à ne pas confondre avec FOLLOW ;
 - l'accès aux vidéos exclusives vérifié par l'API ;
 - le serveur seul juge de l'activation.

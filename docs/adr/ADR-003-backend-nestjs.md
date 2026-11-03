@@ -28,8 +28,8 @@ Le back-office Next.js suit une organisation MVC. Elle suffit, puisque le back-o
 ### Positives
 - Structure imposée par NestJS (modules, contrôleurs, services).
 - Validation, authentification et WebSocket fournis par le framework.
-- Types partagés entre le backend et le back-office, tous deux en TypeScript.
-- Règles métier isolées du framework et de la base, testables sans serveur.
+- Types partagés entre le backend et le back-office, tous deux en TypeScript. Non réalisé : le back-office redéfinit ses propres types dans backoffice/models/.
+- Règles métier isolées du framework et de la base, testables sans serveur. L'isolation existe, mais aucun test n'a été écrit : le dépôt ne contient que les deux tests d'exemple générés par Android Studio, et aucun test backend.
 - Les modules pourront être extraits en microservices plus tard si besoin.
 
 ### Négatives

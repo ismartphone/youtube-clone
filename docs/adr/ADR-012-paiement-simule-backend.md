@@ -1,10 +1,10 @@
 # ADR-012 — Achat Premium simulé par notre propre backend
 
 ## Statut
-Remplacé par l'ADR-014
+Remplacé en grande partie par l'ADR-014
 
 ## Contexte
-ADR-007 prévoit que le paiement de l'offre Premium est simulé avec Google Play Billing en mode test. Ce mode test n'est pas utilisable dans le projet.
+La version d'origine d'ADR-007 prévoyait que le paiement de l'offre Premium soit simulé avec Google Play Billing en mode test. Ce mode test n'est pas utilisable dans le projet. Cette partie a été remplacée depuis par cet ADR, puis par l'ADR-014.
 
 Le mode test de Play Billing suppose :
 - l'application déposée sur la Play Console, au minimum en piste de test interne ;
@@ -28,7 +28,7 @@ Cet ADR remplace uniquement la partie « paiement simulé avec Google Play Billi
 
 ### Parcours d'achat
 1. POST /me/premium/checkout : le serveur crée un achat en attente pour l'utilisateur connecté et renvoie un jeton d'achat aléatoire, valable quelques minutes.
-2. L'application affiche une feuille de paiement simulée, clairement marquée « Paiement simulé, aucun débit ». Elle rappelle l'offre et le prix de 4,99 €/mois, avec un bouton Confirmer.
+2. L'application affiche une feuille de paiement simulée, clairement marquée « Paiement simulé, aucun débit ». Elle rappelle l'offre et le prix de 4,99 € pour un mois, sans renouvellement automatique, avec un bouton Confirmer.
 3. POST /me/premium/subscribe avec ce jeton : le serveur vérifie que le jeton existe, appartient à l'utilisateur, n'a pas expiré et n'a pas déjà servi. Si c'est le cas, il crée un PREMIUM_SUBSCRIPTION actif pour un mois et enregistre le jeton dans purchaseToken (unique).
 
 ### Gestion de l'abonnement
@@ -37,7 +37,7 @@ Cet ADR remplace uniquement la partie « paiement simulé avec Google Play Billi
 
 ### Ce qui ne change pas
 Restent valables, comme décidé par ADR-007 :
-- le contenu de l'offre : abonnement mensuel au prix fictif de 4,99 €, sans publicité, vidéos exclusives, lecture en arrière-plan ;
+- le contenu de l'offre : 4,99 € pour un mois, sans renouvellement automatique, sans publicité, vidéos exclusives, lecture en arrière-plan ;
 - la publicité simulée avant la lecture pour les comptes gratuits ;
 - le statut Premium stocké côté serveur dans PREMIUM_SUBSCRIPTION, à ne pas confondre avec FOLLOW ;
 - les vidéos exclusives marquées depuis le back-office via VIDEO.isPremium ;
@@ -66,3 +66,4 @@ Restent valables, comme décidé par ADR-007 :
 - [ADR-006](ADR-006-analytics-posthog.md) : mesures d'audience et test A/B avec PostHog ; il mesure les conversions et compare deux variantes de l'écran de l'offre payante.
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; c'est son API qui émet et vérifie le jeton d'achat.
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est elle qui affiche la feuille de paiement simulée.
+- [ADR-014](ADR-014-paiement-stripe-mode-test.md) : paiement Premium par Stripe en mode test ; il remplace en grande partie cet ADR. Son adaptateur simulé reste en place comme repli quand STRIPE_SECRET_KEY est absente (mode « simulated » renvoyé par GET /me/premium/config). GET /me/premium et DELETE /me/premium restent valables.

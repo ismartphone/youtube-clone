@@ -39,3 +39,4 @@ Les compteurs transitent par Redis, pour ne pas écrire en base à chaque évén
 ## Liens
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; c'est ce framework qui fournit la passerelle WebSocket.
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est cette application qui doit gérer les reconnexions et l'authentification de la connexion.
+- [ADR-010](ADR-010-websocket-salles-compteurs.md) : authentification, salles par vidéo et diffusion des compteurs sur la connexion WebSocket ; il complète cet ADR (authentification, salles, compteurs, reconnexions) et s'en écarte volontairement : l'envoi des commentaires passe par l'API REST.

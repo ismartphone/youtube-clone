@@ -51,4 +51,6 @@ Deux secrets signent les tokens : JWT_ACCESS_SECRET et JWT_REFRESH_SECRET. Ils s
 ## Liens
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; c'est ce framework qui fournit l'authentification et dont l'API émet et vérifie les tokens.
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est dans cette application que les tokens sont stockés chiffrés et rafraîchis par l'intercepteur OkHttp.
-- [ADR-004](ADR-004-temps-reel-websocket.md) : temps réel par WebSocket ; il laisse à traiter l'authentification de la connexion WebSocket, que cet ADR ne détaille pas.
+- [ADR-004](ADR-004-temps-reel-websocket.md) : temps réel par WebSocket ; il laisse à traiter l'authentification de la connexion WebSocket, qui est traitée par l'ADR-010.
+- [ADR-009](ADR-009-stockage-tokens-backoffice.md) : stockage des tokens du back-office en localStorage ; il précise où le back-office conserve les tokens de cet ADR.
+- [ADR-010](ADR-010-websocket-salles-compteurs.md) : authentification, salles par vidéo et diffusion des compteurs sur la connexion WebSocket ; l'access token de cet ADR y est transmis dans le handshake pour authentifier la connexion WebSocket.

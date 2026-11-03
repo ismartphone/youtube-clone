@@ -21,7 +21,7 @@ Il est versionné dès le premier commit (15 octobre, 9 h 24), avant tout code a
   `PREMIUM_SUBSCRIPTION` (abonnement payant) ; l'accès aux vidéos Premium toujours vérifié côté
   serveur ;
 - **le périmètre** : un socle prioritaire, une suite, et une liste explicite de ce qui est hors
-  périmètre (import depuis le mobile, iOS, live, playlists, notifications…) ;
+  périmètre (iOS, live, playlists, notifications…) ;
 - **les conventions** : langue du code et des commentaires, nommage, un commit par unité de travail,
   et l'obligation de vérifier que le projet compile avant d'annoncer qu'une tâche est terminée.
 
@@ -220,8 +220,13 @@ Le point sortait du périmètre de sa tâche. L'agent l'a signalé et a proposé
 données de démonstration préparées par le seed, voir ADR-011 ». Il ne l'a pas appliquée : il a
 attendu l'accord avant de toucher à un ADR accepté.
 
-**Résultat :** la correction a été validée, mais elle n'a jamais été appliquée. L'ADR-002 contient
-toujours la phrase d'origine. Le cas montre que l'agent s'arrête même quand il a déjà la solution.
+**Résultat :** la correction a été validée, mais elle n'a été appliquée que le 3 novembre à 11 h 33
+(commit `fc46626`), dix-huit jours plus tard. Le cas montre que l'agent s'arrête même quand il a déjà
+la solution.
+
+Le même jour, une relecture d'ensemble des ADR a montré que la phrase corrigée restait fausse : le
+back-office n'envoie aucun fichier, il enregistre une vidéo par son URL ou son chemin. La section a
+alors été réécrite.
 
 ### Arrêt 4 — L'émulateur
 

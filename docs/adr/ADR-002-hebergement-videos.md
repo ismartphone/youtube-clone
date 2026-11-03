@@ -26,7 +26,11 @@ Les vidéos sont servies en MP4 progressif, lu directement par ExoPlayer. Le str
 Requête SQL simple sur le titre de la vidéo et le nom de la chaîne, via Prisma. C'est suffisant pour un catalogue de cette taille, sans moteur de recherche dédié.
 
 ### Origine des vidéos
-Les vidéos proviennent de Pexels et Pixabay, libres de droits pour un usage gratuit. Elles sont téléchargées puis importées dans notre stockage via le back-office, hors données de démonstration préparées par le seed (voir ADR-011).
+Les vidéos proviennent de Pexels, libres de droits pour un usage gratuit.
+
+Le back-office n'envoie aucun fichier. Il enregistre une vidéo par son URL (http ou https) ou par son chemin relatif dans notre stockage (/media/videos/…).
+
+Les fichiers de démonstration sont déposés dans le stockage par le seed (npm run seed:videos, voir ADR-011). Certaines vidéos de démonstration sont référencées par une URL externe.
 
 Le propriétaire d'une chaîne peut aussi publier depuis l'application mobile : le fichier envoyé est écrit dans notre stockage local, selon les règles de l'ADR-015.
 
@@ -45,7 +49,7 @@ Le propriétaire d'une chaîne peut aussi publier depuis l'application mobile : 
 
 ### Négatives
 - Il faut un stockage de fichiers et un CDN au déploiement (Cloudflare R2), en plus du dossier local utilisé en développement.
-- Les vidéos de démonstration sont à fournir nous-mêmes, libres de droits (Pexels, Pixabay) ; le reste du catalogue dépend de ce que publient le back-office et les créateurs depuis l'application (ADR-015).
+- Les vidéos de démonstration sont à fournir nous-mêmes, libres de droits (Pexels) ; le reste du catalogue dépend de ce que publient le back-office et les créateurs depuis l'application (ADR-015).
 - Le contenu est moins riche que le vrai YouTube.
 - Pas d'adaptation de la qualité au débit tant que HLS n'est pas en place.
 - Recherche limitée à une correspondance simple sur le titre et le nom de la chaîne.

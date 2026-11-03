@@ -1,7 +1,7 @@
 # ADR-006 — Mesures d'audience et test A/B avec PostHog
 
 ## Statut
-Accepté
+Accepté, remplacé en partie par l'ADR-013 (données personnelles)
 
 ## Contexte
 Il faut choisir comment mesurer l'audience et mener des tests A/B dans l'application.
@@ -21,7 +21,6 @@ Les événements partent de l'application directement vers PostHog. C'est un cho
 
 ### Événements mesurés
 - Vidéo lancée.
-- Temps de visionnage.
 - Abonnement à une chaîne.
 - Écran de l'offre affiché.
 - Passage en Premium.
@@ -30,7 +29,15 @@ Les événements partent de l'application directement vers PostHog. C'est un cho
 Un seul test est prévu : deux variantes de l'écran de l'offre payante, comparées sur le taux de conversion.
 
 ### RGPD
-Les événements sont anonymes et ne contiennent aucune donnée personnelle. L'utilisateur peut refuser les mesures depuis l'écran d'accueil.
+Cette section est remplacée par l'ADR-013.
+
+Un compte connecté est identifié auprès de PostHog par son seul UUID. Jamais par l'email, le nom affiché ou le handle.
+
+Ses événements sont donc pseudonymes, et non anonymes. Au sens du RGPD, ce sont des données personnelles.
+
+Un visiteur non connecté reste anonyme.
+
+Le refus se fait par l'interrupteur « Partager des statistiques d'usage », dans l'onglet Vous, rubrique Paramètres. Il est activé par défaut. Désactivé, plus aucun événement ne part vers PostHog.
 
 ## Alternatives
 - Firebase Analytics avec Remote Config : avantages, gratuit et très répandu. Inconvénients, deux outils à configurer et des rapports moins souples.
@@ -48,3 +55,4 @@ Les événements sont anonymes et ne contiennent aucune donnée personnelle. L'u
 ## Liens
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est dans cette application qu'est intégrée la bibliothèque Android de PostHog.
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; les événements de mesure ne passent pas par ce backend.
+- [ADR-013](ADR-013-mesures-donnees-personnelles.md) : mesures d'audience et données personnelles ; il remplace la section RGPD de cet ADR. Le reste de cet ADR reste valable.

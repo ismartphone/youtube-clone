@@ -1,6 +1,6 @@
 # Journal de développement
 
-Journal reconstitué à partir de l'historique Git (46 commits) et des ADR de `docs/adr/`. Les heures
+Journal reconstitué à partir de l'historique Git (61 commits) et des ADR de `docs/adr/`. Les heures
 sont celles des commits. S'y ajoutent les arrêts de l'IA, qui ont eu lieu dans les conversations et
 non dans Git : ils sont rapportés par le lead développeur (voir
 [`processus-ia.md`](processus-ia.md#7-les-cas-où-lia-sest-arrêtée)). Une tâche non commitée ou une
@@ -12,7 +12,7 @@ piste abandonnée sans trace écrite n'y figure pas.
 | [Vendredi 16 octobre](#vendredi-16-octobre) | 8 | Animations, FFmpeg et vidéos locales, reprise des écrans d'après les maquettes |
 | [Lundi 19 octobre](#lundi-19-octobre) | 10 | Onglet Vous, historique, Shorts, page de chaîne, bannières, connexion |
 | [Vendredi 23 octobre](#vendredi-23-octobre) | 0 | Arbitrages sur le paiement Premium et les mesures d'audience |
-| [Mardi 3 novembre](#mardi-3-novembre) | 4 | Premium, mesures d'audience, test A/B |
+| [Mardi 3 novembre](#mardi-3-novembre) | 19 | Premium, mesures et test A/B, recherche, Stripe, audit des ADR, publication depuis le mobile |
 
 Aucun commit les 17 et 18 octobre, ni du 20 octobre au 2 novembre.
 
@@ -128,8 +128,10 @@ d'après ces maquettes.
   que l'ADR-002 dit les vidéos Pexels « téléchargées puis importées dans notre stockage via le
   back-office », alors que `seed:videos` les écrit directement dans le stockage. Il propose une
   correction (« hors données de démonstration préparées par le seed, voir ADR-011 ») mais ne
-  l'applique pas et attend l'accord. **Suite :** la correction est validée, mais elle n'a jamais été
-  appliquée. L'ADR-002 contient toujours la phrase d'origine.
+  l'applique pas et attend l'accord. **Suite :** la correction est validée, mais elle n'est appliquée
+  que le 3 novembre à 11 h 33 (commit `fc46626`). Le même jour, une relecture d'ensemble des ADR
+  montre que la phrase reste fausse, puisque le back-office n'envoie aucun fichier : la section est
+  alors réécrite.
 
 ---
 
@@ -198,7 +200,59 @@ d'usage ». Clés lues dans `android/secrets.properties`, exclu du dépôt.
 
 **Test A/B (10 h 55).** Drapeau PostHog `paywall-title` à deux variantes (« Passez à Premium » ou
 « Premium pour 4,99 € par mois »), réparties à 50/50. Hypothèse et métrique dans
-[`docs/ab-test-paywall.md`](ab-test-paywall.md).
+[`docs/ab-test-paywall.md`](ab-test-paywall.md). Chaque événement du paywall porte la variante
+(`paywall_variant`). À 11 h 16, la variante « prix » cesse d'afficher le sous-titre « 4,99 € par
+mois », qui répétait son titre.
+
+**Recherche (11 h 06).** `GET /search?q=` cherche dans les titres de vidéos et les noms de chaînes,
+sans tenir compte de la casse ni des accents (extension PostgreSQL `unaccent`). Côté Android, la
+loupe ouvre l'écran de recherche, qui affiche deux sections (Chaînes, puis Vidéos) et un état vide
+« Aucun résultat pour … ».
+
+**Icône de l'application (11 h 09).** Icône adaptative avec le logo de l'animation d'ouverture,
+version monochrome pour les icônes à thème d'Android 13 et plus.
+
+**Documentation (11 h 11 à 12 h 02).** README, journal et processus IA, en trois commits. L'ADR-002
+est précisé à 11 h 33 (`fc46626`). Les clés Stripe et l'extension `unaccent` sont documentées dans
+le README du backend.
+
+**Paiement Stripe en mode test (11 h 38 à 11 h 57).** L'ADR-014 est accepté à 11 h 38. Le backend
+crée un PaymentIntent de 4,99 €, dont le montant est fixé par le serveur. À la confirmation, il
+relit ce paiement chez Stripe et n'accorde le mois que si le paiement est réglé, au bon montant, par
+l'utilisateur qui appelle. Côté application, « S'abonner » ouvre la PaymentSheet de `stripe-android`.
+`GET /me/premium/config` indique le mode : `stripe`, ou `simulated` quand `STRIPE_SECRET_KEY` est
+absente. Dans ce second cas, l'achat simulé de l'ADR-012 sert de repli. À 12 h 02, une vidéo du
+seed est marquée exclusive, pour que le badge Premium et le paywall se voient sans passer par le
+back-office.
+
+**Audit des ADR.** Relecture d'ensemble des quinze ADR : statuts, chaînes de remplacement, renvois,
+écarts avec le code. Les corrections sont rédigées par le sous-agent `adr-architecte`, après
+validation de chaque point :
+- l'ADR-006 renvoie à l'ADR-013 pour les données personnelles ;
+- l'ADR-012 renvoie à l'ADR-014 ;
+- l'ADR-002 ne dit plus que le back-office importe des fichiers ;
+- le temps de visionnage est retiré des mesures ;
+- le prix est formulé de la même façon partout ;
+- les renvois manquants sont ajoutés ;
+- l'ADR-003 dit ce qui n'a pas été réalisé.
+
+La même relecture vérifie les tests : le dépôt ne contient que les deux tests d'exemple générés par
+Android Studio. Les « 24 tests de bout en bout » sur le temps réel, dont il avait été question,
+n'existent ni dans le dépôt ni dans son historique.
+
+**Publication depuis l'application (13 h 16 à 13 h 48).** L'ADR-015 est accepté à 13 h 16 et
+remplace l'ADR-005. Le `CLAUDE.md` retire l'import mobile du hors-périmètre et ajoute l'entité
+`POST`. À 13 h 20, l'onglet Bibliothèque laisse place au bouton + de la barre d'onglets. Ce bouton
+ouvre une feuille de création à quatre onglets (Vidéo, Short, En direct grisé, Post). À 13 h 48, le
+propriétaire d'une chaîne publie une vidéo ou un Short :
+- la route est `POST /me/videos` ;
+- le fichier fait 200 Mo au plus et est validé par ffprobe ;
+- le nom du fichier est généré par le serveur ;
+- la miniature vient du service FFmpeg existant ;
+- côté Android, la vidéo est choisie par le photo picker, et l'envoi montre une progression réelle
+  et peut être annulé.
+
+Les posts, prévus par l'ADR-015, n'ont pas encore de commit.
 
 ### Problèmes rencontrés et solutions
 
@@ -225,3 +279,24 @@ d'usage ». Clés lues dans `android/secrets.properties`, exclu du dépôt.
   d'école, le test démontre la mise en place, pas un résultat significatif.
 - **Arrêt de l'IA : l'émulateur, de nouveau.** Comme le 19 octobre, l'agent cesse de relancer un
   émulateur qui s'arrête sans explication et demande confirmation.
+- **L'achat simulé n'utilise aucune bibliothèque de paiement.** Le sujet en demande une, et l'ADR-012
+  n'en a pas. **Solution :** l'ADR-014 adopte Stripe en mode test, qui est gratuit et immédiat. Il
+  garde l'achat simulé en repli, pour que la démonstration reste possible sans clé ni réseau.
+- **Les ADR ne disaient plus tous la même chose que le code.** L'audit relève plusieurs écarts. Le
+  plus grave : l'ADR-002 affirmait que les vidéos étaient importées par le back-office, alors que
+  celui-ci n'envoie aucun fichier. **Solution :** chaque écart est corrigé dans l'ADR concerné. Pour
+  les ADR remplacés, on ajoute des renvois et on ne réécrit pas leur texte.
+- **Fait marquant : deux sessions sur les mêmes ADR.** Pendant l'audit, une seconde session
+  rédigeait l'ADR-015. À 13 h 16, elle commite ses propres corrections des ADR-002, 005, 007, 011 et
+  de l'index, alors que les corrections de l'audit, qui portent sur les mêmes fichiers, ne sont pas
+  encore commitées. Une relecture du diff montre qu'aucune ne s'est écrasée : chaque session n'avait
+  remplacé que ses propres phrases. Mais le sens, lui, s'est croisé :
+  - dans l'ADR-002, la phrase de l'audit « Les fichiers sont déposés dans le stockage par le seed »
+    devient fausse à côté de la phrase de l'ADR-015 sur l'envoi depuis le mobile ;
+  - l'audit avait retouché les liens de l'ADR-005, que l'autre session venait de déclarer remplacé
+    et conservé à titre historique.
+
+  **Solution :** la phrase devient « Les fichiers de démonstration… » et passe avant celle sur le
+  mobile. La retouche de l'ADR-005 est annulée. **Leçon :** deux modifications qui ne se gênent pas
+  dans Git peuvent quand même se contredire sur le fond. Seule une relecture du résultat combiné le
+  montre.

@@ -14,7 +14,7 @@ Contraintes :
 Proposer une offre payante « Premium » dans l'application. Le paiement suit le parcours décrit dans l'ADR-014.
 
 ### Contenu de l'offre
-- Un paiement de 4,99 € donne un mois de Premium, sans renouvellement automatique ; aucun débit réel en mode test (voir l'ADR-014).
+- 4,99 € pour un mois, sans renouvellement automatique ; aucun débit réel en mode test (voir l'ADR-014).
 - Sans publicité.
 - Accès aux vidéos exclusives.
 - Lecture en arrière-plan.
@@ -44,7 +44,7 @@ L'accès aux vidéos exclusives est vérifié par l'API, jamais seulement dans l
 
 ### Négatives
 - Aucun débit réel d'argent, à annoncer à l'oral : en mode « stripe », un vrai paiement Stripe en mode test a lieu, sans débit réel (voir l'ADR-014).
-- Un compte Stripe (mode test) est nécessaire pour obtenir les clés.
+- Un compte Stripe en mode test n'est nécessaire que pour le paiement Stripe ; sans clé, le repli simulé de l'ADR-014 prend le relais.
 
 ## Liens
 - [ADR-006](ADR-006-analytics-posthog.md) : mesures d'audience et test A/B avec PostHog ; il mesure le passage en Premium et compare deux variantes de l'écran de l'offre payante sur le taux de conversion.

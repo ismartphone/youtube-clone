@@ -64,7 +64,6 @@ La connexion est ouverte tant que l'écran de lecture est visible, et fermée qu
 - Les événements diffusés pendant une coupure sont perdus : l'application doit relire les compteurs et la première page des commentaires après chaque reconnexion.
 - La colonne `likeCount` en base n'est à jour que toutes les 30 secondes ; les compteurs affichés doivent additionner la valeur en base et les variations en attente dans Redis.
 - N'importe quel client, visiteur compris, peut rejoindre la salle d'une vidéo exclusive. C'est une limite assumée : il n'y a pas de fuite, puisque les événements diffusés ne contiennent jamais l'URL de la vidéo.
-- Les « j'aime » des Shorts ne sont pas encore branchés : seul l'écran de lecture les gère.
 - Écart volontaire avec ADR-004 : ses conséquences indiquent que le client envoie ses commentaires et reçoit ceux des autres sur la même connexion ; ici, l'envoi passe par l'API REST et la connexion WebSocket ne sert qu'à recevoir. Cet écart affaiblit l'argument de ADR-004 contre les Server-Sent Events, écartés parce qu'ils ne permettent pas d'envoyer un commentaire.
 
 ## Liens
