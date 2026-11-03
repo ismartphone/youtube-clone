@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,17 +61,17 @@ import kotlinx.coroutines.withContext
 
 /**
  * Publication d'une vidéo choisie dans la galerie : aperçu, titre, description, catégorie, puis
- * envoi avec sa progression. [onClose] annule un envoi en cours ; [onPublished] ouvre la chaîne.
+ * envoi avec sa progression. [onClose] annule un envoi en cours ; [onPublished] ferme l'écran.
  */
 @Composable
 fun PublishVideoScreen(
     onClose: () -> Unit,
-    onPublished: (channelId: String) -> Unit,
+    onPublished: () -> Unit,
     viewModel: PublishVideoViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(state.publishedChannelId) {
-        state.publishedChannelId?.let(onPublished)
+    LaunchedEffect(state.isPublished) {
+        if (state.isPublished) onPublished()
     }
     PublishVideoContent(
         state = state,
@@ -78,6 +79,7 @@ fun PublishVideoScreen(
         onTitleChange = viewModel::onTitleChange,
         onDescriptionChange = viewModel::onDescriptionChange,
         onCategorySelected = viewModel::onCategorySelected,
+        onRetryCategories = viewModel::loadCategories,
         onPublish = viewModel::publish,
         onCancel = viewModel::cancel,
     )
@@ -89,7 +91,8 @@ private fun PublishVideoContent(
     onClose: () -> Unit,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-    onCategorySelected: (String?) -> Unit,
+    onCategorySelected: (String) -> Unit,
+    onRetryCategories: () -> Unit,
     onPublish: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -135,11 +138,23 @@ private fun PublishVideoContent(
                 value = state.description,
                 onValueChange = onDescriptionChange,
                 label = { Text(stringResource(R.string.publish_description_label)) },
+                supportingText = { Text("${state.description.length} / $DESCRIPTION_MAX_LENGTH") },
                 minLines = 3,
                 enabled = editable,
                 modifier = Modifier.fillMaxWidth(),
             )
             CategoryField(state = state, enabled = editable, onCategorySelected = onCategorySelected)
+            if (state.categoriesFailed) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.publish_categories_failed),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onRetryCategories) { Text(stringResource(R.string.retry)) }
+                }
+            }
             state.message?.let { message ->
                 Text(
                     text = message.asText(),
@@ -219,11 +234,10 @@ private fun firstFrame(context: Context, uri: String): Bitmap? {
 private fun CategoryField(
     state: PublishVideoUiState,
     enabled: Boolean,
-    onCategorySelected: (String?) -> Unit,
+    onCategorySelected: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val none = stringResource(R.string.publish_category_none)
-    val selectedName = state.categories.firstOrNull { it.id == state.categoryId }?.name ?: none
+    val selectedName = state.categories.firstOrNull { it.id == state.categoryId }?.name.orEmpty()
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { if (enabled) expanded = it },
@@ -234,19 +248,13 @@ private fun CategoryField(
             readOnly = true,
             enabled = enabled,
             label = { Text(stringResource(R.string.publish_category_label)) },
+            placeholder = { Text(stringResource(R.string.publish_category_placeholder)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            DropdownMenuItem(
-                text = { Text(none) },
-                onClick = {
-                    onCategorySelected(null)
-                    expanded = false
-                },
-            )
             state.categories.forEach { category ->
                 DropdownMenuItem(
                     text = { Text(category.name) },

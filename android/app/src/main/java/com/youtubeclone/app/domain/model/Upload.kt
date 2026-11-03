@@ -39,7 +39,7 @@ data class VideoUpload(
     val format: VideoFormat,
     val title: String,
     val description: String?,
-    val categoryId: String?,
+    val categoryId: String,
 )
 
 /** Avancement d'un envoi : octets envoyés, puis vidéo publiée. */

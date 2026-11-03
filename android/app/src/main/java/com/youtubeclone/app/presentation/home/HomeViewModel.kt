@@ -9,6 +9,7 @@ import com.youtubeclone.app.domain.usecase.GetCategoriesUseCase
 import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
 import com.youtubeclone.app.domain.usecase.GetHomeFeedUseCase
 import com.youtubeclone.app.domain.usecase.ObserveInterestsUseCase
+import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -42,6 +43,7 @@ class HomeViewModel @Inject constructor(
     private val getCurrentUser: GetCurrentUserUseCase,
     observeInterests: ObserveInterestsUseCase,
     observeSession: ObserveSessionUseCase,
+    observePublications: ObservePublicationsUseCase,
     private val firstScreenReadiness: FirstScreenReadiness,
 ) : ViewModel() {
 
@@ -65,6 +67,10 @@ class HomeViewModel @Inject constructor(
         }
         viewModelScope.launch {
             observeSession().collect { loggedIn -> loadAccount(loggedIn) }
+        }
+        // Vidéo publiée depuis l'application : le fil la montre dès le retour sur l'accueil.
+        viewModelScope.launch {
+            observePublications().collect { load() }
         }
         loadCategories()
     }

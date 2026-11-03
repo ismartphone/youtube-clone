@@ -47,7 +47,7 @@ export interface ChannelOwnership {
 export interface UploadDetails {
   title: string;
   description: string | null;
-  categoryId: string | null;
+  categoryId: string;
   format: VideoFormat;
 }
 

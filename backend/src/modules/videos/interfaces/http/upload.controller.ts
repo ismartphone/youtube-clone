@@ -60,25 +60,26 @@ const trimOrNull = ({ value }: { value: unknown }) => {
   return value.trim() === '' ? null : value.trim();
 };
 
-// Champs texte de l'envoi multipart, à côté du fichier (champ « file »).
+// Champs texte de l'envoi multipart, à côté du fichier (champ « file »). Description plus
+// courte que depuis le back-office (1000 caractères contre 5000), et catégorie obligatoire.
 export class UploadVideoBody {
   @Transform(trim)
   @IsString()
-  @Length(1, 100)
+  @Length(1, 100, { message: 'Le titre doit faire entre 1 et 100 caractères.' })
   title: string;
 
   @IsOptional()
   @Transform(trimOrNull)
   @IsString()
-  @MaxLength(5000)
+  @MaxLength(1000, {
+    message: 'La description fait 1000 caractères au plus.',
+  })
   description: string | null = null;
 
-  @IsOptional()
-  @Transform(trimOrNull)
-  @IsUUID()
-  categoryId: string | null = null;
+  @IsUUID(undefined, { message: 'Choisissez une catégorie.' })
+  categoryId: string;
 
-  @IsIn(VIDEO_FORMATS)
+  @IsIn(VIDEO_FORMATS, { message: 'Le format doit être SHORT ou LONG.' })
   format: VideoFormat;
 }
 

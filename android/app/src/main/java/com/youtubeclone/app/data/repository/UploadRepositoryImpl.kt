@@ -9,6 +9,7 @@ import com.youtubeclone.app.data.remote.UploadApi
 import com.youtubeclone.app.data.remote.apiCall
 import com.youtubeclone.app.data.remote.dto.toDomain
 import com.youtubeclone.app.domain.model.PickedVideo
+import com.youtubeclone.app.domain.model.Publication
 import com.youtubeclone.app.domain.model.UploadProgress
 import com.youtubeclone.app.domain.model.VideoUpload
 import com.youtubeclone.app.domain.repository.UploadRepository
@@ -29,6 +30,7 @@ class UploadRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val api: UploadApi,
     private val json: Json,
+    private val publicationFeed: InMemoryPublicationFeed,
 ) : UploadRepository {
 
     override suspend fun inspect(uri: String): PickedVideo? = withContext(Dispatchers.IO) {
@@ -74,11 +76,13 @@ class UploadRepositoryImpl @Inject constructor(
                 file = file,
                 title = upload.title.toTextPart(),
                 description = upload.description?.toTextPart(),
-                categoryId = upload.categoryId?.toTextPart(),
+                categoryId = upload.categoryId.toTextPart(),
                 format = upload.format.name.toTextPart(),
             )
         }
-        send(UploadProgress.Published(detail.toDomain().video))
+        val video = detail.toDomain().video
+        publicationFeed.announce(Publication.VideoPublished(video))
+        send(UploadProgress.Published(video))
     }
         // L'écran n'a besoin que du dernier avancement : les étapes intermédiaires sont sautées.
         .conflate()

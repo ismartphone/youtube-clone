@@ -8,6 +8,7 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
+import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
 import com.youtubeclone.app.presentation.common.UiError
@@ -35,6 +36,7 @@ class ChannelViewModel @Inject constructor(
     observeSession: ObserveSessionUseCase,
     setFollowing: SetFollowingUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
+    observePublications: ObservePublicationsUseCase,
 ) : ViewModel() {
 
     private val channelId = savedStateHandle.toRoute<ChannelRoute>().channelId
@@ -56,6 +58,10 @@ class ChannelViewModel @Inject constructor(
                 _isLoggedIn.value = loggedIn
                 load()
             }
+        }
+        // Contenu publié sur cette chaîne depuis l'application : la page le montre aussitôt.
+        viewModelScope.launch {
+            observePublications().collect { if (it.channelId == channelId) load() }
         }
     }
 

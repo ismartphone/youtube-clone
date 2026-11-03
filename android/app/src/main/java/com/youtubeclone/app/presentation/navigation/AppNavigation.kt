@@ -50,6 +50,7 @@ import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.create.CreateSheet
 import com.youtubeclone.app.presentation.create.PublishVideoScreen
+import com.youtubeclone.app.presentation.create.PublishedBanner
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
 import com.youtubeclone.app.presentation.premium.PaywallScreen
@@ -129,9 +130,9 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
     val transitions = remember(reduceMotion) {
         NavTransitions(tabRoutes = Tab.entries.map { it.routeClass }, reduceMotion = reduceMotion)
     }
-    // Un seul exemplaire de chaque onglet, état conservé entre les onglets.
     // Feuille de création du bouton + (ADR-015), ouverte par-dessus l'onglet courant.
     var showCreateSheet by rememberSaveable { mutableStateOf(false) }
+    // Un seul exemplaire de chaque onglet, état conservé entre les onglets.
     val openTab = { route: Any ->
         navController.navigate(route) {
             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -279,17 +280,22 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             composable<PublishVideoRoute> {
                 PublishVideoScreen(
                     onClose = { navController.popBackStack() },
-                    // La chaîne s'ouvre à la place de l'écran de publication, avec la nouvelle vidéo.
-                    onPublished = { channelId ->
-                        navController.navigate(ChannelRoute(channelId)) {
-                            popUpTo<PublishVideoRoute> { inclusive = true }
-                        }
-                    },
+                    // Retour à l'écran d'où le créateur était parti, où s'affiche la confirmation.
+                    onPublished = { navController.popBackStack() },
                 )
             }
             composable<InterestsRoute> {
                 InterestsScreen(onSaved = { navController.popBackStack() })
             }
+        }
+        // Confirmation d'une publication, par-dessus l'écran d'où le créateur était parti.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            PublishedBanner()
         }
     }
 }

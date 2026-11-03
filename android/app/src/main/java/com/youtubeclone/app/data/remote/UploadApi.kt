@@ -19,7 +19,7 @@ interface UploadApi {
         @Part file: MultipartBody.Part,
         @Part("title") title: RequestBody,
         @Part("description") description: RequestBody?,
-        @Part("categoryId") categoryId: RequestBody?,
+        @Part("categoryId") categoryId: RequestBody,
         @Part("format") format: RequestBody,
     ): VideoDetailDto
 }

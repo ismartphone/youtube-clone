@@ -24,9 +24,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// Bornes du serveur pour le titre et la description.
+// Bornes de la route d'envoi pour le titre et la description.
 const val TITLE_MAX_LENGTH = 100
-const val DESCRIPTION_MAX_LENGTH = 5000
+const val DESCRIPTION_MAX_LENGTH = 1000
 
 data class PublishVideoUiState(
     val uri: String,
@@ -35,15 +35,18 @@ data class PublishVideoUiState(
     val description: String = "",
     val categories: List<Category> = emptyList(),
     val categoryId: String? = null,
+    /** La liste des catégories n'a pas pu être lue : l'écran propose de réessayer. */
+    val categoriesFailed: Boolean = false,
     val isUploading: Boolean = false,
     /** Part envoyée, de 0 à 1 ; null tant qu'elle n'est pas connue (taille du fichier inconnue). */
     val progress: Float? = null,
     /** Dernier échec, ou annulation : affiché sous le formulaire. */
     val message: UiError? = null,
-    /** Chaîne de la vidéo publiée : l'écran s'ouvre sur elle. */
-    val publishedChannelId: String? = null,
+    /** La vidéo est publiée : l'écran se ferme, la confirmation s'affiche sur l'écran précédent. */
+    val isPublished: Boolean = false,
 ) {
-    val canPublish: Boolean get() = title.isNotBlank() && !isUploading
+    /** Titre et catégorie sont obligatoires. */
+    val canPublish: Boolean get() = title.isNotBlank() && categoryId != null && !isUploading
 }
 
 /** Écran de publication d'une vidéo ou d'un Short choisi dans la galerie (ADR-015). */
@@ -64,7 +67,12 @@ class PublishVideoViewModel @Inject constructor(
     private var uploadJob: Job? = null
 
     init {
-        // Catégorie facultative : sans la liste, la vidéo est publiée sans catégorie.
+        loadCategories()
+    }
+
+    /** Liste des catégories, obligatoire pour publier ; rechargée à la demande après un échec. */
+    fun loadCategories() {
+        _uiState.update { it.copy(categoriesFailed = false) }
         viewModelScope.launch {
             try {
                 val categories = getCategories()
@@ -72,6 +80,7 @@ class PublishVideoViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
+                _uiState.update { it.copy(categoriesFailed = true) }
             }
         }
     }
@@ -84,7 +93,7 @@ class PublishVideoViewModel @Inject constructor(
         _uiState.update { it.copy(description = value.take(DESCRIPTION_MAX_LENGTH)) }
     }
 
-    fun onCategorySelected(categoryId: String?) {
+    fun onCategorySelected(categoryId: String) {
         _uiState.update { it.copy(categoryId = categoryId) }
     }
 
@@ -92,12 +101,13 @@ class PublishVideoViewModel @Inject constructor(
         val state = _uiState.value
         if (!state.canPublish) return
         _uiState.update { it.copy(isUploading = true, progress = 0f, message = null) }
+        val categoryId = state.categoryId ?: return
         val upload = VideoUpload(
             uri = state.uri,
             format = state.format,
             title = state.title.trim(),
             description = state.description.trim().ifEmpty { null },
-            categoryId = state.categoryId,
+            categoryId = categoryId,
         )
         uploadJob = viewModelScope.launch {
             try {
@@ -107,7 +117,7 @@ class PublishVideoViewModel @Inject constructor(
                             it.copy(progress = progress.fraction())
                         }
                         is UploadProgress.Published -> _uiState.update {
-                            it.copy(isUploading = false, publishedChannelId = progress.video.channel.id)
+                            it.copy(isUploading = false, isPublished = true)
                         }
                     }
                 }

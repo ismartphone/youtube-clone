@@ -17,6 +17,7 @@ import com.youtubeclone.app.data.remote.VideoApi
 import com.youtubeclone.app.data.repository.AuthRepositoryImpl
 import com.youtubeclone.app.data.repository.CategoryRepositoryImpl
 import com.youtubeclone.app.data.repository.ChannelRepositoryImpl
+import com.youtubeclone.app.data.repository.InMemoryPublicationFeed
 import com.youtubeclone.app.data.repository.CommentRepositoryImpl
 import com.youtubeclone.app.data.repository.PreferencesRepositoryImpl
 import com.youtubeclone.app.data.repository.PremiumRepositoryImpl
@@ -32,6 +33,7 @@ import com.youtubeclone.app.domain.repository.CommentRepository
 import com.youtubeclone.app.domain.repository.LiveVideoRepository
 import com.youtubeclone.app.domain.repository.PreferencesRepository
 import com.youtubeclone.app.domain.repository.PremiumRepository
+import com.youtubeclone.app.domain.repository.PublicationFeed
 import com.youtubeclone.app.domain.repository.SearchRepository
 import com.youtubeclone.app.domain.repository.UploadRepository
 import com.youtubeclone.app.domain.repository.VideoRepository
@@ -172,6 +174,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindUploadRepository(impl: UploadRepositoryImpl): UploadRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPublicationFeed(impl: InMemoryPublicationFeed): PublicationFeed
 
     @Binds
     @Singleton
