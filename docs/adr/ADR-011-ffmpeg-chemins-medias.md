@@ -4,9 +4,9 @@
 Accepté
 
 ## Contexte
-Le back-office publie les vidéos (ADR-005), qui sont hébergées sur notre propre backend (ADR-002). Deux besoins apparaissent.
+Le back-office et l'application mobile (propriétaire d'une chaîne) publient les vidéos (ADR-015), qui sont hébergées sur notre propre backend (ADR-002). Deux besoins apparaissent.
 
-D'abord, une vidéo doit avoir une miniature, y compris quand l'administrateur n'en fournit pas, et les vidéos de démonstration du seed doivent être préparées (téléchargement, vérification, réencodage). Ces deux traitements demandent FFmpeg. Il faut choisir comment le backend l'obtient, et comment il se comporte s'il est absent.
+D'abord, une vidéo doit avoir une miniature, y compris quand l'administrateur ou le créateur n'en fournit pas, les vidéos de démonstration du seed doivent être préparées (téléchargement, vérification, réencodage), et les fichiers envoyés depuis l'application (vidéos, images des posts) doivent être validés. Ces traitements demandent FFmpeg. Il faut choisir comment le backend l'obtient, et comment il se comporte s'il est absent.
 
 Ensuite, il faut choisir comment enregistrer en base l'adresse des fichiers hébergés chez nous (miniatures générées, vidéos du stockage local).
 
@@ -20,18 +20,19 @@ Contraintes :
 ### FFmpeg, dépendance système du backend
 FFmpeg est installé à part, et non comme paquet npm : par exemple `winget install Gyan.FFmpeg` sous Windows, et installé dans l'image au déploiement. Le serveur appelle la commande `ffmpeg` du PATH, surchargeable par la variable FFMPEG_PATH, et `ffprobe`, surchargeable par FFPROBE_PATH.
 
-FFmpeg sert à deux usages :
-- générer les miniatures : une image extraite à 10 % de la durée, recadrée en 1280x720 (720x1280 pour un Short) et enregistrée en JPEG dans le stockage local. La génération a lieu quand une vidéo est créée ou modifiée sans miniature depuis le back-office, par le bouton « Régénérer la miniature » et par la commande `npm run thumbnails:regenerate` ;
-- préparer les vidéos de démonstration du seed, avec la commande `npm run seed:videos` : téléchargement depuis Pexels, vérification par ffprobe et réencodage en 720p.
+FFmpeg sert à trois usages :
+- générer les miniatures : une image extraite à 10 % de la durée, recadrée en 1280x720 (720x1280 pour un Short) et enregistrée en JPEG dans le stockage local. La génération a lieu quand une vidéo est créée ou modifiée sans miniature depuis le back-office, quand une vidéo est envoyée depuis l'application mobile (le même service est réutilisé tel quel, voir l'ADR-015), par le bouton « Régénérer la miniature » et par la commande `npm run thumbnails:regenerate` ;
+- préparer les vidéos de démonstration du seed, avec la commande `npm run seed:videos` : téléchargement depuis Pexels, vérification par ffprobe et réencodage en 720p ;
+- valider par ffprobe les fichiers envoyés depuis l'application mobile : les vidéos et les Shorts, et l'image facultative d'un post. La validation ne se fie jamais à l'extension ni au type MIME annoncé par le client (ADR-015).
 
 Ce réencodage est une préparation hors ligne de données de démonstration. Il est distinct de l'absence de transcodage à l'exécution posée par l'ADR-002, où le serveur sert les fichiers tels quels : l'ADR-002 n'est donc pas contredit.
 
-La commande `seed:videos` prépare des données de démonstration et n'est pas un chemin d'entrée au catalogue. Aucune route exposée ne permet d'envoyer une vidéo : l'ADR-005 n'est donc pas contredit.
+La commande `seed:videos` prépare des données de démonstration et n'est pas un chemin d'entrée au catalogue. Le seul envoi de fichier exposé est la route authentifiée de l'application mobile, réservée au propriétaire d'une chaîne, décrite par l'ADR-015.
 
 ### Absence de FFmpeg
-Si FFmpeg est absent au démarrage, le serveur démarre quand même et écrit une erreur explicite dans les journaux. Seule la génération de miniatures est refusée, avec une réponse 503 et un message clair.
+Si FFmpeg ou ffprobe est absent au démarrage, le serveur démarre quand même et écrit une erreur explicite dans les journaux. Seuls les traitements qui en dépendent sont refusés, avec une réponse 503 et un message clair : la génération de miniatures et l'envoi de fichiers depuis l'application mobile (ADR-015).
 
-Ce choix évite de bloquer l'application mobile pour un outil qui ne sert qu'au back-office.
+Ce choix évite de rendre toute l'API indisponible pour un outil qui ne sert qu'à ces traitements : la lecture des vidéos et le reste de l'application mobile continuent de fonctionner.
 
 ### Chemins relatifs pour les fichiers hébergés chez nous
 Les fichiers hébergés chez nous sont enregistrés en base avec un chemin relatif, par exemple `/media/thumbnails/<uuid>.jpg` ou `/media/videos/<nom>.mp4`. Le backend les sert en statique sous `/media`.
@@ -57,7 +58,7 @@ Ce choix vient de ce qu'en développement l'émulateur et le navigateur ne joign
 ## Conséquences
 ### Positives
 - Pas de binaire lourd téléchargé à chaque installation de npm.
-- L'API et l'application mobile restent disponibles même si FFmpeg n'est pas installé ; seule la génération de miniatures est refusée, avec un message clair.
+- L'API et l'application mobile restent disponibles même si FFmpeg n'est pas installé ; seuls la génération de miniatures et l'envoi de fichiers depuis l'application sont refusés, avec un message clair.
 - Une vidéo publiée sans miniature en reçoit une automatiquement.
 - Les fichiers hébergés chez nous s'affichent à la fois dans l'émulateur et dans le navigateur du back-office.
 - Les URL complètes, dont celles du futur CDN Cloudflare R2, restent possibles sans changement.
@@ -71,7 +72,8 @@ Ce choix vient de ce qu'en développement l'émulateur et le navigateur ne joign
 
 ## Liens
 - [ADR-002](ADR-002-hebergement-videos.md) : hébergement des vidéos sur notre propre backend ; c'est ce stockage, dossier local en développement puis Cloudflare R2 avec CDN au déploiement, qui contient les fichiers dont cet ADR fixe l'adresse en base, et dont les vidéos viennent de Pexels. Le réencodage du seed est une préparation hors ligne, qui ne contredit pas l'absence de transcodage à l'exécution posée par cet ADR.
-- [ADR-005](ADR-005-ajout-videos-backoffice.md) : ajout des vidéos uniquement depuis le back-office ; c'est à la création ou à la modification d'une vidéo depuis le back-office que la miniature est générée. La commande `npm run seed:videos` prépare des données de démonstration et n'ouvre pas d'autre entrée au catalogue.
+- [ADR-015](ADR-015-publication-depuis-mobile.md) : publication de vidéos, de Shorts et de posts depuis l'application mobile ; il remplace l'ADR-005, réutilise tel quel le service de miniatures, confie à ffprobe la validation des vidéos envoyées et des images des posts, et refuse l'envoi en 503 sans FFmpeg. La commande `npm run seed:videos` prépare des données de démonstration et n'ouvre pas d'autre entrée au catalogue.
+- [ADR-005](ADR-005-ajout-videos-backoffice.md) : ajout des vidéos uniquement depuis le back-office ; remplacé par l'ADR-015. La génération de miniatures à la création ou à la modification d'une vidéo depuis le back-office reste valable.
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS ; c'est ce backend qui appelle FFmpeg et sert les fichiers en statique sous `/media`.
 - [ADR-009](ADR-009-stockage-tokens-backoffice.md) : stockage des tokens du back-office ; c'est cet ADR qui définit le relais `/api` de Next.js, par lequel le back-office complète les chemins relatifs.
 - [ADR-001](ADR-001-android-natif.md) : application native Android (Kotlin + Jetpack Compose) ; c'est cette application qui complète les chemins relatifs avec son adresse d'API.

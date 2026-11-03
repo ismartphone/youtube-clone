@@ -1,7 +1,9 @@
 # ADR-005 — Ajout des vidéos uniquement depuis le back-office
 
+> **Remplacé par l'[ADR-015](ADR-015-publication-depuis-mobile.md)** (publication de vidéos, de Shorts et de posts depuis l'application mobile). Le texte ci-dessous est conservé à titre historique : l'application mobile n'est plus en lecture seule sur les vidéos, et la publication depuis le back-office continue de fonctionner.
+
 ## Statut
-Accepté
+Remplacé par l'ADR-015
 
 ## Contexte
 Il faut choisir par où les vidéos entrent dans le catalogue.

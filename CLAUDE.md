@@ -43,7 +43,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 ## Modèle de données
 
-`USER` · `CHANNEL` · `VIDEO` · `CATEGORY` · `COMMENT` · `LIKE` · `FOLLOW` · `PREMIUM_SUBSCRIPTION` · `WATCH_HISTORY`
+`USER` · `CHANNEL` · `VIDEO` · `CATEGORY` · `COMMENT` · `LIKE` · `FOLLOW` · `PREMIUM_SUBSCRIPTION` · `WATCH_HISTORY` · `POST`
 
 - `FOLLOW` = abonnement **gratuit** à une chaîne. `PREMIUM_SUBSCRIPTION` = abonnement **payant**. Ne jamais confondre les deux.
 - `VIDEO.format` vaut `SHORT` ou `LONG` : Shorts et vidéos classiques partagent la même table.
@@ -56,7 +56,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 **Ensuite** — « j'aime », commentaires en temps réel, offre payante, mesures et test A/B, recherche, historique.
 
-**Hors périmètre** — import depuis l'application mobile (le back-office seul publie les vidéos), version iOS, live, monétisation des créateurs, mot de passe oublié, tendances, mini-lecteur, signalement, notifications, playlists, « à regarder plus tard ».
+**Hors périmètre** — version iOS, live, monétisation des créateurs, mot de passe oublié, tendances, mini-lecteur, signalement, notifications, playlists, « à regarder plus tard ».
 
 ## Conventions
 
