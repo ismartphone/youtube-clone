@@ -2,12 +2,21 @@
 // Le script vide d'abord les tables : ne jamais l'exécuter sur une base de production.
 import 'dotenv/config';
 import * as argon2 from 'argon2';
+import { randomBytes } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   PrismaClient,
   Role,
   VideoFormat,
 } from '../src/generated/prisma/client.js';
+import {
+  CC_CREATORS,
+  CC_VIDEOS,
+  ccAvatarUrl,
+  ccHandle,
+  ccOwnerEmail,
+  ccVideoUrl,
+} from './cc-videos.js';
 import { seedBannerUrl } from './seed-banners.js';
 import { LOCAL_SEED_VIDEOS, localVideoUrl } from './seed-videos.js';
 
@@ -51,11 +60,22 @@ async function main() {
     prisma.user.deleteMany(),
   ]);
 
-  const [animation, nature, voyage] = await Promise.all(
-    ['Animation', 'Nature', 'Voyage'].map((name) =>
-      prisma.category.create({ data: { name } }),
-    ),
-  );
+  const [animation, nature, voyage, gaming, documentaire, musique] =
+    await Promise.all(
+      [
+        'Animation',
+        'Nature',
+        'Voyage',
+        'Gaming',
+        'Documentaire',
+        'Musique',
+      ].map((name) => prisma.category.create({ data: { name } })),
+    );
+  const ccCategories = {
+    Gaming: gaming.id,
+    Documentaire: documentaire.id,
+    Musique: musique.id,
+  };
 
   const studio = await prisma.user.create({
     data: {
@@ -229,8 +249,47 @@ async function main() {
     })),
   });
 
+  // Vidéos Creative Commons (cc-videos.ts) : une chaîne par créateur, avec un compte propriétaire
+  // technique (mot de passe aléatoire). Les fichiers cc-*.mp4 sont fournis à la main ; sur un clone
+  // neuf ils manquent, et ces entrées n'ont pas de fichier (voir docs/sources-videos.md).
+  // « npm run seed:cc-videos » génère ensuite les avatars et remplace les miniatures provisoires.
+  const ccChannelIds = new Map<string, string>();
+  for (const creator of CC_CREATORS) {
+    const owner = await prisma.user.create({
+      data: {
+        email: ccOwnerEmail(creator),
+        passwordHash: await argon2.hash(randomBytes(32).toString('hex'), {
+          type: argon2.argon2id,
+        }),
+        displayName: creator.name,
+        role: Role.CREATOR,
+        channel: {
+          create: {
+            name: creator.name,
+            handle: ccHandle(creator),
+            avatarUrl: ccAvatarUrl(creator),
+          },
+        },
+      },
+      include: { channel: true },
+    });
+    ccChannelIds.set(creator.name, owner.channel!.id);
+  }
+  await prisma.video.createMany({
+    data: CC_VIDEOS.map((video, index) => ({
+      channelId: ccChannelIds.get(video.creator.name)!,
+      categoryId: ccCategories[video.category],
+      title: video.title,
+      videoUrl: ccVideoUrl(video),
+      thumbnailUrl: thumbnail(video.title, video.format),
+      durationSeconds: video.durationSeconds,
+      format: VideoFormat[video.format],
+      publishedAt: daysAgo(index + 1),
+    })),
+  });
+
   console.log(
-    `Seed terminé : 3 catégories, 4 utilisateurs, 2 chaînes, ${follows.length} abonnements, ${videos.length} vidéos.`,
+    `Seed terminé : 6 catégories, ${4 + CC_CREATORS.length} utilisateurs, ${2 + CC_CREATORS.length} chaînes, ${follows.length} abonnements, ${videos.length + CC_VIDEOS.length} vidéos.`,
   );
 }
 

@@ -178,6 +178,14 @@ dans le back-office ou déjà générée est gardée. Une vidéo en échec est s
 Une vidéo ou une bannière déjà présente est gardée ; `--force` refait tout
 (`npm run seed:videos -- --force`).
 
+**Les sept vidéos Creative Commons font exception.** Contrairement aux vidéos Pexels, `cc-01.mp4`
+à `cc-07.mp4` ne peuvent pas être retéléchargées par un script : elles ont été déposées à la main
+dans `backend/storage/media/videos/`. Sur un clone neuf, elles sont absentes, et les entrées que le
+seed crée pour elles n'ont pas de fichier. Deux possibilités : fournir les fichiers à la main puis
+lancer `npm run seed:cc-videos` (avatars et vraies miniatures), ou se passer de ces vidéos et ne
+pas lancer cette commande. Le détail, et l'attribution que leur licence impose, sont dans
+[docs/sources-videos.md](docs/sources-videos.md).
+
 ### 6. Lancer les trois projets
 
 Chaque projet dans son propre terminal.

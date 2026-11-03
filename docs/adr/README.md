@@ -19,3 +19,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-013](ADR-013-mesures-donnees-personnelles.md) | Mesures d'audience et données personnelles | Accepté |
 | [ADR-014](ADR-014-paiement-stripe-mode-test.md) | Paiement Premium par Stripe en mode test | Accepté |
 | [ADR-015](ADR-015-publication-depuis-mobile.md) | Publication de vidéos, de Shorts et de posts depuis l'application mobile | Accepté |
+| [ADR-016](ADR-016-reglages-publication-video.md) | Réglages de publication d'une vidéo : visibilité et commentaires | Proposé |

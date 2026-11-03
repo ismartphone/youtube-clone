@@ -181,11 +181,34 @@ concernés commencent par « Reprend ».
 Ces captures viennent de Mobbin et ne doivent pas être redistribuées : elles restent sur le poste,
 exclues du dépôt, et seul leur index est versionné.
 
+### Cas 8 — Deux sessions sur les mêmes ADR
+
+Le 3 novembre, deux sessions travaillent en parallèle sur les ADR. La première fait un audit
+d'ensemble et ses corrections sont rédigées par `adr-architecte`. La seconde rédige l'ADR-015. À
+13 h 16, la seconde commite ses propres corrections des ADR-002, 005, 007, 011 et de l'index. Les
+corrections de l'audit, qui portent sur les mêmes fichiers, ne sont pas encore commitées.
+
+Une relecture du diff montre qu'aucune modification n'en a écrasé une autre, puisque chaque session
+n'avait remplacé que ses propres phrases. Mais le sens s'est croisé :
+- dans l'ADR-002, la phrase de l'audit « Les fichiers sont déposés dans le stockage par le seed »
+  devient fausse à côté de la phrase de l'ADR-015 sur l'envoi depuis le mobile ;
+- l'audit a retouché les liens de l'ADR-005, que l'autre session venait de déclarer remplacé et
+  conservé à titre historique.
+
+**Reprise :** la phrase devient « Les fichiers de démonstration… » et passe avant celle sur le
+mobile. La retouche de l'ADR-005 est annulée.
+
+**Ce que ça montre :** deux agents qui travaillent en parallèle peuvent produire des modifications
+qui ne se gênent pas dans Git mais qui se contredisent sur le fond. Git ne signale aucun conflit.
+Seule une relecture du résultat combiné le montre.
+
 ### Le périmètre tenu
 
 L'index des maquettes couvre aussi des écrans hors périmètre : playlists, « à regarder plus tard »,
 téléchargements, notifications, création et import. Aucun n'a été réalisé, conformément à la liste
-« Hors périmètre » du `CLAUDE.md`.
+« Hors périmètre » du `CLAUDE.md`, sauf la création : la publication de vidéos et de Shorts depuis
+l'application a été décidée le 3 novembre par l'ADR-015, qui l'a retirée du hors-périmètre avant
+qu'elle soit développée.
 
 ## 7. Les cas où l'IA s'est arrêtée
 
