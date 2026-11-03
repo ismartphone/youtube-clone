@@ -1,3 +1,4 @@
+import type { HlsGenerator, HlsQueue } from '../domain/hls.js';
 import type { VideoCatalog, VideoPatch } from '../domain/catalog.js';
 import type { VideoCounters } from '../domain/counters.js';
 import {
@@ -17,6 +18,8 @@ export class UpdateVideoUseCase {
     private readonly counters: VideoCounters,
     private readonly thumbnails: ThumbnailGenerator,
     private readonly rooms: VideoRoomGuard,
+    private readonly hls: HlsGenerator,
+    private readonly hlsQueue: HlsQueue,
   ) {}
 
   // Renvoie null si la vidéo n'existe pas.
@@ -46,7 +49,13 @@ export class UpdateVideoUseCase {
 
     let video;
     try {
-      video = await this.catalog.update(id, { ...patch, thumbnailUrl });
+      // Autre fichier : l'ancienne échelle HLS ne correspond plus, une nouvelle sera générée.
+      const fileChanged = videoUrl !== current.videoUrl;
+      video = await this.catalog.update(id, {
+        ...patch,
+        thumbnailUrl,
+        ...(fileChanged ? { hlsUrl: null } : {}),
+      });
     } catch (error) {
       if (regenerate) await this.thumbnails.remove(thumbnailUrl);
       throw error;
@@ -59,6 +68,10 @@ export class UpdateVideoUseCase {
     // L'ancienne miniature générée n'est plus référencée.
     if (current.thumbnailUrl !== thumbnailUrl) {
       await this.thumbnails.remove(current.thumbnailUrl);
+    }
+    if (video.videoUrl !== current.videoUrl) {
+      if (current.hlsUrl) await this.hls.remove(current.hlsUrl);
+      this.hlsQueue.enqueue(id);
     }
     // Visibilité changée : les spectateurs qui n'y ont plus droit quittent la salle temps réel,
     // sinon ils continueraient de recevoir commentaires et compteurs (ADR-016).

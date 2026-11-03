@@ -41,6 +41,7 @@ import { ResolveViewerUseCase } from './application/resolve-viewer.use-case.js';
 import { SearchUseCase } from './application/search.use-case.js';
 import { RegenerateThumbnailUseCase } from './application/regenerate-thumbnail.use-case.js';
 import { UpdateVideoUseCase } from './application/update-video.use-case.js';
+import { GenerateHlsUseCase } from './application/generate-hls.use-case.js';
 import { UploadVideoUseCase } from './application/upload-video.use-case.js';
 import {
   CATALOG_STATS,
@@ -55,6 +56,12 @@ import {
   THUMBNAIL_GENERATOR,
   type ThumbnailGenerator,
 } from './domain/thumbnail-generator.js';
+import {
+  HLS_GENERATOR,
+  HLS_QUEUE,
+  type HlsGenerator,
+  type HlsQueue,
+} from './domain/hls.js';
 import { PREMIUM_ACCESS, type PremiumAccess } from './domain/premium-access.js';
 import {
   SEARCH_REPOSITORY,
@@ -81,6 +88,8 @@ import {
   type WatchHistoryRepository,
 } from './domain/watch-history.repository.js';
 import { FfmpegThumbnailGenerator } from './infrastructure/ffmpeg-thumbnail-generator.js';
+import { FfmpegHlsGenerator } from './infrastructure/ffmpeg-hls-generator.js';
+import { InProcessHlsQueue } from './infrastructure/in-process-hls-queue.js';
 import { FfprobeVideoProber } from './infrastructure/ffprobe-video-prober.js';
 import { LocalVideoFileStore } from './infrastructure/local-video-file-store.js';
 import { PrismaChannelOwnership } from './infrastructure/prisma-channel-ownership.js';
@@ -272,14 +281,40 @@ const CATEGORY_USE_CASES = [
           mediaDir: mediaDirectory(),
         }),
     },
+    // Échelle HLS (ADR-017) : générée hors ligne, une vidéo à la fois, en tâche de fond.
+    {
+      provide: HLS_GENERATOR,
+      useFactory: () =>
+        new FfmpegHlsGenerator({
+          ffmpeg: ffmpegCommand(),
+          ffprobe: ffprobeCommand(),
+          mediaDir: mediaDirectory(),
+        }),
+    },
+    {
+      provide: GenerateHlsUseCase,
+      useFactory: (
+        videos: VideoRepository,
+        catalog: VideoCatalog,
+        hls: HlsGenerator,
+      ) => new GenerateHlsUseCase(videos, catalog, hls),
+      inject: [VIDEO_REPOSITORY, VIDEO_CATALOG, HLS_GENERATOR],
+    },
+    {
+      provide: HLS_QUEUE,
+      useFactory: (generateHls: GenerateHlsUseCase) =>
+        new InProcessHlsQueue(generateHls),
+      inject: [GenerateHlsUseCase],
+    },
     {
       provide: CreateVideoUseCase,
       useFactory: (
         catalog: VideoCatalog,
         counters: VideoCounters,
         thumbnails: ThumbnailGenerator,
-      ) => new CreateVideoUseCase(catalog, counters, thumbnails),
-      inject: [VIDEO_CATALOG, VIDEO_COUNTERS, THUMBNAIL_GENERATOR],
+        hlsQueue: HlsQueue,
+      ) => new CreateVideoUseCase(catalog, counters, thumbnails, hlsQueue),
+      inject: [VIDEO_CATALOG, VIDEO_COUNTERS, THUMBNAIL_GENERATOR, HLS_QUEUE],
     },
     // Envoi depuis l'application mobile (ADR-015). ffprobe est cherché au démarrage ;
     // absent, seul l'envoi est refusé.
@@ -319,24 +354,54 @@ const CATEGORY_USE_CASES = [
         counters: VideoCounters,
         thumbnails: ThumbnailGenerator,
         rooms: VideoRoomGuard,
-      ) => new UpdateVideoUseCase(videos, catalog, counters, thumbnails, rooms),
+        hls: HlsGenerator,
+        hlsQueue: HlsQueue,
+      ) =>
+        new UpdateVideoUseCase(
+          videos,
+          catalog,
+          counters,
+          thumbnails,
+          rooms,
+          hls,
+          hlsQueue,
+        ),
       inject: [
         VIDEO_REPOSITORY,
         VIDEO_CATALOG,
         VIDEO_COUNTERS,
         THUMBNAIL_GENERATOR,
         VIDEO_ROOM_GUARD,
+        HLS_GENERATOR,
+        HLS_QUEUE,
       ],
     },
-    ...[DeleteVideoUseCase, RegenerateThumbnailUseCase].map((UseCase) => ({
-      provide: UseCase,
+    {
+      provide: RegenerateThumbnailUseCase,
       useFactory: (
         videos: VideoRepository,
         catalog: VideoCatalog,
         thumbnails: ThumbnailGenerator,
-      ) => new UseCase(videos, catalog, thumbnails),
+      ) => new RegenerateThumbnailUseCase(videos, catalog, thumbnails),
       inject: [VIDEO_REPOSITORY, VIDEO_CATALOG, THUMBNAIL_GENERATOR],
-    })),
+    },
+    {
+      provide: DeleteVideoUseCase,
+      useFactory: (
+        videos: VideoRepository,
+        catalog: VideoCatalog,
+        thumbnails: ThumbnailGenerator,
+        hls: HlsGenerator,
+        files: VideoFileStore,
+      ) => new DeleteVideoUseCase(videos, catalog, thumbnails, hls, files),
+      inject: [
+        VIDEO_REPOSITORY,
+        VIDEO_CATALOG,
+        THUMBNAIL_GENERATOR,
+        HLS_GENERATOR,
+        VIDEO_FILE_STORE,
+      ],
+    },
     ...CATEGORY_USE_CASES.map((UseCase) => ({
       provide: UseCase,
       useFactory: (categories: CategoryRepository) => new UseCase(categories),

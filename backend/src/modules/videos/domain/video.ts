@@ -23,6 +23,8 @@ export interface Video {
   title: string;
   description: string | null;
   videoUrl: string;
+  // Manifeste HLS (ADR-017), null tant qu'il n'existe pas : le MP4 sert alors de repli.
+  hlsUrl: string | null;
   thumbnailUrl: string;
   durationSeconds: number;
   format: VideoFormat;

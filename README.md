@@ -161,9 +161,10 @@ depuis `backend/`, et dans cet ordre :
 npm run seed:videos             # télécharge les vidéos depuis Pexels, les vérifie et les réencode
 npm run seed:banners            # tire de ces vidéos les bannières des chaînes
 npm run thumbnails:regenerate   # extrait une vraie miniature de chaque vidéo du seed
+npm run hls:generate            # échelle HLS multi-qualités de chaque vidéo hébergée (quelques minutes)
 ```
 
-Les trois commandes demandent FFmpeg. L'ordre compte : les bannières et les miniatures sont tirées
+Ces commandes demandent FFmpeg. L'ordre compte : les bannières et les miniatures sont tirées
 des vidéos téléchargées par `seed:videos`.
 
 Le réencodage ramène le petit côté de chaque vidéo à 720 pixels, en gardant les proportions de la

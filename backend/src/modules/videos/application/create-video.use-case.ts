@@ -1,3 +1,4 @@
+import type { HlsQueue } from '../domain/hls.js';
 import type { VideoCatalog, VideoDraft } from '../domain/catalog.js';
 import type { VideoCounters } from '../domain/counters.js';
 import {
@@ -15,6 +16,7 @@ export class CreateVideoUseCase {
     private readonly catalog: VideoCatalog,
     private readonly counters: VideoCounters,
     private readonly thumbnails: ThumbnailGenerator,
+    private readonly hlsQueue: HlsQueue,
   ) {}
 
   async execute(draft: VideoDraft): Promise<VideoView> {
@@ -28,6 +30,8 @@ export class CreateVideoUseCase {
     try {
       const video = await this.catalog.create({ ...draft, thumbnailUrl });
       const [view] = await toVideoViews([video], ADMIN_VIEWER, this.counters);
+      // Échelle HLS en tâche de fond : la vidéo est publiée tout de suite en MP4 (ADR-017).
+      this.hlsQueue.enqueue(video.id);
       return view;
     } catch (error) {
       // Vidéo refusée (chaîne inconnue...) : la miniature générée pour elle ne sert plus.

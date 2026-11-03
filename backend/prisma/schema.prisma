@@ -101,6 +101,9 @@ model Video {
   description     String?
   videoUrl        String
   thumbnailUrl    String
+  // Manifeste HLS multi-qualités (ADR-017), chemin relatif /media/hls/<identifiant aléatoire>/master.m3u8 ;
+  // null tant qu'il n'est pas généré, ou pour une vidéo externe : le MP4 sert alors de repli.
+  hlsUrl          String?
   durationSeconds Int
   format          VideoFormat
   isPremium       Boolean         @default(false)

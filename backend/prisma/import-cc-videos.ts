@@ -7,6 +7,8 @@
 //   conforme au format) ; absent ou non conforme, la vidéo est signalée et passée ;
 // - la chaîne de son créateur est créée si besoin, avec un compte propriétaire et un avatar
 //   (initiales sur fond de couleur) généré dans storage/media/avatars ;
+// - l'échelle HLS multi-qualités est générée (ADR-017), y compris pour une vidéo déjà présente
+//   qui n'en a pas ;
 // - la miniature est générée par le service FFmpeg du backend, réutilisé tel quel. Une vidéo
 //   déjà présente avec une miniature de remplacement (seed) reçoit la sienne.
 // Nécessite FFmpeg et ffprobe (FFMPEG_PATH, FFPROBE_PATH), et la base à jour (migrations).
@@ -23,6 +25,7 @@ import {
   thumbnailPosition,
   thumbnailSize,
 } from '../src/modules/videos/domain/thumbnail-generator.js';
+import { FfmpegHlsGenerator } from '../src/modules/videos/infrastructure/ffmpeg-hls-generator.js';
 import { FfmpegThumbnailGenerator } from '../src/modules/videos/infrastructure/ffmpeg-thumbnail-generator.js';
 import {
   ffmpegCommand,
@@ -49,6 +52,29 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env['DATABASE_URL'] }),
 });
 const mediaDir = mediaDirectory();
+const hls = new FfmpegHlsGenerator({
+  ffmpeg: ffmpegCommand(),
+  ffprobe: ffprobeCommand(),
+  mediaDir,
+});
+
+// Échelle HLS de la vidéo (ADR-017). Un échec est signalé sans arrêter l'import : la vidéo
+// reste lisible en MP4, et « npm run hls:generate » pourra la reprendre.
+async function generateHls(videoId: string, video: CcVideo) {
+  const startedAt = Date.now();
+  try {
+    const hlsUrl = await hls.generate(ccVideoUrl(video));
+    await prisma.video.update({ where: { id: videoId }, data: { hlsUrl } });
+    console.log(
+      `  HLS généré (${Math.round((Date.now() - startedAt) / 1000)} s)`,
+    );
+  } catch (error) {
+    console.warn(
+      `  ✗ HLS non généré, lue en MP4 : ${(error as Error).message}`,
+    );
+  }
+}
+
 const thumbnails = new FfmpegThumbnailGenerator({
   command: ffmpegCommand(),
   mediaDir,
@@ -196,7 +222,7 @@ async function main() {
     }
     const existing = await prisma.video.findFirst({
       where: { videoUrl: ccVideoUrl(video) },
-      select: { id: true, thumbnailUrl: true },
+      select: { id: true, thumbnailUrl: true, hlsUrl: true },
     });
     if (existing) {
       if (isPlaceholderThumbnail(existing.thumbnailUrl)) {
@@ -208,9 +234,10 @@ async function main() {
       } else {
         console.log('  déjà présente');
       }
+      if (!existing.hlsUrl) await generateHls(existing.id, video);
       continue;
     }
-    await prisma.video.create({
+    const createdVideo = await prisma.video.create({
       data: {
         channelId,
         categoryId,
@@ -226,6 +253,7 @@ async function main() {
     });
     console.log('  ✓ vidéo créée');
     created++;
+    await generateHls(createdVideo.id, video);
   }
   console.log(`Terminé : ${created} vidéo(s) créée(s), ${skipped} passée(s).`);
 }

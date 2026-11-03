@@ -16,6 +16,9 @@ export interface FfprobeOutput {
     width?: number;
     height?: number;
     tags?: { rotate?: string };
+    // Image de couverture intégrée (attached_pic = 1) : ce n'est pas le flux vidéo.
+    disposition?: { attached_pic?: number };
+    index?: number;
     side_data_list?: { rotation?: number }[];
   }[];
 }

@@ -5,6 +5,7 @@ import type { StoredCounts } from '../domain/video.repository.js';
 // Vidéo telle que la voit un spectateur : URL masquée si l'accès est refusé,
 // compteurs incluant les variations pas encore reportées en base.
 export type VideoView = Omit<Video, 'videoUrl'> & { videoUrl: string | null };
+// hlsUrl suit la même règle que videoUrl : masqué quand l'accès au fichier est refusé.
 
 export async function toVideoViews(
   videos: Video[],
@@ -19,6 +20,7 @@ export async function toVideoViews(
   return videos.map((video) => ({
     ...video,
     videoUrl: playableUrl(video, viewer),
+    hlsUrl: playableUrl(video, viewer) === null ? null : video.hlsUrl,
     viewCount: video.viewCount + (pendingViews.get(video.id) ?? 0),
     likeCount: video.likeCount + (pendingLikes.get(video.id) ?? 0),
   }));
