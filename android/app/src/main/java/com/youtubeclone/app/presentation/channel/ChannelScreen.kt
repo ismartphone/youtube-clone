@@ -55,6 +55,7 @@ import com.youtubeclone.app.domain.model.FollowStatus
 import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoFormat
+import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.ChannelAvatar
 import com.youtubeclone.app.presentation.common.ChannelPageSkeleton
 import com.youtubeclone.app.presentation.common.EmptyStateMessage
@@ -96,6 +97,7 @@ private enum class ChannelTab(
 
 @Composable
 fun ChannelScreen(
+    onBack: () -> Unit,
     onVideoClick: (videoId: String) -> Unit,
     onShortClick: (videoId: String) -> Unit,
     onLoginRequired: () -> Unit,
@@ -108,19 +110,26 @@ fun ChannelScreen(
     val posts by viewModel.posts.collectAsStateWithLifecycle()
     ErrorToast(viewModel.follow.errors)
 
-    when (val state = uiState) {
-        ChannelUiState.Loading -> ChannelPageSkeleton(modifier)
-        is ChannelUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
-        is ChannelUiState.Success -> ChannelContent(
-            page = state.page,
-            posts = posts,
-            followState = followState,
-            // Visiteur : la connexion est demandée au moment de s'abonner.
-            onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
-            onVideoClick = onVideoClick,
-            onShortClick = onShortClick,
-            modifier = modifier,
+    Column(modifier = modifier.fillMaxSize()) {
+        BackTopBar(
+            title = (uiState as? ChannelUiState.Success)?.page?.channel?.name.orEmpty(),
+            onBack = onBack,
         )
+        val contentModifier = Modifier.weight(1f)
+        when (val state = uiState) {
+            ChannelUiState.Loading -> ChannelPageSkeleton(contentModifier)
+            is ChannelUiState.Error -> ErrorState(state.error, viewModel::load, contentModifier)
+            is ChannelUiState.Success -> ChannelContent(
+                page = state.page,
+                posts = posts,
+                followState = followState,
+                // Visiteur : la connexion est demandée au moment de s'abonner.
+                onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
+                onVideoClick = onVideoClick,
+                onShortClick = onShortClick,
+                modifier = contentModifier,
+            )
+        }
     }
 }
 

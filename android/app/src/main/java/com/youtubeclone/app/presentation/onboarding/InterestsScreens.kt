@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.asText
 
 
@@ -35,6 +36,7 @@ import com.youtubeclone.app.presentation.common.asText
 @Composable
 fun InterestsScreen(
     onSaved: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: InterestsViewModel = hiltViewModel(),
 ) {
@@ -50,6 +52,7 @@ fun InterestsScreen(
         onToggle = viewModel::toggle,
         onRetry = viewModel::loadCategories,
         onSubmit = viewModel::save,
+        onBack = onBack,
         modifier = modifier,
     )
 }
@@ -64,8 +67,11 @@ private fun InterestsContent(
     onRetry: () -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
+    // Écran ouvert depuis Vous : barre de retour avec le titre, qui n'est alors pas répété dessous.
+    onBack: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
+        if (onBack != null) BackTopBar(title = stringResource(title), onBack = onBack)
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -73,11 +79,13 @@ private fun InterestsContent(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = stringResource(title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
+            if (onBack == null) {
+                Text(
+                    text = stringResource(title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
+            }
             Text(
                 text = stringResource(message),
                 style = MaterialTheme.typography.bodyLarge,

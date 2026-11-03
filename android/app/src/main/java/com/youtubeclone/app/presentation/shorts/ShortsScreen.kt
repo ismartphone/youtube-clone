@@ -67,6 +67,7 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.presentation.channel.FollowButton
 import com.youtubeclone.app.presentation.channel.FollowUiState
+import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.ChannelAvatar
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
@@ -90,6 +91,8 @@ fun ShortsScreen(
     onLoginRequired: () -> Unit,
     onPremiumClick: () -> Unit,
     modifier: Modifier = Modifier,
+    // Lecteur ouvert par-dessus un onglet (depuis une chaîne) : flèche de retour sur la vidéo.
+    onBack: (() -> Unit)? = null,
     viewModel: ShortsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -106,11 +109,16 @@ fun ShortsScreen(
     ErrorToast(viewModel.errors)
     ErrorToast(viewModel.follow.errors)
 
-    when (val state = uiState) {
-        ShortsUiState.Loading -> LoadingState(modifier)
-        ShortsUiState.Empty -> MessageState(stringResource(R.string.shorts_empty), modifier)
-        is ShortsUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
-        is ShortsUiState.Success -> ShortsPager(state.videos, viewModel, onChannelClick, onLoginRequired, onPremiumClick, modifier)
+    Box(modifier = modifier.fillMaxSize()) {
+        when (val state = uiState) {
+            ShortsUiState.Loading -> LoadingState()
+            ShortsUiState.Empty -> MessageState(stringResource(R.string.shorts_empty))
+            is ShortsUiState.Error -> ErrorState(state.error, viewModel::load)
+            is ShortsUiState.Success -> ShortsPager(state.videos, viewModel, onChannelClick, onLoginRequired, onPremiumClick, Modifier)
+        }
+        if (onBack != null) {
+            BackTopBar(title = stringResource(R.string.tab_shorts), onBack = onBack, contentColor = Color.White)
+        }
     }
 }
 

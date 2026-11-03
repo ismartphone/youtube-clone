@@ -35,10 +35,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.common.AppLogo
+import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.asText
 
@@ -53,39 +53,34 @@ import com.youtubeclone.app.presentation.common.asText
 @Composable
 internal fun AuthLayout(
     @StringRes title: Int,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     footer: @Composable ColumnScope.() -> Unit,
     fields: @Composable ColumnScope.() -> Unit,
 ) {
-    BoxWithConstraints(modifier = modifier.fillMaxSize().imePadding()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .heightIn(min = maxHeight)
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                AppLogo(height = 40.dp, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 24.dp))
-                Text(
-                    text = stringResource(title),
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                )
-                fields()
-            }
+    Column(modifier = modifier.fillMaxSize().imePadding()) {
+        BackTopBar(title = stringResource(title), onBack = onBack)
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                content = footer,
-            )
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    AppLogo(height = 40.dp, modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 12.dp))
+                    fields()
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    content = footer,
+                )
+            }
         }
     }
 }

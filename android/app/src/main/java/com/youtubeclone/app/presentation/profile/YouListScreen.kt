@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,7 +23,6 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -33,6 +31,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.EmptyStateMessage
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
@@ -61,6 +60,7 @@ private const val LOAD_MORE_THRESHOLD = 5
 
 @Composable
 fun YouListScreen(
+    onBack: () -> Unit,
     onVideoClick: (videoId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: YouListViewModel = hiltViewModel(),
@@ -80,6 +80,7 @@ fun YouListScreen(
         onVideoClick = onVideoClick,
         onLoadMore = viewModel::loadMore,
         onRetry = viewModel::refresh,
+        onBack = onBack,
         modifier = modifier,
     )
 }
@@ -91,15 +92,11 @@ private fun YouListContent(
     onVideoClick: (videoId: String) -> Unit,
     onLoadMore: () -> Unit,
     onRetry: () -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            text = stringResource(list.title),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        )
+        BackTopBar(title = stringResource(list.title), onBack = onBack)
         val contentModifier = Modifier.weight(1f)
         when (state) {
             YouListUiState.Loading -> LoadingState(contentModifier)
@@ -175,6 +172,7 @@ private fun YouListContentPreview() {
             onVideoClick = {},
             onLoadMore = {},
             onRetry = {},
+            onBack = {},
         )
     }
 }
@@ -183,6 +181,6 @@ private fun YouListContentPreview() {
 @Composable
 private fun YouListEmptyPreview() {
     YoutubeCloneTheme {
-        YouListContent(list = YouList.Liked, state = YouListUiState.Empty, onVideoClick = {}, onLoadMore = {}, onRetry = {})
+        YouListContent(list = YouList.Liked, state = YouListUiState.Empty, onVideoClick = {}, onLoadMore = {}, onRetry = {}, onBack = {})
     }
 }

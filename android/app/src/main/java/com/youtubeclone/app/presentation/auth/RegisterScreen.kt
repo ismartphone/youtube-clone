@@ -55,6 +55,7 @@ private fun RegisterContent(
 ) {
     AuthLayout(
         title = R.string.register_title,
+        onBack = onContinueAsVisitor,
         modifier = modifier,
         footer = {
             AuthFooterLinks(

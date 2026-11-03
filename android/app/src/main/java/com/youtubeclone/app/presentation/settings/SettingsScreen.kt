@@ -16,19 +16,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
 // Paramètres, ouverts depuis l'onglet « Vous » : lecture automatique, et partage des
 // statistiques d'usage (ADR-013).
 
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: SettingsViewModel = hiltViewModel()) {
     val autoplay by viewModel.autoplay.collectAsStateWithLifecycle()
     val shareUsageStats by viewModel.shareUsageStats.collectAsStateWithLifecycle()
     SettingsContent(
@@ -36,6 +36,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, viewModel: SettingsViewModel =
         onAutoplayChange = viewModel::onAutoplayChange,
         shareUsageStats = shareUsageStats,
         onShareUsageStatsChange = viewModel::onShareUsageStatsChange,
+        onBack = onBack,
         modifier = modifier,
     )
 }
@@ -46,15 +47,11 @@ private fun SettingsContent(
     onAutoplayChange: (Boolean) -> Unit,
     shareUsageStats: Boolean?,
     onShareUsageStatsChange: (Boolean) -> Unit,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        Text(
-            text = stringResource(R.string.you_settings),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-        )
+        BackTopBar(title = stringResource(R.string.you_settings), onBack = onBack)
         if (autoplay != null) {
             SwitchRow(
                 title = stringResource(R.string.settings_autoplay),
@@ -106,6 +103,6 @@ private fun SwitchRow(title: String, detail: String, checked: Boolean, onChecked
 @Composable
 private fun SettingsContentPreview() {
     YoutubeCloneTheme {
-        SettingsContent(autoplay = true, onAutoplayChange = {}, shareUsageStats = true, onShareUsageStatsChange = {})
+        SettingsContent(autoplay = true, onAutoplayChange = {}, shareUsageStats = true, onShareUsageStatsChange = {}, onBack = {})
     }
 }

@@ -86,6 +86,7 @@ import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.presentation.channel.FollowButton
 import com.youtubeclone.app.presentation.channel.FollowUiState
+import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.ChannelAvatar
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
@@ -110,6 +111,7 @@ private val PillShape = RoundedCornerShape(50)
 
 @Composable
 fun WatchScreen(
+    onBack: () -> Unit,
     onVideoClick: (videoId: String) -> Unit,
     onChannelClick: (channelId: String) -> Unit,
     onLoginRequired: () -> Unit,
@@ -183,6 +185,7 @@ fun WatchScreen(
                         onRemoveAdsClick = onRemoveAdsClick,
                         autoplay = autoplay,
                         onCancelAutoplay = viewModel::cancelAutoplay,
+                        onBack = onBack,
                     )
                 },
                 onChannelClick = { onChannelClick(video.channel.id) },
@@ -258,6 +261,7 @@ private fun PlayerArea(
     onRemoveAdsClick: () -> Unit,
     autoplay: AutoplayCountdown?,
     onCancelAutoplay: () -> Unit,
+    onBack: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -274,6 +278,7 @@ private fun PlayerArea(
             if (autoplay != null) {
                 AutoplayOverlay(autoplay, onCancelAutoplay, Modifier.fillMaxSize())
             }
+            BackTopBar(title = "", onBack = onBack, contentColor = Color.White, modifier = Modifier.align(Alignment.TopStart))
         } else {
             // Le serveur n'a pas donné l'URL : accès refusé, par exemple vidéo Premium.
             Text(

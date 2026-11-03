@@ -60,6 +60,7 @@
     <string name="shorts_comments">Commentaires</string>
     <string name="shorts_share">Partager</string>
     <string name="retry">Réessayer</string>
+    <string name="back">Retour</string>
     <string name="loading">Chargement en cours</string>
     <string name="error_network">Impossible de joindre le serveur. Vérifiez votre connexion.</string>
     <string name="error_server">Le serveur a rencontré une erreur (%1$d).</string>
@@ -108,6 +109,7 @@
     <string name="premium_simulated_note">Paiement simulé : aucun débit réel. L\'abonnement dure un mois, sans renouvellement.</string>
     <string name="premium_already">Vous êtes déjà membre Premium.</string>
     <string name="premium_close">Fermer</string>
+    <string name="premium_screen_title">Premium</string>
     <string name="premium_sheet_title">Paiement simulé, aucun débit</string>
     <string name="premium_sheet_offer">YouTube Clone Premium, un mois</string>
     <string name="premium_sheet_confirm">Confirmer</string>

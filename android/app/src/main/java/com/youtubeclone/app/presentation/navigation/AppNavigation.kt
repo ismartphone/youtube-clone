@@ -209,7 +209,12 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                 ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin, onPremiumClick = openPaywall)
             }
             composable<ShortsPlayerRoute> {
-                ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin, onPremiumClick = openPaywall)
+                ShortsScreen(
+                    onChannelClick = openChannel,
+                    onLoginRequired = openLogin,
+                    onPremiumClick = openPaywall,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable<PaywallRoute> { entry ->
                 val videoId = entry.toRoute<PaywallRoute>().videoId
@@ -231,6 +236,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             }
             composable<WatchRoute> {
                 WatchScreen(
+                    onBack = { navController.popBackStack() },
                     onVideoClick = openVideo,
                     onChannelClick = openChannel,
                     onLoginRequired = openLogin,
@@ -243,6 +249,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             }
             composable<ChannelRoute> {
                 ChannelScreen(
+                    onBack = { navController.popBackStack() },
                     onVideoClick = openVideo,
                     onShortClick = { videoId -> navController.navigate(ShortsPlayerRoute(videoId)) },
                     onLoginRequired = openLogin,
@@ -261,7 +268,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onCreateChannel = { navController.navigate(CreateChannelRoute) },
                 )
             }
-            composable<SettingsRoute> { SettingsScreen() }
+            composable<SettingsRoute> { SettingsScreen(onBack = { navController.popBackStack() }) }
             composable<SearchRoute> {
                 SearchScreen(
                     onBack = { navController.popBackStack() },
@@ -269,7 +276,9 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onChannelClick = openChannel,
                 )
             }
-            composable<YouListRoute> { YouListScreen(onVideoClick = openVideo) }
+            composable<YouListRoute> {
+                YouListScreen(onBack = { navController.popBackStack() }, onVideoClick = openVideo)
+            }
             // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
             // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute).
             composable<LoginRoute> {
@@ -317,7 +326,10 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                 )
             }
             composable<InterestsRoute> {
-                InterestsScreen(onSaved = { navController.popBackStack() })
+                InterestsScreen(
+                    onSaved = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() },
+                )
             }
         }
         // Confirmation d'une publication, par-dessus l'écran d'où le créateur était parti.

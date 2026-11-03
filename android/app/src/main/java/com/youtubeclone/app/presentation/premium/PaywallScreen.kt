@@ -22,7 +22,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -49,6 +48,7 @@ import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.analytics.PaywallVariant
 import com.youtubeclone.app.domain.model.PaymentMode
+import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
@@ -127,13 +127,7 @@ private fun PaywallContent(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        IconButton(onClick = onClose, modifier = Modifier.padding(4.dp)) {
-            Icon(
-                painter = painterResource(R.drawable.ic_close),
-                contentDescription = stringResource(R.string.premium_close),
-                tint = MaterialTheme.colorScheme.onBackground,
-            )
-        }
+        BackTopBar(title = stringResource(R.string.premium_screen_title), onBack = onClose)
         Column(
             modifier = Modifier
                 .weight(1f)

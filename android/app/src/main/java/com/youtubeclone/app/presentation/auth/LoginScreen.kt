@@ -52,6 +52,7 @@ private fun LoginContent(
 ) {
     AuthLayout(
         title = R.string.login_title,
+        onBack = onContinueAsVisitor,
         modifier = modifier,
         footer = {
             AuthFooterLinks(
