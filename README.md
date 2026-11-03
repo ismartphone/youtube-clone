@@ -124,6 +124,12 @@ et différentes. Pour en générer une :
 node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 
+Paiement Premium : pour un vrai paiement Stripe en mode test, renseigner aussi `STRIPE_SECRET_KEY`
+(`sk_test_…`) et `STRIPE_PUBLISHABLE_KEY` (`pk_test_…`), tirées du tableau de bord Stripe en mode test.
+Sans ces clés, l'application propose l'achat simulé, ce qui suffit pour une démonstration hors ligne
+([ADR-014](docs/adr/ADR-014-paiement-stripe-mode-test.md)). Carte de test : 4242 4242 4242 4242,
+date future et CVC quelconques.
+
 Puis créer les tables, générer le client Prisma et remplir la base :
 
 ```powershell
@@ -133,7 +139,11 @@ npx prisma db seed          # données de démonstration
 ```
 
 Le seed **efface** les données existantes avant de les recréer : 3 catégories, 4 comptes,
-2 chaînes, des abonnements et des vidéos.
+2 chaînes, des abonnements et des vidéos, dont une exclusive Premium en tête du fil.
+
+Les migrations installent l'extension PostgreSQL `unaccent` (recherche insensible aux accents).
+L'image Docker du projet la fournit ; sur une autre base, le rôle utilisé doit avoir le droit
+`CREATE EXTENSION`.
 
 ### 5. Récupérer les vidéos, les bannières et les miniatures
 
