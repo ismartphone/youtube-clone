@@ -108,7 +108,7 @@ L'abonnement dure un mois, sans renouvellement automatique : sa date de fin est 
 - **Option A — lecture bloquée à la date de fin, fichiers supprimés à la vérification suivante.** L'application garde localement `expiresAt` ; au-delà, la lecture hors ligne est refusée. À la prochaine connexion, elle relit GET /me/premium et supprime les téléchargements si aucun Premium n'est actif.
 - **Option B — suppression immédiate** dès que l'application constate la fin du Premium.
 - **Option C — fichiers conservés mais illisibles** tant que le Premium n'est pas repris ; aucun nouveau téléchargement nécessaire en cas de réabonnement, mais de l'espace disque occupé pour rien.
-- Aucun délai maximal hors ligne n'est fixé : la recommandation retenue (option A) s'appuie sur `expiresAt` et rattrape une résiliation à la connexion suivante.
+- Délai maximal hors ligne de 30 jours, comme YouTube : une vidéo téléchargée doit être revalidée par une connexion au serveur au moins tous les 30 jours ; au-delà, la lecture est refusée tant que l'application n'a pas pu revérifier l'accès. Ce délai s'ajoute au blocage à `expiresAt` de l'option A, qui reste valable : sans lui, une résiliation ne serait jamais prise en compte pour quelqu'un qui reste hors ligne.
 
 **Recommandation de l'agent : option A.** Elle fonctionne hors ligne grâce à la date de fin connue, et rattrape les résiliations à la connexion suivante. **Retenue par le lead développeur** (décision 6).
 
@@ -277,7 +277,7 @@ Précision du lead développeur : les fichiers téléchargés vont dans le stock
 - Chaque lecture de LIKE doit filtrer sur le type ; un oubli compterait un avis négatif comme un « j'aime ». L'entité garde le nom LIKE, devenu un peu trompeur.
 - Le passage d'un « j'aime » à un avis négatif doit décrémenter `likeCount` dans Redis et diffuser `likes:update` : un chemin de plus dans la logique existante de l'ADR-010.
 - La protection des téléchargements est limitée : les fichiers sous `/media` restent servis sans contrôle (ADR-017), et les fichiers téléchargés ne sont ni chiffrés ni protégés par DRM ; seule l'application fait respecter la fin du Premium sur le téléphone.
-- Une résiliation anticipée (DELETE /me/premium) ou une horloge modifiée ne sont prises en compte qu'à la connexion suivante.
+- Une résiliation anticipée (DELETE /me/premium) ou une horloge modifiée ne sont prises en compte qu'à la connexion suivante ; au-delà de 30 jours sans revalidation, la lecture hors ligne est refusée.
 - Le service de téléchargement impose une notification de progression et, sur Android 13 et plus, une demande d'autorisation.
 - La lecture hors ligne demande un parcours sans réseau : métadonnées gardées dans Room, lecteur sans API ni WebSocket, démarrage de l'application hors ligne à vérifier.
 - Les téléchargements occupent de l'espace sur le téléphone ; il faut vérifier l'espace libre et l'afficher.
@@ -301,3 +301,5 @@ Précision du lead développeur : les fichiers téléchargés vont dans le stock
 - [ADR-008](ADR-008-authentification-jwt.md) : authentification par JWT ; le démarrage de l'application hors ligne, nécessaire à la lecture des téléchargements, doit tenir compte du renouvellement du token.
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS, architecture hexagonale ; les nouvelles routes et l'éventuel module `playlists` en suivent l'organisation.
 - [ADR-001](ADR-001-android-natif.md) : application native Android ; téléchargement et lecture hors ligne par Media3, écrans en Jetpack Compose.
+
+Amendé le 4 novembre : délai maximal hors ligne fixé à 30 jours, comme YouTube. Une vidéo téléchargée doit être revalidée par une connexion au serveur au moins tous les 30 jours ; au-delà, la lecture est refusée tant que l'application n'a pas pu revérifier l'accès. Le blocage à `expiresAt` reste valable en plus. Raison : sans ce délai, une résiliation ne serait jamais prise en compte pour quelqu'un qui reste hors ligne.
