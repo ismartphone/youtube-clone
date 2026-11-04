@@ -27,9 +27,11 @@ export class FollowChannelUseCase {
     } else {
       await this.channels.unfollow(userId, channelId);
     }
-    return {
-      followerCount: await this.channels.countFollowers(channelId),
-      isFollowing: follow,
-    };
+    // Un nouvel abonnement prend la cloche par défaut, Personnalisées (ADR-020).
+    const [followerCount, notificationLevel] = await Promise.all([
+      this.channels.countFollowers(channelId),
+      follow ? this.channels.findNotificationLevel(userId, channelId) : null,
+    ]);
+    return { followerCount, isFollowing: follow, notificationLevel };
   }
 }

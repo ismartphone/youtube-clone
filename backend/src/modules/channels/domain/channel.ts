@@ -14,11 +14,17 @@ export interface NewChannel {
   description: string | null;
 }
 
+// Cloche d'un abonnement (ADR-020) : ALL, toutes les publications ; PERSONALIZED, vidéos
+// classiques seulement, sans les Shorts (réglage par défaut) ; NONE, rien.
+export const NOTIFICATION_LEVELS = ['ALL', 'PERSONALIZED', 'NONE'] as const;
+export type NotificationLevel = (typeof NOTIFICATION_LEVELS)[number];
+
 // Abonnés d'une chaîne (FOLLOW, abonnement gratuit), vus par l'utilisateur de la requête.
-// isFollowing vaut false pour un visiteur.
+// isFollowing vaut false pour un visiteur ; notificationLevel est null sans abonnement.
 export interface FollowStatus {
   followerCount: number;
   isFollowing: boolean;
+  notificationLevel: NotificationLevel | null;
 }
 
 // Ce que la page de chaîne montre à l'utilisateur de la requête. isOwner masque le bouton

@@ -14,6 +14,7 @@ import { GetFollowStatusUseCase } from './application/get-follow-status.use-case
 import { GetOwnChannelUseCase } from './application/get-own-channel.use-case.js';
 import { ListChannelsUseCase } from './application/list-channels.use-case.js';
 import { ListSubscriptionsUseCase } from './application/list-subscriptions.use-case.js';
+import { SetNotificationLevelUseCase } from './application/set-notification-level.use-case.js';
 import { UpdateChannelBannerUseCase } from './application/update-channel-banner.use-case.js';
 import { AVATAR_GENERATOR, type AvatarGenerator } from './domain/avatar.js';
 import {
@@ -34,6 +35,7 @@ import { SubscriptionsController } from './interfaces/http/subscriptions.control
 const USE_CASES = [
   GetFollowStatusUseCase,
   FollowChannelUseCase,
+  SetNotificationLevelUseCase,
   ListSubscriptionsUseCase,
   ListChannelsUseCase,
   GetOwnChannelUseCase,

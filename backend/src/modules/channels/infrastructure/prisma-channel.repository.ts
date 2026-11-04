@@ -8,6 +8,7 @@ import type {
   ChannelChanges,
   ChannelSummary,
   NewChannel,
+  NotificationLevel,
   OwnChannel,
 } from '../domain/channel.js';
 import type { ChannelRepository } from '../domain/ports.js';
@@ -89,12 +90,27 @@ export class PrismaChannelRepository implements ChannelRepository {
     return this.prisma.follow.count({ where: { channelId } });
   }
 
-  async isFollowing(userId: string, channelId: string): Promise<boolean> {
+  async findNotificationLevel(
+    userId: string,
+    channelId: string,
+  ): Promise<NotificationLevel | null> {
     const follow = await this.prisma.follow.findUnique({
       where: { userId_channelId: { userId, channelId } },
-      select: { userId: true },
+      select: { notificationLevel: true },
     });
-    return follow !== null;
+    return follow?.notificationLevel ?? null;
+  }
+
+  async setNotificationLevel(
+    userId: string,
+    channelId: string,
+    level: NotificationLevel,
+  ): Promise<boolean> {
+    const { count } = await this.prisma.follow.updateMany({
+      where: { userId, channelId },
+      data: { notificationLevel: level },
+    });
+    return count > 0;
   }
 
   findOwnedBy(userId: string): Promise<ChannelSummary | null> {

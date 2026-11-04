@@ -8,6 +8,9 @@ import com.youtubeclone.app.data.remote.ContentUriRequestBody
 import com.youtubeclone.app.data.remote.apiCall
 import com.youtubeclone.app.data.remote.dto.ChannelProfileDto
 import com.youtubeclone.app.data.remote.dto.CreateChannelRequestDto
+import com.youtubeclone.app.data.remote.dto.NotificationLevelDto
+import com.youtubeclone.app.data.remote.dto.apiValue
+import com.youtubeclone.app.data.remote.dto.notificationLevelOf
 import com.youtubeclone.app.data.remote.dto.UpdateChannelRequestDto
 import com.youtubeclone.app.data.remote.dto.toDomain
 import com.youtubeclone.app.domain.model.Channel
@@ -16,6 +19,7 @@ import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.domain.model.ChannelProfile
 import com.youtubeclone.app.domain.model.FollowChange
 import com.youtubeclone.app.domain.model.FollowStatus
+import com.youtubeclone.app.domain.model.NotificationLevel
 import com.youtubeclone.app.domain.repository.ChannelRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -104,6 +108,17 @@ class ChannelRepositoryImpl @Inject constructor(
         val status = apiCall(json) {
             if (follow) api.follow(channelId) else api.unfollow(channelId)
         }.toDomain()
+        changes.emit(FollowChange(channelId, status))
+        return status
+    }
+
+    override suspend fun setNotificationLevel(
+        channelId: String,
+        level: NotificationLevel,
+        current: FollowStatus,
+    ): FollowStatus {
+        val saved = apiCall(json) { api.setNotificationLevel(channelId, NotificationLevelDto(level.apiValue)) }
+        val status = current.copy(notificationLevel = notificationLevelOf(saved.notificationLevel))
         changes.emit(FollowChange(channelId, status))
         return status
     }

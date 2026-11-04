@@ -3,6 +3,7 @@ import type {
   ChannelImageKind,
   ChannelSummary,
   NewChannel,
+  NotificationLevel,
   OwnChannel,
 } from './channel.js';
 
@@ -21,7 +22,17 @@ export interface ChannelRepository {
   follow(userId: string, channelId: string): Promise<void>;
   unfollow(userId: string, channelId: string): Promise<void>;
   countFollowers(channelId: string): Promise<number>;
-  isFollowing(userId: string, channelId: string): Promise<boolean>;
+  // Cloche de l'abonnement, ou null si l'utilisateur ne suit pas la chaîne.
+  findNotificationLevel(
+    userId: string,
+    channelId: string,
+  ): Promise<NotificationLevel | null>;
+  // Renvoie false si l'utilisateur ne suit pas la chaîne.
+  setNotificationLevel(
+    userId: string,
+    channelId: string,
+    level: NotificationLevel,
+  ): Promise<boolean>;
   // Chaîne dont l'utilisateur est propriétaire, ou null s'il n'en a pas.
   findOwnedBy(userId: string): Promise<ChannelSummary | null>;
   // Même chaîne, avec sa description, pour la personnaliser (ADR-018).

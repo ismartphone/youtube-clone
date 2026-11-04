@@ -1,12 +1,19 @@
 package com.youtubeclone.app.domain.model
 
 /**
+ * Cloche d'un abonnement (ADR-020) : [All], toutes les publications ; [Personalized], les vidéos
+ * classiques sans les Shorts (réglage par défaut) ; [None], rien.
+ */
+enum class NotificationLevel { All, Personalized, None }
+
+/**
  * Abonnés d'une chaîne (FOLLOW, abonnement gratuit), vus par l'utilisateur courant.
- * [isFollowing] vaut toujours false pour un visiteur.
+ * [isFollowing] vaut toujours false pour un visiteur ; [notificationLevel] est null sans abonnement.
  */
 data class FollowStatus(
     val followerCount: Int,
     val isFollowing: Boolean,
+    val notificationLevel: NotificationLevel? = null,
 )
 
 /**

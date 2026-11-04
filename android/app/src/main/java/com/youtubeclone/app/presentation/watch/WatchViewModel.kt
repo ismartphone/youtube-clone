@@ -40,6 +40,7 @@ import com.youtubeclone.app.domain.usecase.RecordViewUseCase
 import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.SetDislikedUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
+import com.youtubeclone.app.domain.usecase.SetNotificationLevelUseCase
 import com.youtubeclone.app.domain.usecase.SetLikedUseCase
 import com.youtubeclone.app.playback.BackgroundPlayback
 import com.youtubeclone.app.presentation.channel.FollowController
@@ -112,6 +113,7 @@ class WatchViewModel @Inject constructor(
     private val observeLiveVideo: ObserveLiveVideoUseCase,
     observeSession: ObserveSessionUseCase,
     setFollowing: SetFollowingUseCase,
+    setNotificationLevel: SetNotificationLevelUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
     getComments: GetCommentsUseCase,
     private val getSuggestedVideos: GetSuggestedVideosUseCase,
@@ -221,7 +223,7 @@ class WatchViewModel @Inject constructor(
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
-    val follow = FollowController(viewModelScope, setFollowing, observeFollowChanges)
+    val follow = FollowController(viewModelScope, setFollowing, observeFollowChanges, setNotificationLevel)
     val comments = CommentsController(viewModelScope, videoId, getComments, postComment)
 
     // Première connexion temps réel déjà établie : les suivantes sont des reconnexions.

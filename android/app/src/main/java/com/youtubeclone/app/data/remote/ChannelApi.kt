@@ -5,6 +5,7 @@ import com.youtubeclone.app.data.remote.dto.ChannelProfileDto
 import com.youtubeclone.app.data.remote.dto.ChannelSummaryDto
 import com.youtubeclone.app.data.remote.dto.CreateChannelRequestDto
 import com.youtubeclone.app.data.remote.dto.FollowStatusDto
+import com.youtubeclone.app.data.remote.dto.NotificationLevelDto
 import com.youtubeclone.app.data.remote.dto.OwnChannelDto
 import com.youtubeclone.app.data.remote.dto.UpdateChannelRequestDto
 import okhttp3.MultipartBody
@@ -54,4 +55,7 @@ interface ChannelApi {
 
     @DELETE("channels/{id}/follow")
     suspend fun unfollow(@Path("id") id: String): FollowStatusDto
+
+    @PATCH("channels/{id}/follow")
+    suspend fun setNotificationLevel(@Path("id") id: String, @Body body: NotificationLevelDto): NotificationLevelDto
 }

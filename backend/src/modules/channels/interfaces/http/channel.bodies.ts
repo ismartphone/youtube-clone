@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
 import {
+  IsIn,
   IsOptional,
   IsString,
   IsUrl,
@@ -12,6 +13,8 @@ import {
   CHANNEL_DESCRIPTION_MAX_LENGTH,
   CHANNEL_NAME_MAX_LENGTH,
   HANDLE_PATTERN,
+  NOTIFICATION_LEVELS,
+  type NotificationLevel,
   normalizeHandle,
 } from '../../domain/channel.js';
 
@@ -114,4 +117,10 @@ export class UpdateOwnChannelBody {
     message: `La description fait ${CHANNEL_DESCRIPTION_MAX_LENGTH} caractères au plus.`,
   })
   description?: string | null;
+}
+
+// Corps de PATCH /channels/:id/follow : la cloche de l'abonnement (ADR-020).
+export class NotificationLevelBody {
+  @IsIn(NOTIFICATION_LEVELS)
+  notificationLevel!: NotificationLevel;
 }

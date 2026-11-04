@@ -6,6 +6,7 @@ import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.domain.model.ChannelProfile
 import com.youtubeclone.app.domain.model.FollowChange
 import com.youtubeclone.app.domain.model.FollowStatus
+import com.youtubeclone.app.domain.model.NotificationLevel
 import kotlinx.coroutines.flow.Flow
 
 /** Chaînes et abonnements gratuits. Les implémentations lèvent une [com.youtubeclone.app.domain.model.DataError] en cas d'échec. */
@@ -47,4 +48,10 @@ interface ChannelRepository {
 
     /** S'abonne (true) ou se désabonne (false). Exige une session ouverte. */
     suspend fun setFollowing(channelId: String, follow: Boolean): FollowStatus
+
+    /**
+     * Règle la cloche d'un abonnement (ADR-020). [current] : état affiché, renvoyé avec la nouvelle
+     * cloche et annoncé aux autres écrans.
+     */
+    suspend fun setNotificationLevel(channelId: String, level: NotificationLevel, current: FollowStatus): FollowStatus
 }

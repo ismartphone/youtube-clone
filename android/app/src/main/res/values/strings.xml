@@ -254,6 +254,18 @@
 
 
     <string name="channel_follow">S\'abonner</string>
+    <string name="channel_unsubscribe">Se désabonner</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_all">Toutes</string>
+    <string name="notifications_all_caption">Vidéos et Shorts</string>
+    <string name="notifications_personalized">Personnalisées</string>
+    <string name="notifications_personalized_caption">Vidéos, sans les Shorts</string>
+    <string name="notifications_none">Aucune</string>
+    <string name="notifications_none_caption">Aucune notification</string>
+    <string name="notifications_denied_title">Notifications désactivées</string>
+    <string name="notifications_denied_message">Autorisez les notifications pour être prévenu des nouvelles vidéos de vos abonnements. Votre choix de cloche est enregistré.</string>
+    <string name="notifications_open_settings">Ouvrir les réglages</string>
+    <string name="notifications_later">Plus tard</string>
     <string name="channel_following">Abonné</string>
     <string name="channel_tab_videos">Vidéos</string>
     <string name="channel_tab_shorts">Shorts</string>

@@ -9,14 +9,15 @@ export class GetFollowStatusUseCase {
     channelId: string,
     userId?: string,
   ): Promise<ViewerChannelStatus> {
-    const [followerCount, isFollowing, ownerId] = await Promise.all([
+    const [followerCount, notificationLevel, ownerId] = await Promise.all([
       this.channels.countFollowers(channelId),
-      userId ? this.channels.isFollowing(userId, channelId) : false,
+      userId ? this.channels.findNotificationLevel(userId, channelId) : null,
       userId ? this.channels.findOwnerId(channelId) : null,
     ]);
     return {
       followerCount,
-      isFollowing,
+      isFollowing: notificationLevel !== null,
+      notificationLevel,
       isOwner: userId !== undefined && ownerId === userId,
     };
   }

@@ -91,10 +91,12 @@ import com.youtubeclone.app.domain.model.CommentAuthor
 import com.youtubeclone.app.domain.model.DownloadState
 import com.youtubeclone.app.domain.model.DownloadedVideo
 import com.youtubeclone.app.domain.model.LikeStatus
+import com.youtubeclone.app.domain.model.NotificationLevel
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.presentation.channel.FollowButton
 import com.youtubeclone.app.presentation.channel.FollowUiState
+import com.youtubeclone.app.presentation.channel.NotificationPermissionRequest
 import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.ChannelAvatar
 import com.youtubeclone.app.presentation.common.ErrorState
@@ -178,6 +180,7 @@ fun WatchScreen(
         viewModel.autoplayNext.collect(onVideoClick)
     }
     ErrorToast(viewModel.follow.errors)
+    NotificationPermissionRequest(viewModel.follow.bellActivated)
     ErrorToast(viewModel.errors)
     ErrorToast(viewModel.comments.errors)
 
@@ -238,6 +241,7 @@ fun WatchScreen(
                 },
                 onChannelClick = { onChannelClick(video.channel.id) },
                 onFollowClick = { requireLogin(viewModel.follow::toggle) },
+                onNotificationLevelSelect = viewModel.follow::selectNotificationLevel,
                 onLikeClick = { requireLogin(viewModel::toggleLike) },
                 onDislikeClick = { requireLogin(viewModel::toggleDislike) },
                 onSaveClick = { requireLogin { showSaveSheet = true } },
@@ -282,6 +286,7 @@ private fun WatchContent(
     player: @Composable () -> Unit,
     onChannelClick: () -> Unit,
     onFollowClick: () -> Unit,
+    onNotificationLevelSelect: (NotificationLevel) -> Unit,
     onLikeClick: () -> Unit,
     onDislikeClick: () -> Unit,
     onSaveClick: () -> Unit,
@@ -301,7 +306,7 @@ private fun WatchContent(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item(key = "title") { TitleBlock(detail, viewCount = stats?.viewCount ?: detail.video.viewCount) }
-            item(key = "channel") { ChannelRow(detail.video.channel, followState, onChannelClick, onFollowClick) }
+            item(key = "channel") { ChannelRow(detail.video.channel, followState, onChannelClick, onFollowClick, onNotificationLevelSelect) }
             item(key = "actions") { ActionsRow(
                     stats = stats,
                     onLikeClick = onLikeClick,
@@ -549,6 +554,7 @@ private fun ChannelRow(
     followState: FollowUiState?,
     onChannelClick: () -> Unit,
     onFollowClick: () -> Unit,
+    onNotificationLevelSelect: (NotificationLevel) -> Unit,
 ) {
     Row(
         modifier = Modifier.padding(horizontal = 12.dp),
@@ -581,7 +587,7 @@ private fun ChannelRow(
             }
         }
         if (followState != null && followState.canFollow) {
-            FollowButton(state = followState, onClick = onFollowClick)
+            FollowButton(state = followState, onClick = onFollowClick, onNotificationLevelSelect = onNotificationLevelSelect)
         }
     }
 }
@@ -828,6 +834,7 @@ private fun WatchContentPreview() {
             player = { Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black)) },
             onChannelClick = {},
             onFollowClick = {},
+            onNotificationLevelSelect = {},
             onLikeClick = {},
             onDislikeClick = {},
             onSaveClick = {},

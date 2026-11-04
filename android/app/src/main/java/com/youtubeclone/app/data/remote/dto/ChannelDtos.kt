@@ -5,6 +5,7 @@ import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
 import com.youtubeclone.app.domain.model.ChannelProfile
 import com.youtubeclone.app.domain.model.FollowStatus
+import com.youtubeclone.app.domain.model.NotificationLevel
 import kotlinx.serialization.Serializable
 
 // Réponses du module channels du backend (channel.presenter.ts).
@@ -13,6 +14,13 @@ import kotlinx.serialization.Serializable
 data class FollowStatusDto(
     val followerCount: Int,
     val isFollowing: Boolean,
+    val notificationLevel: String? = null,
+)
+
+/** Corps et réponse de PATCH /channels/{id}/follow : la cloche (ADR-020). */
+@Serializable
+data class NotificationLevelDto(
+    val notificationLevel: String,
 )
 
 @Serializable
@@ -25,6 +33,7 @@ data class ChannelPageDto(
     val description: String? = null,
     val followerCount: Int,
     val isFollowing: Boolean,
+    val notificationLevel: String? = null,
     val isOwner: Boolean = false,
     val videos: List<VideoSummaryDto>,
 )
@@ -66,13 +75,29 @@ data class OwnChannelDto(
     val channel: ChannelSummaryDto? = null,
 )
 
-fun FollowStatusDto.toDomain() = FollowStatus(followerCount = followerCount, isFollowing = isFollowing)
+// Valeurs du backend : ALL, PERSONALIZED, NONE. Une valeur inconnue vaut le réglage par défaut.
+fun notificationLevelOf(value: String?): NotificationLevel? = when (value) {
+    null -> null
+    "ALL" -> NotificationLevel.All
+    "NONE" -> NotificationLevel.None
+    else -> NotificationLevel.Personalized
+}
+
+val NotificationLevel.apiValue: String
+    get() = when (this) {
+        NotificationLevel.All -> "ALL"
+        NotificationLevel.Personalized -> "PERSONALIZED"
+        NotificationLevel.None -> "NONE"
+    }
+
+fun FollowStatusDto.toDomain() =
+    FollowStatus(followerCount = followerCount, isFollowing = isFollowing, notificationLevel = notificationLevelOf(notificationLevel))
 
 fun ChannelPageDto.toDomain() = ChannelPage(
     channel = Channel(id = id, name = name, handle = handle, avatarUrl = avatarUrl?.let(::resolveMediaUrl)),
     bannerUrl = bannerUrl?.let(::resolveMediaUrl),
     description = description,
-    followStatus = FollowStatus(followerCount = followerCount, isFollowing = isFollowing),
+    followStatus = FollowStatus(followerCount, isFollowing, notificationLevelOf(notificationLevel)),
     isOwner = isOwner,
     videos = videos.map { it.toDomain() },
 )

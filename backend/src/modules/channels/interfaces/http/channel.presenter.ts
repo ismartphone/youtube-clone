@@ -22,6 +22,7 @@ export function presentFollowStatus(status: FollowStatus) {
   return {
     followerCount: status.followerCount,
     isFollowing: status.isFollowing,
+    notificationLevel: status.notificationLevel,
   };
 }
 

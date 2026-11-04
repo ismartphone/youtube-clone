@@ -39,3 +39,10 @@ export class CannotFollowOwnChannelError extends Error {
     super("Impossible de s'abonner à sa propre chaîne");
   }
 }
+
+// La cloche n'existe que sur un abonnement (ADR-020).
+export class NotFollowingError extends Error {
+  constructor() {
+    super("Vous n'êtes pas abonné à cette chaîne");
+  }
+}

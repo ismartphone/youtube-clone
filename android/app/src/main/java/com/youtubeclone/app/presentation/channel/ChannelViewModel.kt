@@ -14,6 +14,7 @@ import com.youtubeclone.app.domain.usecase.ObserveOwnChannelUpdatedUseCase
 import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
+import com.youtubeclone.app.domain.usecase.SetNotificationLevelUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
 import com.youtubeclone.app.presentation.navigation.ChannelRoute
@@ -38,6 +39,7 @@ class ChannelViewModel @Inject constructor(
     private val getChannelPage: GetChannelPageUseCase,
     observeSession: ObserveSessionUseCase,
     setFollowing: SetFollowingUseCase,
+    setNotificationLevel: SetNotificationLevelUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
     observePublications: ObservePublicationsUseCase,
     observeOwnChannelUpdated: ObserveOwnChannelUpdatedUseCase,
@@ -52,7 +54,7 @@ class ChannelViewModel @Inject constructor(
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
-    val follow = FollowController(viewModelScope, setFollowing, observeFollowChanges)
+    val follow = FollowController(viewModelScope, setFollowing, observeFollowChanges, setNotificationLevel)
 
     // Onglet Posts : les plus récents. Un échec laisse simplement la liste vide.
     private val _posts = MutableStateFlow<List<Post>>(emptyList())

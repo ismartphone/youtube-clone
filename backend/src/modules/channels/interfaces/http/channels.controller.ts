@@ -10,6 +10,7 @@ import {
   NotFoundException,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -27,13 +28,15 @@ import { ANONYMOUS_VIEWER } from '../../../videos/domain/video.js';
 import { CreateChannelUseCase } from '../../application/create-channel.use-case.js';
 import { FollowChannelUseCase } from '../../application/follow-channel.use-case.js';
 import { GetFollowStatusUseCase } from '../../application/get-follow-status.use-case.js';
+import { SetNotificationLevelUseCase } from '../../application/set-notification-level.use-case.js';
 import {
   CannotFollowOwnChannelError,
   ChannelAlreadyOwnedError,
   ChannelNotFoundError,
   HandleAlreadyUsedError,
+  NotFollowingError,
 } from '../../domain/channel.errors.js';
-import { CreateChannelBody } from './channel.bodies.js';
+import { CreateChannelBody, NotificationLevelBody } from './channel.bodies.js';
 import {
   presentChannelPage,
   presentChannelSummary,
@@ -47,6 +50,7 @@ export class ChannelsController {
     private readonly getChannel: GetChannelUseCase,
     private readonly getFollowStatus: GetFollowStatusUseCase,
     private readonly followChannel: FollowChannelUseCase,
+    private readonly setNotificationLevel: SetNotificationLevelUseCase,
   ) {}
 
   @Post()
@@ -108,6 +112,30 @@ export class ChannelsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.setFollow(user.id, id, false);
+  }
+
+  // Cloche de l'abonnement (ADR-020) : 409 si l'utilisateur ne suit pas la chaîne.
+  @Patch(':id/follow')
+  @UseGuards(JwtAuthGuard)
+  async updateNotifications(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: NotificationLevelBody,
+  ) {
+    try {
+      return {
+        notificationLevel: await this.setNotificationLevel.execute(
+          user.id,
+          id,
+          body.notificationLevel,
+        ),
+      };
+    } catch (error) {
+      if (error instanceof NotFollowingError) {
+        throw new ConflictException(error.message);
+      }
+      throw error;
+    }
   }
 
   private async setFollow(userId: string, channelId: string, follow: boolean) {

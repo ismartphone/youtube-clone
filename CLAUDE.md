@@ -50,6 +50,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 - `LIKE.type` vaut `LIKE` ou `DISLIKE` : « J'aime » et « Je n'aime pas » s'excluent (ADR-019).
 - `FOLLOW` = abonnement **gratuit** à une chaîne. `PREMIUM_SUBSCRIPTION` = abonnement **payant**. Ne jamais confondre les deux.
+- `FOLLOW.notificationLevel` porte la cloche : `ALL` (vidéos et Shorts), `PERSONALIZED` (par défaut : vidéos classiques, sans les Shorts) ou `NONE` (ADR-020).
 - `VIDEO.format` vaut `SHORT` ou `LONG` : Shorts et vidéos classiques partagent la même table.
 - `VIDEO.isPremium` marque les vidéos exclusives. L'accès est **toujours vérifié côté serveur**, jamais seulement dans l'application.
 - La base ne stocke que l'URL ou le chemin relatif des fichiers, jamais les fichiers eux-mêmes.

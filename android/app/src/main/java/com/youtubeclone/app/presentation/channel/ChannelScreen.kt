@@ -52,6 +52,7 @@ import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
+import com.youtubeclone.app.domain.model.NotificationLevel
 import com.youtubeclone.app.domain.model.FollowStatus
 import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.model.Video
@@ -112,6 +113,7 @@ fun ChannelScreen(
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
     val posts by viewModel.posts.collectAsStateWithLifecycle()
     ErrorToast(viewModel.follow.errors)
+    NotificationPermissionRequest(viewModel.follow.bellActivated)
 
     Column(modifier = modifier.fillMaxSize()) {
         BackTopBar(
@@ -128,6 +130,7 @@ fun ChannelScreen(
                 followState = followState,
                 // Visiteur : la connexion est demandée au moment de s'abonner.
                 onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
+                onNotificationLevelSelect = viewModel.follow::selectNotificationLevel,
                 onCustomizeClick = onCustomizeClick,
                 onVideoClick = onVideoClick,
                 onShortClick = onShortClick,
@@ -148,6 +151,7 @@ private fun ChannelContent(
     onVideoClick: (videoId: String) -> Unit,
     onShortClick: (videoId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onNotificationLevelSelect: (NotificationLevel) -> Unit = {},
     onCustomizeClick: () -> Unit = {},
     initialTab: ChannelTab = ChannelTab.Videos,
 ) {
@@ -161,7 +165,7 @@ private fun ChannelContent(
         horizontalArrangement = Arrangement.spacedBy(ShortsGap),
         verticalArrangement = Arrangement.spacedBy(ShortsGap),
     ) {
-        fullWidthItem("header") { ChannelHeader(page, followState, onFollowClick, onCustomizeClick) }
+        fullWidthItem("header") { ChannelHeader(page, followState, onFollowClick, onNotificationLevelSelect, onCustomizeClick) }
         fullWidthItem("tabs") {
             ChannelTabs(selected = selectedTab, onSelect = { selectedTab = it })
         }
@@ -204,6 +208,7 @@ private fun ChannelHeader(
     page: ChannelPage,
     followState: FollowUiState?,
     onFollowClick: () -> Unit,
+    onNotificationLevelSelect: (NotificationLevel) -> Unit,
     onCustomizeClick: () -> Unit,
 ) {
     val channel = page.channel
@@ -247,7 +252,12 @@ private fun ChannelHeader(
                 Text(stringResource(R.string.customize_channel_title))
             }
         } else if (followState != null && followState.canFollow) {
-            FollowButton(state = followState, onClick = onFollowClick, modifier = Modifier.fillMaxWidth())
+            FollowButton(
+                state = followState,
+                onClick = onFollowClick,
+                modifier = Modifier.fillMaxWidth(),
+                onNotificationLevelSelect = onNotificationLevelSelect,
+            )
         }
     }
 }

@@ -30,6 +30,13 @@ enum LikeType {
   DISLIKE
 }
 
+// Cloche d'un abonnement (ADR-020). PERSONALIZED : vidéos classiques seulement, sans les Shorts.
+enum NotificationLevel {
+  ALL
+  PERSONALIZED
+  NONE
+}
+
 enum VideoFormat {
   SHORT
   LONG
@@ -171,9 +178,11 @@ model Like {
 
 // Abonnement gratuit à une chaîne, à ne pas confondre avec PremiumSubscription.
 model Follow {
-  userId    String   @db.Uuid
-  channelId String   @db.Uuid
-  createdAt DateTime @default(now())
+  userId            String            @db.Uuid
+  channelId         String            @db.Uuid
+  createdAt         DateTime          @default(now())
+  // Choix de la cloche (ADR-020) ; Personnalisées par défaut.
+  notificationLevel NotificationLevel @default(PERSONALIZED)
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
