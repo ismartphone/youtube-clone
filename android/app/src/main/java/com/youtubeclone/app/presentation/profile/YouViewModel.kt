@@ -7,10 +7,12 @@ import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.PlaylistSummary
 import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.model.User
+import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.usecase.CancelPremiumUseCase
 import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
 import com.youtubeclone.app.domain.usecase.GetOwnChannelUseCase
 import com.youtubeclone.app.domain.usecase.GetPlaylistsUseCase
+import com.youtubeclone.app.domain.usecase.GetWatchHistoryUseCase
 import com.youtubeclone.app.domain.usecase.LogoutUseCase
 import com.youtubeclone.app.domain.usecase.ObserveOwnChannelCreatedUseCase
 import com.youtubeclone.app.domain.usecase.ObserveOwnChannelUpdatedUseCase
@@ -51,12 +53,17 @@ class YouViewModel @Inject constructor(
     observeOwnChannelCreated: ObserveOwnChannelCreatedUseCase,
     observeOwnChannelUpdated: ObserveOwnChannelUpdatedUseCase,
     private val getPlaylists: GetPlaylistsUseCase,
+    private val getWatchHistory: GetWatchHistoryUseCase,
     observePlaylistChanges: ObservePlaylistChangesUseCase,
 ) : ViewModel() {
 
     // Playlists de l'utilisateur (ADR-019) ; null tant qu'elles ne sont pas lues, ou pour un visiteur.
     private val _playlists = MutableStateFlow<List<PlaylistSummary>?>(null)
     val playlists: StateFlow<List<PlaylistSummary>?> = _playlists.asStateFlow()
+
+    // Dernières vidéos regardées, pour le ruban « Historique » ; null tant qu'elles ne sont pas lues.
+    private val _history = MutableStateFlow<List<Video>?>(null)
+    val history: StateFlow<List<Video>?> = _history.asStateFlow()
 
     private val _uiState = MutableStateFlow<YouUiState>(YouUiState.Loading)
     val uiState: StateFlow<YouUiState> = _uiState.asStateFlow()
@@ -104,9 +111,23 @@ class YouViewModel @Inject constructor(
         }
     }
 
+    // Un échec laisse le ruban absent : le reste de l'onglet s'affiche.
+    private fun loadHistory() {
+        viewModelScope.launch {
+            _history.value = try {
+                getWatchHistory(page = 1, pageSize = HISTORY_PREVIEW_SIZE).items
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
     fun load() {
         loadJob?.cancel()
         loadPlaylists()
+        loadHistory()
         _uiState.value = YouUiState.Loading
         loadJob = viewModelScope.launch {
             // La chaîne est lue en parallèle du profil. Son échec ne bloque pas l'onglet :
@@ -153,5 +174,9 @@ class YouViewModel @Inject constructor(
     private fun showLoggedOut() {
         loadJob?.cancel()
         _uiState.value = YouUiState.LoggedOut
+    }
+
+    private companion object {
+        const val HISTORY_PREVIEW_SIZE = 10
     }
 }

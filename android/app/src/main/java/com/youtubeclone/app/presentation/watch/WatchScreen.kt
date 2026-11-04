@@ -105,6 +105,7 @@ import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
 import com.youtubeclone.app.presentation.common.shareVideo
+import com.youtubeclone.app.presentation.home.VideoCard
 import com.youtubeclone.app.presentation.home.previewVideo
 import com.youtubeclone.app.presentation.playlist.SaveToPlaylistSheet
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
@@ -317,7 +318,7 @@ private fun WatchContent(
                 item(key = "comments") { CommentsTeaser(comments, onCommentsClick) }
             }
             items(suggestions, key = { it.id }) { video ->
-                SuggestedVideoCard(
+                VideoCard(
                     video = video,
                     modifier = Modifier.clickable { onSuggestionClick(video.id) },
                 )

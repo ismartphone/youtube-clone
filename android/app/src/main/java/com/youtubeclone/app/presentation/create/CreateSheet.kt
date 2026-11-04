@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,10 +16,13 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +39,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -70,7 +76,7 @@ enum class CreateTab(
 }
 
 // Hauteur fixe de la zone de contenu : la feuille ne change pas de taille d'un onglet à l'autre.
-private val CONTENT_HEIGHT = 220.dp
+private val CONTENT_HEIGHT = 290.dp
 
 /**
  * Feuille ouverte par le bouton + de la barre d'onglets, avec ses onglets en bas : Vidéo, Short,
@@ -299,11 +305,25 @@ private fun LiveUnlock(
                     // Rail visible sur le fond de la feuille, qui a la couleur du rail par défaut.
                     trackColor = MaterialTheme.colorScheme.outlineVariant,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (!unlocked) {
-                        Button(onClick = onCreateShorts) { Text(stringResource(R.string.create_live_create_shorts)) }
+                        Button(
+                            onClick = onCreateShorts,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.onBackground,
+                                contentColor = MaterialTheme.colorScheme.background,
+                            ),
+                        ) { Text(stringResource(R.string.create_live_create_shorts)) }
                     }
-                    OutlinedButton(onClick = onLearnMore) { Text(stringResource(R.string.create_live_learn_more)) }
+                    // Pastille grise sur le fond de la feuille, comme la référence.
+                    FilledTonalButton(
+                        onClick = onLearnMore,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)),
+                    ) {
+                        Text(stringResource(R.string.create_live_learn_more))
+                    }
                 }
             }
         }
@@ -333,14 +353,17 @@ private fun CreateTabs(selected: CreateTab, onSelect: (CreateTab) -> Unit) {
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             }
+            // Onglet actif dans une pastille, comme la référence.
             Column(
                 modifier = Modifier
+                    .clip(CircleShape)
+                    .background(if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent)
                     .selectable(
                         selected = isSelected,
                         role = Role.Tab,
                         onClick = { onSelect(tab) },
                     )
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(

@@ -194,8 +194,11 @@
     <string name="downloads_refused_revalidation">Connectez-vous à Internet : les vidéos téléchargées doivent être vérifiées au moins tous les 30 jours.</string>
     <string name="premium_benefit_downloads">Téléchargements</string>
     <string name="premium_benefit_downloads_detail">Regardez vos vidéos hors connexion.</string>
+    <string name="you_view_all">Tout voir</string>
+    <string name="you_history_empty_section">Les vidéos que vous regardez apparaîtront ici.</string>
     <string name="you_playlists">Playlists</string>
     <string name="you_playlists_empty">Enregistrez une vidéo depuis l\'écran de lecture pour créer votre première playlist.</string>
+    <string name="playlist_meta">Playlist · Privée · %1$s</string>
     <string name="playlist_save_title">Enregistrer dans…</string>
     <string name="playlist_save_empty">Aucune playlist pour l\'instant.</string>
     <string name="playlist_new">Nouvelle playlist</string>

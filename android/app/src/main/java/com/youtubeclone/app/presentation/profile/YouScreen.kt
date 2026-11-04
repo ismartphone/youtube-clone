@@ -56,10 +56,13 @@ import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.PlaylistSummary
 import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.model.User
+import com.youtubeclone.app.domain.model.Video
+import com.youtubeclone.app.presentation.common.ChannelAvatar
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.formatLongDate
+import com.youtubeclone.app.presentation.home.VideoThumbnail
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
 // Onglet « Vous » d'après les maquettes (android/maquettes/profil-02, -05 et -13, captures iOS) :
@@ -79,6 +82,7 @@ class YouActions(
     val onHelpClick: () -> Unit = {},
     val onPlaylistClick: (playlistId: String) -> Unit = {},
     val onDownloadsClick: () -> Unit = {},
+    val onVideoClick: (videoId: String) -> Unit = {},
     val onLogoutClick: () -> Unit = {},
     val onPremiumClick: () -> Unit = {},
     val onCancelPremium: () -> Unit = {},
@@ -96,6 +100,7 @@ fun YouScreen(
     onHelpClick: () -> Unit,
     onPlaylistClick: (playlistId: String) -> Unit,
     onDownloadsClick: () -> Unit,
+    onVideoClick: (videoId: String) -> Unit,
     onListClick: (YouList) -> Unit,
     onSubscriptionsClick: () -> Unit,
     onPremiumClick: () -> Unit,
@@ -107,6 +112,7 @@ fun YouScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val premium by viewModel.premium.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val history by viewModel.history.collectAsStateWithLifecycle()
     ErrorToast(viewModel.premiumMessages)
     val actions = YouActions(
         onLoginClick = onLoginClick,
@@ -119,6 +125,7 @@ fun YouScreen(
         onHelpClick = onHelpClick,
         onPlaylistClick = onPlaylistClick,
         onDownloadsClick = onDownloadsClick,
+        onVideoClick = onVideoClick,
         onLogoutClick = viewModel::onLogoutClick,
         onPremiumClick = onPremiumClick,
         onCancelPremium = viewModel::onCancelPremium,
@@ -139,7 +146,7 @@ fun YouScreen(
             ) { Text(stringResource(R.string.downloads_title)) }
         }
         YouUiState.LoggedOut -> YouContent(user = null, channel = null, premium = null, actions = actions, modifier = modifier)
-        is YouUiState.LoggedIn -> YouContent(current.user, current.channel, premium, actions, modifier, playlists)
+        is YouUiState.LoggedIn -> YouContent(current.user, current.channel, premium, actions, modifier, playlists, history)
     }
 }
 
@@ -152,6 +159,7 @@ private fun YouContent(
     actions: YouActions,
     modifier: Modifier = Modifier,
     playlists: List<PlaylistSummary>? = null,
+    history: List<Video>? = null,
 ) {
     // Sans compte, les listes personnelles mènent à la connexion.
     fun openList(list: YouList) = if (user != null) actions.onListClick(list) else actions.onLoginClick()
@@ -176,7 +184,6 @@ private fun YouContent(
         }
         item(key = "shortcuts") {
             Shortcuts(
-                onHistory = { openList(YouList.History) },
                 // Avec une chaîne, Vos vidéos ouvre sa page ; connecté sans chaîne, sa création ;
                 // visiteur, un état vide l'explique.
                 onYourVideos = {
@@ -191,11 +198,77 @@ private fun YouContent(
                 onDownloads = { if (user != null) actions.onDownloadsClick() else actions.onLoginClick() },
             )
         }
+        if (user != null && history != null) {
+            item(key = "history") {
+                HistorySection(history, onVideoClick = actions.onVideoClick, onViewAll = { openList(YouList.History) })
+            }
+        }
         if (user != null && playlists != null) {
             item(key = "playlists") { PlaylistsSection(playlists, actions.onPlaylistClick) }
         }
         item(key = "premium") { PremiumCard(premium, actions.onPremiumClick, actions.onCancelPremium) }
         item(key = "settings") { SettingsList(isLoggedIn = user != null, actions = actions) }
+    }
+}
+
+// Ruban « Historique » de la référence : titre, « Tout voir », puis les dernières vidéos regardées.
+@Composable
+private fun HistorySection(videos: List<Video>, onVideoClick: (String) -> Unit, onViewAll: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.you_history),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedButton(onClick = onViewAll) { Text(stringResource(R.string.you_view_all)) }
+        }
+        if (videos.isEmpty()) {
+            Text(
+                text = stringResource(R.string.you_history_empty_section),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        } else {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(videos, key = { it.id }) { video ->
+                    Column(
+                        modifier = Modifier
+                            .width(160.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(role = Role.Button) { onVideoClick(video.id) },
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        VideoThumbnail(video, Modifier.fillMaxWidth())
+                        Text(
+                            text = video.title,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = video.channel.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -312,7 +385,12 @@ private fun AccountHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Avatar(user)
+        // Avec une chaîne, son avatar (photo ou initiales générées) ; sinon celui du compte.
+        if (channel?.avatarUrl != null) {
+            ChannelAvatar(channel = channel, modifier = Modifier.size(72.dp).clip(CircleShape))
+        } else {
+            Avatar(user)
+        }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = user.displayName,
@@ -460,14 +538,12 @@ private data class Shortcut(@DrawableRes val icon: Int, @StringRes val label: In
 // Raccourcis défilants, en pastilles grises comme les actions de l'écran de lecture.
 @Composable
 private fun Shortcuts(
-    onHistory: () -> Unit,
     onYourVideos: () -> Unit,
     onLiked: () -> Unit,
     onSubscriptions: () -> Unit,
     onDownloads: () -> Unit,
 ) {
     val shortcuts = listOf(
-        Shortcut(R.drawable.ic_history, R.string.you_history, onHistory),
         Shortcut(R.drawable.ic_your_videos, R.string.you_your_videos, onYourVideos),
         Shortcut(R.drawable.ic_like, R.string.you_liked_videos, onLiked),
         Shortcut(R.drawable.ic_tab_subscriptions, R.string.tab_subscriptions, onSubscriptions),

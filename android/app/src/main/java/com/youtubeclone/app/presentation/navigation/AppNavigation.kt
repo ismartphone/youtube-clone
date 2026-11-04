@@ -282,6 +282,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onHelpClick = { navController.navigate(HelpRoute) },
                     onPlaylistClick = { playlistId -> navController.navigate(PlaylistRoute(playlistId)) },
                     onDownloadsClick = { navController.navigate(DownloadsRoute) },
+                    onVideoClick = openVideo,
                     onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
                     onSubscriptionsClick = { openTab(SubscriptionsRoute) },
                     onPremiumClick = openPaywall,

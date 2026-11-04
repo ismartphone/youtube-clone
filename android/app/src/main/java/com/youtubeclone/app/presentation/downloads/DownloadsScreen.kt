@@ -64,12 +64,13 @@ fun DownloadsScreen(
         when (val list = downloads) {
             null -> LoadingState(Modifier.weight(1f))
             else -> if (list.isEmpty()) {
-                EmptyStateMessage(
-                    icon = R.drawable.ic_download,
-                    title = stringResource(R.string.downloads_empty_title),
-                    message = stringResource(R.string.downloads_empty_message),
-                    modifier = Modifier.weight(1f),
-                )
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    EmptyStateMessage(
+                        icon = R.drawable.ic_download,
+                        title = stringResource(R.string.downloads_empty_title),
+                        message = stringResource(R.string.downloads_empty_message),
+                    )
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),

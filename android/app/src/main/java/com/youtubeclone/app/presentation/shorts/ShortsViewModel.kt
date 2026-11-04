@@ -20,6 +20,7 @@ import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.domain.usecase.PostCommentUseCase
 import com.youtubeclone.app.domain.usecase.RecordViewUseCase
+import com.youtubeclone.app.domain.usecase.SetDislikedUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
 import com.youtubeclone.app.domain.usecase.SetLikedUseCase
 import com.youtubeclone.app.presentation.channel.FollowController
@@ -64,6 +65,7 @@ data class ShortsPlayback(
 data class ShortLikes(
     val likeCount: Int,
     val isLiked: Boolean,
+    val isDisliked: Boolean = false,
     /** Appel en cours : le bouton ignore les nouveaux appuis. */
     val isPending: Boolean = false,
 )
@@ -76,6 +78,7 @@ class ShortsViewModel @Inject constructor(
     private val getVideoDetail: GetVideoDetailUseCase,
     private val recordView: RecordViewUseCase,
     private val setLiked: SetLikedUseCase,
+    private val setDisliked: SetDislikedUseCase,
     private val getChannelPage: GetChannelPageUseCase,
     private val getComments: GetCommentsUseCase,
     private val postComment: PostCommentUseCase,
@@ -218,7 +221,25 @@ class ShortsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val status = setLiked(videoId, like = !current.isLiked)
-                _likes.update { it + (videoId to ShortLikes(status.likeCount, status.isLiked)) }
+                _likes.update { it + (videoId to ShortLikes(status.likeCount, status.isLiked, status.isDisliked)) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _likes.update { it + (videoId to current) }
+                _errors.tryEmit(e.toUiError())
+            }
+        }
+    }
+
+    /** « Je n'aime pas » (ADR-019) : remplace le « j'aime » éventuel. À n'appeler qu'avec une session. */
+    fun toggleDislike(videoId: String) {
+        val current = _likes.value[videoId] ?: return
+        if (current.isPending) return
+        _likes.update { it + (videoId to current.copy(isPending = true)) }
+        viewModelScope.launch {
+            try {
+                val status = setDisliked(videoId, dislike = !current.isDisliked)
+                _likes.update { it + (videoId to ShortLikes(status.likeCount, status.isLiked, status.isDisliked)) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -274,7 +295,7 @@ class ShortsViewModel @Inject constructor(
             viewModelScope.async {
                 getVideoDetail(id).also { detail ->
                     _likes.update {
-                        it + (id to ShortLikes(detail.likeStatus.likeCount, detail.likeStatus.isLiked))
+                        it + (id to ShortLikes(detail.likeStatus.likeCount, detail.likeStatus.isLiked, detail.likeStatus.isDisliked))
                     }
                 }
             }.also { deferred ->

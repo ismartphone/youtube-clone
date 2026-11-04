@@ -179,6 +179,7 @@ private fun ShortsPager(
             followState = followState?.takeIf { followChannelId == video.channel.id },
             onTap = viewModel::togglePlayPause,
             onLikeClick = { requireLogin { viewModel.toggleLike(video.id) } },
+            onDislikeClick = { requireLogin { viewModel.toggleDislike(video.id) } },
             onCommentsClick = { showComments = true },
             onShareClick = { shareVideo(context, video) },
             onChannelClick = { onChannelClick(video.channel.id) },
@@ -212,6 +213,7 @@ private fun ShortPage(
     followState: FollowUiState?,
     onTap: () -> Unit,
     onLikeClick: () -> Unit,
+    onDislikeClick: () -> Unit,
     onCommentsClick: () -> Unit,
     onShareClick: () -> Unit,
     onChannelClick: () -> Unit,
@@ -295,12 +297,12 @@ private fun ShortPage(
                 .padding(start = 16.dp, end = 8.dp, bottom = 16.dp),
         ) {
             ShortInfo(video, followState, onChannelClick, onFollowClick, Modifier.weight(1f))
-            ShortActions(video, likes, commentCount, onLikeClick, onCommentsClick, onShareClick, onChannelClick)
+            ShortActions(video, likes, commentCount, onLikeClick, onDislikeClick, onCommentsClick, onShareClick)
         }
     }
 }
 
-// En bas à gauche : nom de la chaîne et S'abonner compact, puis le titre sur deux lignes.
+// En bas à gauche : avatar et nom de la chaîne, S'abonner compact, puis le titre sur deux lignes.
 @Composable
 private fun ShortInfo(
     video: Video,
@@ -311,6 +313,13 @@ private fun ShortInfo(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            ChannelAvatar(
+                channel = video.channel,
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onChannelClick, role = Role.Button),
+            )
             Text(
                 text = video.channel.name,
                 style = OverlayTextStyle.merge(MaterialTheme.typography.titleSmall).copy(fontWeight = FontWeight.Bold),
@@ -335,16 +344,16 @@ private fun ShortInfo(
     }
 }
 
-// Colonne d'actions, de bas en haut : J'aime, Commentaires, Partager, puis l'avatar de la chaîne.
+// Colonne d'actions de la référence, de haut en bas : J'aime, Je n'aime pas, Commentaires, Partager.
 @Composable
 private fun ShortActions(
     video: Video,
     likes: ShortLikes?,
     commentCount: Int?,
     onLikeClick: () -> Unit,
+    onDislikeClick: () -> Unit,
     onCommentsClick: () -> Unit,
     onShareClick: () -> Unit,
-    onChannelClick: () -> Unit,
 ) {
     val reduceMotion = LocalReduceMotion.current
     val likeTint by animateColorAsState(
@@ -352,27 +361,15 @@ private fun ShortActions(
         animationSpec = tween(if (reduceMotion) Motion.REDUCED_FADE_MS else Motion.SHORT_MS),
         label = "shortLikeTint",
     )
+    val dislikeTint by animateColorAsState(
+        targetValue = if (likes?.isDisliked == true) MaterialTheme.colorScheme.primary else Color.White,
+        animationSpec = tween(if (reduceMotion) Motion.REDUCED_FADE_MS else Motion.SHORT_MS),
+        label = "shortDislikeTint",
+    )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        ChannelAvatar(
-            channel = video.channel,
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .border(2.dp, Color.White, CircleShape)
-                .clickable(onClick = onChannelClick, role = Role.Button),
-        )
-        ShortAction(R.drawable.ic_share, stringResource(R.string.shorts_share), onClick = onShareClick)
-        // Commentaires désactivés (ADR-016) : pas de bouton.
-        if (video.commentsEnabled) {
-            ShortAction(
-                icon = R.drawable.ic_comment,
-                label = commentCount?.let(::formatCompactCount) ?: stringResource(R.string.shorts_comments),
-                onClick = onCommentsClick,
-            )
-        }
         ShortAction(
             icon = R.drawable.ic_like,
             label = likes?.let { formatCompactCount(it.likeCount) } ?: stringResource(R.string.shorts_like),
@@ -381,6 +378,23 @@ private fun ShortActions(
             enabled = likes != null && !likes.isPending,
             onClick = onLikeClick,
         )
+        // Sans nombre : les « Je n'aime pas » ne sont jamais comptés (ADR-019).
+        ShortAction(
+            icon = R.drawable.ic_dislike,
+            label = stringResource(R.string.watch_dislike),
+            tint = dislikeTint,
+            enabled = likes != null && !likes.isPending,
+            onClick = onDislikeClick,
+        )
+        // Commentaires désactivés (ADR-016) : pas de bouton.
+        if (video.commentsEnabled) {
+            ShortAction(
+                icon = R.drawable.ic_comment,
+                label = commentCount?.let(::formatCompactCount) ?: stringResource(R.string.shorts_comments),
+                onClick = onCommentsClick,
+            )
+        }
+        ShortAction(R.drawable.ic_share, stringResource(R.string.shorts_share), onClick = onShareClick)
     }
 }
 
@@ -398,14 +412,14 @@ private fun ShortAction(
             .clip(MaterialTheme.shapes.medium)
             .clickable(enabled = enabled, onClick = onClick, role = Role.Button),
     ) {
+        // Icône nue, comme la référence ; le dégradé du bas garde le contraste.
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
             tint = tint,
             modifier = Modifier
-                .size(48.dp)
-                .background(Color.Black.copy(alpha = 0.25f), CircleShape)
-                .padding(12.dp),
+                .padding(4.dp)
+                .size(32.dp),
         )
         Text(
             text = label,
@@ -454,6 +468,7 @@ private fun ShortPagePreview() {
             followState = FollowUiState(followerCount = 15_800, isFollowing = false),
             onTap = {},
             onLikeClick = {},
+            onDislikeClick = {},
             onCommentsClick = {},
             onShareClick = {},
             onChannelClick = {},
