@@ -24,3 +24,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-018](ADR-018-personnalisation-chaine-mobile.md) | Personnalisation de sa chaîne par le créateur depuis l'application mobile | Accepté |
 | [ADR-019](ADR-019-je-naime-pas-telechargements-playlists-aide.md) | Boutons « Je n'aime pas », « Télécharger », « Enregistrer » et « Aide » : avis négatif, téléchargements Premium, playlists et écran d'aide | Accepté |
 | [ADR-020](ADR-020-notifications-fcm.md) | Notifications de publication par Firebase Cloud Messaging | Accepté |
+| [ADR-021](ADR-021-publicites-preroll-bandeau.md) | Publicités vidéo : pré-roll réel, bandeau sponsorisé | Proposé |
