@@ -25,3 +25,6 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-019](ADR-019-je-naime-pas-telechargements-playlists-aide.md) | Boutons « Je n'aime pas », « Télécharger », « Enregistrer » et « Aide » : avis négatif, téléchargements Premium, playlists et écran d'aide | Accepté |
 | [ADR-020](ADR-020-notifications-fcm.md) | Notifications de publication par Firebase Cloud Messaging | Accepté |
 | [ADR-021](ADR-021-publicites-preroll-bandeau.md) | Publicités vidéo : pré-roll réel, bandeau sponsorisé | Accepté |
+| [ADR-022](ADR-022-plusieurs-comptes-appareil.md) | Plusieurs comptes sur l'appareil et changement de compte | Proposé |
+| [ADR-023](ADR-023-reponses-jaime-commentaires.md) | Réponses et « j'aime » sur les commentaires | Proposé |
+| [ADR-024](ADR-024-mini-lecteur.md) | Mini-lecteur : lecteur unique remonté au niveau de l'ossature de l'application | Proposé |
