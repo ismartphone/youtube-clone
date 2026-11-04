@@ -1,5 +1,6 @@
 package com.youtubeclone.app.presentation.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.youtubeclone.app.domain.analytics.AdPlacement
@@ -19,10 +20,12 @@ import com.youtubeclone.app.domain.usecase.ObserveInterestsUseCase
 import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
+import com.youtubeclone.app.presentation.ads.SponsoredAdPreview
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
 import com.youtubeclone.app.presentation.onboarding.FirstScreenReadiness
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -48,6 +51,7 @@ data class HomeFilters(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    @ApplicationContext context: Context,
     private val getHomeFeed: GetHomeFeedUseCase,
     private val getCategories: GetCategoriesUseCase,
     private val getCurrentUser: GetCurrentUserUseCase,
@@ -84,6 +88,9 @@ class HomeViewModel @Inject constructor(
     // Publicité dont l'affichage a déjà été mesuré : une fois par chargement, pas à chaque défilement.
     private var shownAdId: String? = null
 
+    /** Vidéo du bandeau, en boucle et en sourdine, lue seulement quand la carte est visible. */
+    val adPreview = SponsoredAdPreview(context)
+
     init {
         // Premier chargement, puis à chaque changement des centres d'intérêt (onglet « Vous »),
         // pour remonter les bonnes vidéos en tête du fil.
@@ -115,14 +122,27 @@ class HomeViewModel @Inject constructor(
                 null
             }
             shownAdId = null
+            adPreview.show(_sponsoredAd.value)
         }
     }
 
-    fun onSponsoredAdShown(ad: VideoAd) {
-        if (shownAdId == ad.id) return
+    /** La carte entre dans l'écran ou en sort : la vidéo suit, et l'affichage est mesuré une fois. */
+    fun onSponsoredAdVisibilityChanged(visible: Boolean) {
+        adPreview.setVisible(visible)
+        val ad = _sponsoredAd.value ?: return
+        if (!visible || shownAdId == ad.id) return
         shownAdId = ad.id
         analytics.track(AnalyticsEvent.SponsoredAdShown(ad.id))
     }
+
+    /** Fil affiché ou quitté (autre onglet, autre écran, arrière-plan) : retour en sourdine en partant. */
+    fun onFeedShown(shown: Boolean) = adPreview.setFeedShown(shown)
+
+    fun onToggleSponsoredAdSound(ad: VideoAd) {
+        if (adPreview.toggleMute()) analytics.track(AnalyticsEvent.SponsoredAdUnmuted(ad.id))
+    }
+
+    fun onSponsoredAdWatchClicked(ad: VideoAd) = analytics.track(AnalyticsEvent.SponsoredAdWatchClicked(ad.id))
 
     fun onSponsoredAdClicked(ad: VideoAd) = analytics.track(AnalyticsEvent.SponsoredAdClicked(ad.id, AdPlacement.HomeBanner))
 
@@ -193,4 +213,6 @@ class HomeViewModel @Inject constructor(
             null
         }
     }
+
+    override fun onCleared() = adPreview.release()
 }

@@ -57,6 +57,8 @@ class AdPlayerViewModel @Inject constructor(
                 thumbnailUrl = null,
                 durationSeconds = route.durationSeconds,
                 destinationUrl = route.destinationUrl,
+                advertiserName = route.advertiserName,
+                ctaLabel = route.ctaLabel,
             ),
             onFinished = { _finished.trySend(Unit) },
         )

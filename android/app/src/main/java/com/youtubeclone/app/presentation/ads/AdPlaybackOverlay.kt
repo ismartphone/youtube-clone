@@ -120,6 +120,7 @@ fun AdPlaybackOverlay(
                 if (destination != null) {
                     VisitSiteBand(
                         advertiser = state.ad.advertiser ?: destination,
+                        label = state.ad.ctaLabel,
                         onClick = {
                             onVisitSite()
                             uriHandler.openUri(destination)
@@ -181,9 +182,10 @@ fun AdPlaybackOverlay(
     }
 }
 
-// Bande « Visiter le site » : initiale de l'annonceur, son nom et le libellé, sur un fond sombre.
+// Bande « Visiter le site » : initiale de l'annonceur, son nom et le libellé du bouton principal,
+// sur un fond sombre.
 @Composable
-private fun VisitSiteBand(advertiser: String, onClick: () -> Unit) {
+private fun VisitSiteBand(advertiser: String, label: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
@@ -215,7 +217,7 @@ private fun VisitSiteBand(advertiser: String, onClick: () -> Unit) {
                 modifier = Modifier.widthIn(max = 140.dp),
             )
             Text(
-                text = stringResource(R.string.ad_visit_site),
+                text = label,
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.8f),
             )

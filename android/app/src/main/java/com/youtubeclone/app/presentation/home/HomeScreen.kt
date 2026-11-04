@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,7 +30,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +45,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.Player
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Category
@@ -59,6 +66,7 @@ import com.youtubeclone.app.presentation.common.staggeredAppearance
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 // Écran d'accueil d'après les maquettes (android/maquettes/accueil-*.png, captures iOS) :
 // on en reprend la mise en page, les proportions et la hiérarchie, avec les conventions
@@ -69,6 +77,20 @@ private val ChipHeight = 32.dp
 
 // Le post mis en avant vient après les trois premières vidéos du fil.
 private const val VIDEOS_BEFORE_POST = 3
+
+private const val SPONSORED_KEY = "sponsored"
+
+/** Vidéo du bandeau sponsorisé : lecteur, sourdine, miniature tant que la vidéo n'a pas d'image. */
+private data class SponsoredAdPreviewState(val player: Player, val muted: Boolean, val coverWithThumbnail: Boolean)
+
+/** Vrai si l'élément [key] de la liste est visible au moins à moitié. */
+private fun LazyListState.isHalfVisible(key: Any): Boolean {
+    val info = layoutInfo
+    val item = info.visibleItemsInfo.firstOrNull { it.key == key } ?: return false
+    val visibleTop = maxOf(item.offset, info.viewportStartOffset)
+    val visibleBottom = minOf(item.offset + item.size, info.viewportEndOffset)
+    return item.size > 0 && (visibleBottom - visibleTop) * 2 >= item.size
+}
 
 @Composable
 fun HomeScreen(
@@ -85,6 +107,11 @@ fun HomeScreen(
     val latestPost by viewModel.latestPost.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sponsoredAd by viewModel.sponsoredAd.collectAsStateWithLifecycle()
+    val adMuted by viewModel.adPreview.muted.collectAsStateWithLifecycle()
+    val adFirstFrameShown by viewModel.adPreview.firstFrameShown.collectAsStateWithLifecycle()
+    // Fil quitté (autre onglet, autre écran, arrière-plan) : la vidéo du bandeau s'arrête.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onFeedShown(true) }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onFeedShown(false) }
     val filters by viewModel.filters.collectAsStateWithLifecycle()
     val account by viewModel.account.collectAsStateWithLifecycle()
     HomeContent(
@@ -99,13 +126,18 @@ fun HomeScreen(
         onSearchClick = onSearchClick,
         modifier = modifier,
         sponsoredAd = sponsoredAd,
+        sponsoredAdPreview = SponsoredAdPreviewState(viewModel.adPreview.player, adMuted, !adFirstFrameShown),
         onSponsoredAdClick = viewModel::onSponsoredAdClicked,
-        onSponsoredAdPlay = onSponsoredAdPlay,
+        onSponsoredAdPlay = {
+            viewModel.onSponsoredAdWatchClicked(it)
+            onSponsoredAdPlay(it)
+        },
+        onToggleSponsoredAdSound = viewModel::onToggleSponsoredAdSound,
         onRemoveAdsClick = {
             viewModel.onRemoveAdsClicked(it)
             onRemoveAdsClick()
         },
-        onSponsoredAdShown = viewModel::onSponsoredAdShown,
+        onSponsoredAdVisibilityChanged = viewModel::onSponsoredAdVisibilityChanged,
         latestPost = latestPost,
         onPostClick = onPostClick,
     )
@@ -124,10 +156,12 @@ private fun HomeContent(
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
     sponsoredAd: VideoAd? = null,
+    sponsoredAdPreview: SponsoredAdPreviewState? = null,
     onSponsoredAdClick: (VideoAd) -> Unit = {},
     onSponsoredAdPlay: (VideoAd) -> Unit = {},
+    onToggleSponsoredAdSound: (VideoAd) -> Unit = {},
     onRemoveAdsClick: (VideoAd) -> Unit = {},
-    onSponsoredAdShown: (VideoAd) -> Unit = {},
+    onSponsoredAdVisibilityChanged: (Boolean) -> Unit = {},
     latestPost: Post? = null,
     onPostClick: (channelId: String) -> Unit = {},
 ) {
@@ -145,20 +179,32 @@ private fun HomeContent(
             is HomeUiState.Success -> {
                 // Nouvelle liste chargée : ses premières cartes apparaissent l'une après l'autre.
                 val appearance = rememberStaggeredAppearance(uiState)
+                val listState = rememberLazyListState()
+                // Carte sponsorisée visible au moins à moitié : sa vidéo joue ; sinon elle s'arrête,
+                // pour ne pas faire ramer le défilement.
+                LaunchedEffect(listState, sponsoredAd != null) {
+                    snapshotFlow { listState.isHalfVisible(SPONSORED_KEY) }
+                        .distinctUntilChanged()
+                        .collect(onSponsoredAdVisibilityChanged)
+                }
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(VideoCardSpacing),
                     contentPadding = PaddingValues(top = 4.dp, bottom = VideoCardSpacing),
                 ) {
                     // Bandeau sponsorisé (ADR-021), tout en haut ; jamais pour un compte Premium.
-                    if (sponsoredAd != null) {
-                        item(key = "sponsored") {
+                    if (sponsoredAd != null && sponsoredAdPreview != null) {
+                        item(key = SPONSORED_KEY) {
                             SponsoredAdCard(
                                 ad = sponsoredAd,
-                                onClick = { onSponsoredAdClick(sponsoredAd) },
-                                onPlay = { onSponsoredAdPlay(sponsoredAd) },
+                                player = sponsoredAdPreview.player,
+                                muted = sponsoredAdPreview.muted,
+                                coverWithThumbnail = sponsoredAdPreview.coverWithThumbnail,
+                                onToggleMute = { onToggleSponsoredAdSound(sponsoredAd) },
+                                onWatch = { onSponsoredAdPlay(sponsoredAd) },
+                                onSiteClick = { onSponsoredAdClick(sponsoredAd) },
                                 onRemoveAdsClick = { onRemoveAdsClick(sponsoredAd) },
-                                onShown = { onSponsoredAdShown(sponsoredAd) },
                             )
                         }
                     }

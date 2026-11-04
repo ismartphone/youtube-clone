@@ -45,6 +45,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.model.DEFAULT_AD_CTA
 import com.youtubeclone.app.presentation.ads.AdPlayerScreen
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
@@ -93,6 +94,8 @@ import kotlinx.serialization.Serializable
     val isHls: Boolean,
     val durationSeconds: Int,
     val destinationUrl: String? = null,
+    val advertiserName: String? = null,
+    val ctaLabel: String = DEFAULT_AD_CTA,
 )
 // [tab] : onglet ouvert d'emblée, par exemple « Posts » depuis un post du fil ; null : Vidéos.
 @Serializable data class ChannelRoute(val channelId: String, val tab: String? = null)
@@ -245,7 +248,16 @@ fun AppNavigation(
                     onSearchClick = { navController.navigate(SearchRoute) },
                     onSponsoredAdPlay = { ad ->
                         navController.navigate(
-                            AdPlayerRoute(ad.id, ad.title, ad.streamUrl, ad.isHls, ad.durationSeconds, ad.destinationUrl),
+                            AdPlayerRoute(
+                                ad.id,
+                                ad.title,
+                                ad.streamUrl,
+                                ad.isHls,
+                                ad.durationSeconds,
+                                ad.destinationUrl,
+                                ad.advertiserName,
+                                ad.ctaLabel,
+                            ),
                         )
                     },
                     onRemoveAdsClick = openPaywall,

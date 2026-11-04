@@ -1,6 +1,7 @@
 package com.youtubeclone.app.data.remote.dto
 
 import com.youtubeclone.app.data.remote.resolveMediaUrl
+import com.youtubeclone.app.domain.model.DEFAULT_AD_CTA
 import com.youtubeclone.app.domain.model.VideoAd
 import kotlinx.serialization.Serializable
 
@@ -16,6 +17,10 @@ data class AdDto(
     val thumbnailUrl: String? = null,
     val durationSeconds: Int,
     val destinationUrl: String? = null,
+    val advertiserName: String? = null,
+    val description: String? = null,
+    val logoUrl: String? = null,
+    val ctaLabel: String = DEFAULT_AD_CTA,
 )
 
 /** Réponse de GET /ads/sponsored : null pour un compte Premium ou sans publicité. */
@@ -32,4 +37,8 @@ fun AdDto.toDomain() = VideoAd(
     thumbnailUrl = thumbnailUrl?.let(::resolveMediaUrl),
     durationSeconds = durationSeconds,
     destinationUrl = destinationUrl,
+    advertiserName = advertiserName,
+    description = description,
+    logoUrl = logoUrl?.let(::resolveMediaUrl),
+    ctaLabel = ctaLabel,
 )
