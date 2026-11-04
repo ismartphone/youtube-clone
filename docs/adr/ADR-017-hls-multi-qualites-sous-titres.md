@@ -76,10 +76,20 @@ Si la génération HLS échoue, la vidéo reste publiée et lue en MP4, et l'éc
 - Les annotations de bruit entre crochets ou parenthèses, et le symbole ♪, ne comptent pas comme des mots.
 - La vraie parole d'une vidéo de 37 s (cc-04) passe le garde-fou.
 
+#### Limite de la reconnaissance vocale : vidéos sans sous-titres
+- Le modèle base de whisper ne gère correctement ni le tagalog ni les paroles chantées. C'est une limite de la technique, pas du code.
+- Constats sur l'import Creative Commons : pour cc-03 (« 11 SPECTATORS! » de Barret gaming, en tagalog), la langue a été détectée comme de l'allemand, avec un texte sans rapport (« Löcke ich schatz nalang! ») ; pour cc-06 (clip de rap français de Hamxton), les paroles sont en partie inventées.
+- Décision : ces deux vidéos n'ont pas de sous-titres. De mauvais sous-titres se remarquent plus qu'une absence de sous-titres.
+- Mise en œuvre : une liste `SUBTITLES_DISABLED_FOR` dans le domaine (cc-03 et cc-06), respectée par la transcription en tâche de fond, par la commande `npm run subtitles:generate` et par l'import Creative Commons.
+- Les quatre autres vidéos Creative Commons (anglais et français parlés) ont des sous-titres exploitables.
+
 #### Longueur des répliques
 - Règle du sous-titrage : deux lignes à l'écran au plus, environ 40 caractères par ligne. Trois lignes masquent l'image.
 - Le filtre whisper est appelé avec l'option `max_len=80`, qui coupe les répliques entre les mots.
 - La conversion SRT → WebVTT répartit ensuite chaque réplique sur deux lignes équilibrées de 42 caractères au plus. Une réplique encore trop longue est scindée en plusieurs, son temps étant réparti au prorata des caractères.
+- Quand whisper fait chevaucher deux répliques (constaté : une réplique de 10 s suivie d'une autre commençant au même instant), la première s'arrête au début de la suivante.
+- Ensuite, une réplique de moins d'une seconde rejoint la précédente quand l'ensemble tient sur deux lignes. Si la précédente est pleine, elle rejoint la suivante quand l'ensemble tient ; ce second recours est un choix d'implémentation. Sinon, elle est allongée à une seconde, quitte à retarder un peu la suivante.
+- Mesures sur cc-01 (27 min) : plus aucune réplique sous une seconde, un retard maximal d'environ 1,2 s par rapport au temps donné par whisper, et seules 28 répliques sur 568 retardées de plus d'une demi-seconde. Sur cc-05 : un retard maximal d'environ 1 s.
 
 #### La génération ne bloque jamais la publication
 - La transcription a un temps maximal : deux fois la durée de la vidéo, et cinq minutes au plus. Au-delà, elle est abandonnée.
@@ -148,6 +158,8 @@ Le lecteur ne propose ni Chromecast ni diffusion sur une télé. Le serveur de d
 - Un modèle Whisper est à télécharger sur chaque poste et au déploiement, dans un dossier non versionné.
 - La qualité de la transcription est variable : erreurs de mots, détection de langue imparfaite, vidéos sans parole ou avec musique seule ; d'où la mention « générés automatiquement ».
 - Le garde-fou contre les répliques inventées retire aussi les sous-titres d'un vrai dialogue très bref : une vidéo de plus de 20 secondes dont la parole compte moins de 10 mots perd ses sous-titres.
+- La liste `SUBTITLES_DISABLED_FOR` des vidéos privées de sous-titres est tenue à la main : une nouvelle vidéo dans une langue mal reconnue, ou chantée, aurait de mauvais sous-titres tant qu'on ne l'y ajoute pas.
+- La durée minimale d'une seconde retarde légèrement quelques répliques par rapport au temps donné par whisper (au plus environ 1,2 s mesuré sur cc-01).
 - Les Shorts ont des sous-titres générés, mais ils n'y sont pas affichés : le lecteur vertical des Shorts n'a ni bouton ni menu de sous-titres. Seul le lecteur des vidéos classiques les propose.
 - Au déploiement, le CDN Cloudflare R2 sert beaucoup plus de fichiers par vidéo (segments, manifestes, sous-titres) qu'un seul MP4.
 - L'identifiant aléatoire du dossier HLS n'est que de l'obscurité : comme pour tout fichier servi en statique sous `/media` (MP4, sous-titres), la vérification de l'API ne protège que la remise du chemin, pas le fichier lui-même. Une adresse obtenue peut être rejouée par n'importe qui. Limite connue, faute d'URL signées ou de relais authentifié.

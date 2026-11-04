@@ -59,6 +59,17 @@ de la reconnaissance vocale, pas un défaut de notre code. Garde-fou : une vidé
 dont la transcription compte moins de 10 mots (annotations comme « [Music] » non comptées) est
 considérée comme sans parole, et ne reçoit pas de sous-titres.
 
+Le modèle `base` ne gère correctement ni le tagalog ni les paroles chantées : c'est une limite de la
+reconnaissance vocale, pas de notre code. Sur l'import Creative Commons, la vidéo en tagalog (cc-03)
+est prise pour de l'allemand, et le clip de rap (cc-06) reçoit des paroles en partie inventées. De
+mauvais sous-titres se remarquant plus qu'une absence de sous-titres, ces deux vidéos n'en ont pas :
+elles figurent dans `SUBTITLES_DISABLED_FOR` (`src/modules/videos/domain/subtitles.ts`), liste
+respectée par la tâche de fond, `npm run subtitles:generate` et `seed:cc-videos`. Une nouvelle
+vidéo dans ce cas est à y ajouter.
+
+Mise en forme : deux lignes de 42 caractères au plus par réplique, et une seconde d'affichage au
+moins ; une réplique trop brève rejoint sa voisine quand l'ensemble tient sur deux lignes.
+
 Le pas à pas complet, avec les comptes de démonstration, est dans le [README de la racine](../README.md).
 
 Autres commandes :

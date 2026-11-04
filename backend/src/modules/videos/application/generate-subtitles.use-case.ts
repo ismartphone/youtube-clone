@@ -1,12 +1,15 @@
 import type { VideoCatalog } from '../domain/catalog.js';
-import type { SubtitleGenerator } from '../domain/subtitles.js';
+import {
+  SUBTITLES_DISABLED_FOR,
+  type SubtitleGenerator,
+} from '../domain/subtitles.js';
 import type { VideoRepository } from '../domain/video.repository.js';
 
 export type SubtitleOutcome = 'generated' | 'skipped' | 'missing';
 
 /**
  * Transcrit une vidéo hébergée chez nous et enregistre ses sous-titres (ADR-017). Une vidéo
- * externe n'en a pas. Si la vidéo a changé de fichier pendant la transcription, ou a été
+ * externe n'en a pas, ni une vidéo de SUBTITLES_DISABLED_FOR. Si la vidéo a changé de fichier pendant la transcription, ou a été
  * supprimée, les sous-titres produits ne servent plus et ils sont effacés.
  */
 export class GenerateSubtitlesUseCase {
@@ -22,7 +25,10 @@ export class GenerateSubtitlesUseCase {
     if (!video) {
       return 'missing';
     }
-    if (!this.subtitles.isLocal(video.videoUrl)) {
+    if (
+      !this.subtitles.isLocal(video.videoUrl) ||
+      SUBTITLES_DISABLED_FOR.includes(video.videoUrl)
+    ) {
       return 'skipped';
     }
     const subtitleUrl = await this.subtitles.generate(

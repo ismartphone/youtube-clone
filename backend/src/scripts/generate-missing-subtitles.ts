@@ -2,6 +2,7 @@
 // vidéos du seed et Creative Commons, ou vidéos dont la transcription en tâche de fond a échoué,
 // a été abandonnée ou interrompue par un arrêt du serveur. Les vidéos externes n'en ont jamais.
 // Une vidéo sans piste audio, ou sans parole, reste sans sous-titres et sera signalée à nouveau.
+// Les vidéos de SUBTITLES_DISABLED_FOR (transcription inexploitable) sont ignorées.
 // Lancement : npm run subtitles:generate   (une vidéo à la fois ; au plus 5 minutes par vidéo)
 import { GenerateSubtitlesUseCase } from '../modules/videos/application/generate-subtitles.use-case.js';
 import { FfmpegSubtitleGenerator } from '../modules/videos/infrastructure/ffmpeg-subtitle-generator.js';
@@ -13,6 +14,7 @@ import {
   mediaDirectory,
   whisperModelPath,
 } from '../shared/infrastructure/media.config.js';
+import { SUBTITLES_DISABLED_FOR } from '../modules/videos/domain/subtitles.js';
 import { PrismaService } from '../shared/infrastructure/prisma.service.js';
 
 try {
@@ -41,7 +43,13 @@ async function main() {
       generator,
     );
     const videos = await prisma.video.findMany({
-      where: { subtitleUrl: null, videoUrl: { startsWith: '/media/videos/' } },
+      where: {
+        subtitleUrl: null,
+        videoUrl: {
+          startsWith: '/media/videos/',
+          notIn: [...SUBTITLES_DISABLED_FOR],
+        },
+      },
       select: { id: true, title: true },
       orderBy: { publishedAt: 'asc' },
     });

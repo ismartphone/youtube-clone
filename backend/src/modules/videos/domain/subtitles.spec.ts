@@ -48,6 +48,96 @@ describe('srtToWebVtt', () => {
     expect(cues[1]).toContain('--> 00:00:12.000');
   });
 
+  it('fusionne une réplique de moins d’une seconde avec la précédente quand l’ensemble tient sur deux lignes', () => {
+    const srt = [
+      '1',
+      '00:00:28,991 --> 00:00:32,829',
+      'Pendant leur descente, Jacques Picard fait face à un',
+      '',
+      '2',
+      '00:00:32,829 --> 00:00:33,261',
+      'scénario',
+      '',
+      '3',
+      '00:00:33,261 --> 00:00:33,991',
+      'catastrophique, et doit remonter.',
+      '',
+    ].join('\n');
+    // « scénario » rejoint la réplique précédente ; la dernière, trop longue pour être fusionnée,
+    // est allongée à une seconde.
+    expect(srtToWebVtt(srt)).toBe(
+      'WEBVTT\n\n' +
+        '00:00:28.991 --> 00:00:33.261\nPendant leur descente, Jacques\nPicard fait face à un scénario\n\n' +
+        '00:00:33.261 --> 00:00:34.261\ncatastrophique, et doit remonter.\n',
+    );
+  });
+
+  it('fusionne une réplique brève avec la suivante quand la précédente est pleine', () => {
+    const full =
+      'Une réplique déjà longue qui occupe à elle seule les deux lignes de sous-titres.';
+    const srt = [
+      '1',
+      '00:00:00,000 --> 00:00:04,000',
+      full,
+      '',
+      '2',
+      '00:00:04,000 --> 00:00:04,300',
+      "D'accord, on y va.",
+      '',
+      '3',
+      '00:00:04,300 --> 00:00:06,000',
+      'Non.',
+      '',
+    ].join('\n');
+    expect(srtToWebVtt(srt)).toBe(
+      'WEBVTT\n\n' +
+        '00:00:00.000 --> 00:00:04.000\nUne réplique déjà longue qui occupe à\nelle seule les deux lignes de sous-titres.\n\n' +
+        "00:00:04.000 --> 00:00:06.000\nD'accord, on y va. Non.\n",
+    );
+  });
+
+  it('allonge à une seconde une réplique brève impossible à fusionner, quitte à retarder un peu la suivante', () => {
+    const first =
+      'Une première réplique longue qui remplit presque deux lignes.';
+    const second =
+      'Une deuxième réplique longue qui remplit presque deux lignes.';
+    const srt = [
+      '1',
+      '00:00:00,000 --> 00:00:00,300',
+      first,
+      '',
+      '2',
+      '00:00:00,600 --> 00:00:03,000',
+      second,
+      '',
+    ].join('\n');
+    expect(srtToWebVtt(srt)).toBe(
+      'WEBVTT\n\n' +
+        '00:00:00.000 --> 00:00:01.000\nUne première réplique longue\nqui remplit presque deux lignes.\n\n' +
+        '00:00:01.000 --> 00:00:03.000\nUne deuxième réplique longue\nqui remplit presque deux lignes.\n',
+    );
+  });
+
+  it('arrête une réplique au début de la suivante quand whisper les fait chevaucher', () => {
+    const srt = [
+      '1',
+      '00:12:19,720 --> 00:12:29,730',
+      'Story of seasons, I think I lied earlier.',
+      '',
+      '2',
+      '00:12:19,720 --> 00:12:21,540',
+      'This was the first collectors edition.',
+      '',
+    ].join('\n');
+    // La première, ramenée à zéro, dure la seconde minimale ; la seconde n'est pas repoussée de
+    // 10 s, et dure elle aussi une seconde.
+    expect(srtToWebVtt(srt)).toBe(
+      'WEBVTT\n\n' +
+        '00:12:19.720 --> 00:12:20.720\nStory of seasons, I think I lied earlier.\n\n' +
+        '00:12:20.720 --> 00:12:21.720\nThis was the first collectors edition.\n',
+    );
+  });
+
   it('remplace « --> », réservé aux lignes de temps en WebVTT', () => {
     expect(
       srtToWebVtt('1\n00:00:00,000 --> 00:00:01,000\na --> b\n'),

@@ -25,6 +25,7 @@ import {
   thumbnailPosition,
   thumbnailSize,
 } from '../src/modules/videos/domain/thumbnail-generator.js';
+import { SUBTITLES_DISABLED_FOR } from '../src/modules/videos/domain/subtitles.js';
 import { FfmpegHlsGenerator } from '../src/modules/videos/infrastructure/ffmpeg-hls-generator.js';
 import { FfmpegSubtitleGenerator } from '../src/modules/videos/infrastructure/ffmpeg-subtitle-generator.js';
 import { FfmpegThumbnailGenerator } from '../src/modules/videos/infrastructure/ffmpeg-thumbnail-generator.js';
@@ -87,6 +88,10 @@ const subtitles = new FfmpegSubtitleGenerator({
 // Sous-titres de la vidéo (ADR-017). Un échec ou un abandon est signalé sans arrêter l'import :
 // la vidéo reste sans sous-titres, et « npm run subtitles:generate » pourra la reprendre.
 async function generateSubtitles(videoId: string, video: CcVideo) {
+  if (SUBTITLES_DISABLED_FOR.includes(ccVideoUrl(video))) {
+    console.log('  pas de sous-titres : transcription inexploitable (ADR-017)');
+    return;
+  }
   const startedAt = Date.now();
   try {
     const subtitleUrl = await subtitles.generate(
