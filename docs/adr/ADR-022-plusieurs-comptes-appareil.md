@@ -27,8 +27,9 @@ Contraintes :
 ## Décision
 
 ### Comportement
-- Un appui sur l'avatar, en haut du fil ou dans l'onglet Vous, ouvre une feuille listant les comptes enregistrés sur l'appareil : avatar, nom, @handle, et une coche sur le compte actif.
+- Un appui sur l'avatar, en haut du fil ou dans l'onglet Vous, ouvre une feuille listant les comptes enregistrés sur l'appareil : avatar, nom, @handle, et une coche sur le compte actif. Pour un compte sans chaîne, la feuille affiche son nom et son adresse e-mail à la place du @handle, qui appartient à la chaîne.
 - Sous la liste : « Ajouter un compte », qui ouvre la connexion, et « Gérer les comptes », qui permet d'en retirer un.
+- 5 comptes au plus sur l'appareil.
 - La bascule est immédiate, sans mot de passe. Fil, abonnements, historique et statut Premium suivent le compte choisi.
 - Se déconnecter ne retire que le compte actif. S'il en reste, l'application bascule sur l'un d'eux ; sinon, on devient visiteur.
 - Une bascule arrête la lecture en cours (y compris la lecture en arrière-plan Premium) et revient au fil, pile de navigation vidée.
@@ -44,7 +45,7 @@ Option B, une entrée et une clé Keystore par compte (alias dérivé de l'ident
 - Avantages : retirer un compte détruit aussi sa clé, ce qui rend toute copie résiduelle de ses jetons illisible.
 - Inconvénients : une clé Keystore par compte à gérer et à migrer.
 
-**Recommandation : option B.** Seuls les jetons du compte actif sont déchiffrés et gardés en mémoire ; les autres entrées ne sont lues qu'au moment d'une bascule vers ce compte. La liste des comptes (identifiant, nom, @handle, adresse de l'avatar) est stockée à part, sans les jetons. Ce ne sont pas des secrets, mais ce sont des données personnelles, exclues des sauvegardes comme le DataStore `session`.
+**Option B retenue** (recommandation validée à l'acceptation). Seuls les jetons du compte actif sont déchiffrés et gardés en mémoire ; les autres entrées ne sont lues qu'au moment d'une bascule vers ce compte. La liste des comptes (identifiant, nom, @handle ou adresse e-mail, adresse de l'avatar) est stockée à part, sans les jetons. Ce ne sont pas des secrets, mais ce sont des données personnelles, exclues des sauvegardes comme le DataStore `session`.
 
 **Portée réelle de « jamais lisibles depuis la session d'un autre » :**
 - La séparation garantit trois choses :
@@ -56,14 +57,19 @@ Option B, une entrée et une clé Keystore par compte (alias dérivé de l'ident
 
 **Migration :** au premier démarrage après la mise à jour, l'entrée `tokens` actuelle devient le premier compte enregistré, avec sa propre clé. L'ancienne entrée et l'ancienne clé `session_tokens` sont ensuite supprimées.
 
-**Refresh token expiré d'un compte inactif :** un compte inactif ne renouvelle pas ses jetons. Au-delà de 7 jours, son refresh token a expiré, et la bascule sans mot de passe devient impossible. Recommandation : le compte reste dans la liste avec la mention « Reconnexion requise », et un appui ouvre la connexion avec l'adresse e-mail préremplie (question 2).
+**Refresh token expiré d'un compte inactif :** un compte inactif ne renouvelle pas ses jetons. Au-delà de 7 jours, son refresh token a expiré, et la bascule sans mot de passe devient impossible. Le compte reste dans la liste, grisé, avec la mention « Reconnexion requise ». Un appui ouvre la connexion avec l'adresse e-mail préremplie. Il n'est jamais supprimé tout seul.
+
+**Retirer un compte inactif** (« Gérer les comptes ») :
+- suppression de ses jetons, de sa clé Keystore et de ses téléchargements ;
+- un fichier partagé avec un autre compte est gardé ;
+- aucun appel au serveur pour le jeton FCM, qui appartient au compte actif.
 
 ### Notifications (ADR-020)
 - À chaque bascule, l'application enregistre le jeton FCM pour le nouveau compte. L'upsert existant réattribue le jeton au nouveau compte : l'ancien compte le perd du même coup, sans appel de retrait séparé.
 - **Bascule hors réseau :** l'ancien compte garde le jeton, et l'appareil continuerait de recevoir ses notifications.
-  - Option 1, retenter l'enregistrement au retour du réseau. Avantage, simple. Inconvénient, d'ici là, les notifications de l'ancien compte arrivent.
-  - Option 2, appeler `deleteToken()` localement, comme la déconnexion hors ligne actuelle, puis enregistrer le nouveau jeton au retour du réseau. Avantage, l'ancien jeton meurt chez Firebase tout de suite, et le serveur le supprime au premier envoi refusé. Inconvénient, le nouveau compte ne reçoit rien tant que le réseau n'est pas revenu.
-  - **Recommandation : option 2**, avec un enregistrement en attente rejoué au retour du réseau.
+  - L'application appelle `deleteToken()` localement, comme la déconnexion hors ligne actuelle. L'ancien jeton meurt chez Firebase tout de suite, et le serveur le supprime au premier envoi refusé.
+  - Le nouveau jeton est enregistré en attente, puis l'enregistrement est rejoué au retour du réseau. D'ici là, le nouveau compte ne reçoit rien.
+  - Option écartée : retenter seulement l'enregistrement, sans `deleteToken()`. D'ici le retour du réseau, les notifications de l'ancien compte continueraient d'arriver.
 
 ### Téléchargements (ADR-019)
 - Un téléchargement appartient au compte qui l'a fait. Une bascule ne l'efface pas et ne le montre pas à l'autre compte. Seule la déconnexion d'un compte (ou son retrait) supprime les siens.
@@ -71,30 +77,33 @@ Option B, une entrée et une clé Keystore par compte (alias dérivé de l'ident
 - **Même vidéo téléchargée par deux comptes :**
   - Option 1, un seul fichier partagé dans le SimpleCache (identifiant et clé de cache inchangés = `videoId`), avec une ligne Room par compte. Le fichier n'est retiré de Media3 que lorsqu'il ne reste plus aucune ligne pour cette vidéo. Avantages : pas de doublon sur le disque, aucun changement dans le téléchargement Media3. Inconvénient : la suppression doit compter les lignes restantes avant de retirer le fichier.
   - Option 2, un téléchargement par compte (identifiant et clé de cache `userId:videoId`). Avantage : suppression indépendante. Inconvénients : fichier en double, et la lecture hors ligne doit utiliser la clé du compte.
-  - **Recommandation : option 1.** Les miniatures et sous-titres enregistrés à part suivent la même règle. `expiresAt` et `validatedAt` restent par ligne, donc par compte : le Premium de l'un ne prolonge pas l'autre.
-- **Migration des téléchargements existants :** migration Room qui ajoute `userId` et attribue les lignes existantes au compte actif au moment de la mise à jour. Sans session active à ce moment-là, les lignes et fichiers sont supprimés, comme à une déconnexion (question 4).
+  - **Option 1 retenue** (recommandation validée à l'acceptation). Les miniatures et sous-titres enregistrés à part suivent la même règle. `expiresAt` et `validatedAt` restent par ligne, donc par compte : le Premium de l'un ne prolonge pas l'autre.
+- **Migration des téléchargements existants :** migration Room qui ajoute `userId` et attribue les lignes existantes au compte actif au moment de la mise à jour, puisque c'est lui qui les a faits. Sans session active à ce moment-là, les lignes et fichiers sont supprimés, comme à une déconnexion.
+- Un téléchargement en cours pendant une bascule continue et reste au compte qui l'a lancé.
+- La limite de 20 téléchargements (ADR-019) s'applique par compte, pas par appareil.
+- Une bascule compte comme une connexion pour la revalidation des téléchargements du compte choisi (ADR-019).
 
 ### Autres points touchés
 - **PostHog (ADR-013) :** à la bascule, `reset` puis `identify` du nouveau compte. Sans `reset`, les événements risquent d'être rattachés à l'ancien identifiant. Le refus des mesures (`share_usage_stats`) reste un réglage de l'appareil.
 - **WebSocket (ADR-010) :** la bascule ferme l'écran de lecture, donc la connexion. Toute connexion suivante lit l'access token du nouveau compte. Rien d'autre à faire.
 - **État en mémoire :** les ViewModels du fil, des abonnements et de l'onglet Vous gardent les données de l'ancien compte. Vider la pile de navigation et revenir au fil les recharge.
-- **Préférences :** l'onboarding, les centres d'intérêt et la lecture automatique sont aujourd'hui réglés pour l'appareil (question 5).
-- **Nombre de comptes :** aucune limite technique ; une limite garde la feuille lisible (question 6).
+- **Préférences :** l'onboarding, les centres d'intérêt et la lecture automatique restent réglés pour l'appareil, comme aujourd'hui.
+- **Nombre de comptes :** 5 au plus, pour que la feuille reste lisible.
 
 ### Libellé proposé pour l'ADR-008 à l'acceptation
 « Accepté, remplacé en partie par l'ADR-022 (plusieurs comptes) », dans le fichier de l'ADR-008 et dans l'index. L'ADR-008 n'est pas modifié avant l'acceptation.
 
-### Questions au lead développeur
-1. **@handle d'un compte sans chaîne :** le @handle appartient à la chaîne. Que montre la feuille pour un compte sans chaîne (rien, ou l'adresse e-mail) ?
-2. **Compte inactif au refresh token expiré (7 jours) :** mention « Reconnexion requise » et connexion préremplie, comme recommandé ?
-3. **Bascule hors réseau :** `deleteToken()` local et enregistrement en attente (recommandé), ou simple nouvelle tentative ?
-4. **Migration :** téléchargements existants attribués au compte actif, et supprimés s'il n'y a pas de session ?
-5. **Préférences par appareil ou par compte :** onboarding, centres d'intérêt, lecture automatique ?
-6. **Nombre maximal de comptes** (par exemple 5) ?
-7. **Téléchargement en cours au moment d'une bascule :** il continue pour le compte qui l'a lancé, ou il est annulé ?
-8. **Limite de 20 téléchargements (ADR-019) :** par compte ou pour l'appareil ?
-9. **Revalidation des téléchargements (ADR-019, « à chaque connexion ») :** une bascule compte-t-elle comme une connexion ?
-10. **« Gérer les comptes » sur un compte inactif :** le retirer supprime-t-il ses téléchargements et ses jetons sans appel au serveur, son jeton FCM n'étant pas le sien ?
+### Décisions du lead développeur (4 novembre 2026)
+1. Compte sans chaîne : la feuille affiche son nom et son adresse e-mail à la place du @handle, qui appartient à la chaîne.
+2. Session expirée d'un compte inactif : le compte reste dans la liste, grisé, avec « Reconnexion requise ». Un appui ouvre la connexion avec l'e-mail prérempli. Il n'est jamais supprimé tout seul.
+3. Bascule hors réseau : `deleteToken()` local et enregistrement en attente, rejoué au retour du réseau.
+4. Téléchargements existants : attribués au compte actif au moment de la migration, puisque c'est lui qui les a faits ; sans session, supprimés.
+5. Préférences (onboarding, centres d'intérêt, lecture automatique) : par appareil, comme aujourd'hui.
+6. 5 comptes au plus sur l'appareil.
+7. Téléchargement en cours pendant une bascule : il continue et reste au compte qui l'a lancé.
+8. Limite de 20 téléchargements : par compte, pas par appareil.
+9. Une bascule compte comme une connexion pour la revalidation des téléchargements du compte choisi.
+10. Retirer un compte inactif : suppression de ses jetons, de sa clé Keystore et de ses téléchargements (fichier gardé s'il est partagé avec un autre compte), sans appel au serveur pour le jeton FCM, qui appartient au compte actif.
 
 ## Alternatives
 - **Garder un seul compte** (ADR-008 tel quel). Avantage : aucun travail. Inconvénient : il faut le mot de passe à chaque changement ; ce n'est pas la demande du lead.

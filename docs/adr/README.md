@@ -28,4 +28,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-022](ADR-022-plusieurs-comptes-appareil.md) | Plusieurs comptes sur l'appareil et changement de compte | Accepté |
 | [ADR-023](ADR-023-reponses-jaime-commentaires.md) | Réponses et « j'aime » sur les commentaires | Proposé |
 | [ADR-024](ADR-024-mini-lecteur.md) | Mini-lecteur : lecteur unique remonté au niveau de l'ossature de l'application | Proposé |
-| [ADR-025](ADR-025-messagerie-utilisateurs.md) | Messagerie entre utilisateurs : conversations à deux, partage de vidéos, notifications | Proposé |
+| [ADR-025](ADR-025-messagerie-utilisateurs.md) | Messagerie entre utilisateurs : conversations à deux, partage de vidéos, notifications | Accepté |

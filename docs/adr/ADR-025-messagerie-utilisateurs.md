@@ -1,7 +1,7 @@
 # ADR-025 — Messagerie entre utilisateurs : conversations à deux, partage de vidéos, notifications
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateurs : conversations à deux, partage de vidéos dans une conversation, notifications des messages reçus. Il veut faire un point après l'étape 1 : les trois étapes doivent être livrables séparément, et l'étape 1 doit se démontrer seule.
@@ -42,11 +42,12 @@ Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateu
 - CONVERSATION (`id`, `userAId`, `userBId`, `lastMessageAt`, `createdAt`), à deux personnes seulement.
   - Unicité de la paire : les deux identifiants sont rangés dans l'ordre (le plus petit en A).
   - Contrainte unique (`userAId`, `userBId`) : une seule conversation par paire, et pas de conversation avec soi-même.
-- MESSAGE (`id`, `conversationId`, `senderId`, `content`, `createdAt`), index (`conversationId`, `createdAt` desc).
+- MESSAGE (`id`, `conversationId`, `senderId`, `content`, `createdAt`), index (`conversationId`, `createdAt` desc). Un message fait 2000 caractères au plus, limite vérifiée par l'API.
+- Suppression et modification d'un message envoyé : hors périmètre. Masquer une conversation de la liste : hors périmètre aussi.
 - **Lu / non lu** :
   - Option a, une date de dernière lecture par participant sur CONVERSATION (`readAtA`, `readAtB`). Avantages : une seule écriture à l'ouverture ; le nombre de non-lus se calcule par comparaison de dates.
   - Option b, un champ `readAt` sur chaque MESSAGE. Avantage : précision par message (« vu »). Inconvénient : une écriture par message lu, pour un « vu » non demandé.
-  - **Recommandation : option a.**
+  - **Option a retenue** (recommandation validée à l'acceptation).
 - Une migration Prisma. Nouveau module backend `messaging`.
 
 **Routes (REST) :**
@@ -70,7 +71,7 @@ Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateu
   - la clé de salle est préfixée (`video:<id>`, `conversation:<id>`) dans `InMemoryVideoRooms`, renommé en salles génériques ;
   - un garde par type de salle : celui des vidéos reste tel quel ; celui des conversations refuse tout `join` d'un visiteur ou d'un non-participant, sans révéler l'existence de la conversation.
   - Les messages vidéo existants (`comment:new`, `views:update`, `likes:update`) ne changent pas ; l'application en place n'est pas touchée.
-- **Recommandation : option 2.**
+- **Option 2 retenue** (recommandation validée à l'acceptation).
 - Nouvel événement serveur `message:new`, diffusé dans la salle de la conversation.
 
 **Pastille de non-lus et arrivée en direct (Android) :**
@@ -79,10 +80,9 @@ Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateu
 - **Temps réel seulement quand un écran de messagerie est ouvert :**
   - l'écran d'une conversation rejoint la salle de cette conversation et reçoit `message:new` ;
   - l'écran des conversations doit recevoir les nouveaux messages de toutes les conversations.
-- Pour l'écran des conversations :
-  - Option i, une salle personnelle `user:<id>`, rejointe tant que l'écran est ouvert. Le serveur y publie aussi chaque `message:new` du destinataire. Avantages : un seul `join` ; une nouvelle conversation créée par l'autre arrive aussi. Inconvénient : un second type de salle à garder (on ne rejoint que la sienne).
-  - Option ii, rejoindre la salle de chaque conversation affichée. Avantage : aucun nouveau type de salle. Inconvénients : autant de `join` que de conversations ; une nouvelle conversation n'arrive pas en direct.
-  - **Recommandation : option i.**
+- Pour l'écran des conversations : une salle par utilisateur, `user:<id>`, rejointe tant que l'écran est ouvert. Le serveur y publie aussi chaque `message:new` du destinataire. Son garde n'admet que l'utilisateur lui-même.
+  - Avantages : un seul `join` ; une nouvelle conversation créée par l'autre arrive aussi.
+  - Option écartée : rejoindre la salle de chaque conversation affichée. Autant de `join` que de conversations, et une nouvelle conversation n'arriverait pas en direct.
 - Ailleurs dans l'application, la pastille n'est pas en direct : c'est accepté par le lead.
 - Comme aujourd'hui, le jeton n'est vérifié qu'au handshake. Les connexions restent limitées à la durée d'un écran.
 
@@ -94,7 +94,7 @@ Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateu
 - Un visiteur qui touche l'icône est invité à se connecter.
 
 ### Étape 2 — partage d'une vidéo
-- Le bouton Partager d'une vidéo (écran de lecture, Shorts) ouvre d'abord une feuille « Envoyer à », avec les conversations récentes, puis le partage Android habituel (`shareVideo`).
+- Le bouton Partager d'une vidéo (écran de lecture, Shorts) ouvre d'abord une feuille « Envoyer à ». Elle montre les 5 conversations les plus récentes, puis un lien pour chercher quelqu'un d'autre, puis le partage Android habituel (`shareVideo`).
 - **Modèle :** champ `videoId` facultatif sur MESSAGE (contenu texte facultatif quand une vidéo est jointe), avec une migration.
 - **Carte dans la conversation :** miniature, titre et nom de la chaîne ; un appui ouvre la vidéo.
 - **La carte est construite par le serveur à la lecture des messages, jamais figée au moment du partage :**
@@ -102,16 +102,14 @@ Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateu
   - vidéo non répertoriée : visible, puisque le partage par lien est son usage (ADR-016) ;
   - vidéo Premium : la carte s'affiche, et l'accès est vérifié par le serveur à l'ouverture (ADR-007). Un non-Premium arrive sur le paywall, comme aujourd'hui.
 - Un Short partagé s'ouvre dans le lecteur des Shorts.
-- **Posts :** ils n'ont aujourd'hui ni bouton Partager ni vidéo (question 2).
+- **Posts :** hors périmètre pour l'instant. Ils n'ont pas de bouton Partager, et en ajouter un ouvrirait un autre chantier.
 
 ### Étape 3 — notification d'un message
 - Message reçu : notification FCM selon le modèle de l'ADR-020 (message de données, `device_tokens`, envoi en arrière-plan, échec journalisé, jamais d'échec de l'envoi du message).
 - Titre : nom de l'expéditeur. Texte : le message, ou « a partagé une vidéo ». Données : `type=message_received` et `conversationId`. Un appui ouvre directement la conversation.
-- Pas de notification si le destinataire a la conversation ouverte (question 4).
-- **Réglage « Notifications de messages » dans Paramètres :**
-  - Option a, stocké côté serveur (champ sur USER, migration, route pour le modifier). Avantage : c'est le serveur qui décide d'envoyer, et le réglage suit le compte sur tous ses appareils.
-  - Option b, stocké dans l'application (DataStore), qui ignore la notification reçue. Avantage : rien côté serveur. Inconvénients : l'envoi a lieu quand même ; réglage par appareil.
-  - **Recommandation : option a**, cohérente avec l'ADR-020, où le serveur choisit les destinataires.
+- **Conversation déjà ouverte :** le serveur envoie toujours la notification. C'est l'application qui ne l'affiche pas si cette conversation précise est à l'écran. Le serveur n'a pas à suivre qui regarde quoi, et cela fonctionne aussi en arrière-plan.
+- **Réglage « Notifications de messages » dans Paramètres :** stocké côté serveur (champ sur USER, migration, route pour le modifier). C'est le serveur qui décide d'envoyer, comme pour l'ADR-020, et le réglage suit le compte sur tous ses appareils.
+  - Option écartée : un réglage dans l'application (DataStore), qui ignorerait la notification reçue. L'envoi aurait lieu quand même, et le réglage serait par appareil.
 - **Plusieurs comptes (ADR-022, accepté) :** le jeton FCM de l'appareil n'appartient qu'au compte actif. Seul le compte actif reçoit les notifications de messages. Un message pour un compte inactif de l'appareil n'est pas notifié ; il se voit à la prochaine bascule, par la pastille.
 
 ### Mise en œuvre
@@ -123,15 +121,13 @@ Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateu
 2. Pas de connexion temps réel permanente. Le nombre de non-lus est relu à l'ouverture de l'application et à chaque retour au premier plan. Temps réel seulement quand l'écran des conversations ou une conversation est ouvert.
 3. Avec l'ADR-022, seul le compte actif reçoit les notifications de messages.
 4. Étape 1 mise en œuvre après l'ADR-023 et avant l'ADR-024, sur `main`.
-
-### Questions au lead développeur
-1. **Messages :** longueur maximale ? Suppression ou modification d'un message envoyé (non demandées : je les laisse hors périmètre) ?
-2. **« Même chose depuis un post » :** les posts n'ont pas de vidéo. S'agit-il de partager le post lui-même (nouveau type de carte, et nouveau bouton Partager sur les posts), ou de rien pour les posts ?
-3. **Conversations récentes de « Envoyer à » :** combien (par exemple 5), plus une entrée vers la recherche ?
-4. **Notification quand la conversation est déjà ouverte :** aucune (recommandé), ce qui demande au serveur de savoir qui est dans la salle ?
-5. **Réglage des notifications de messages :** côté serveur (recommandé) ?
-6. **Masquer une conversation de la liste :** non demandé ; hors périmètre ?
-7. **Temps réel de l'écran des conversations :** salle personnelle `user:<id>` (recommandé), ou une salle par conversation affichée ?
+5. Message : 2000 caractères au plus. Suppression et modification d'un message : hors périmètre.
+6. Posts : hors périmètre pour l'instant (pas de bouton Partager ; en ajouter un ouvrirait un autre chantier). Retirés de l'étape 2.
+7. « Envoyer à » : les 5 conversations les plus récentes, puis un lien pour chercher quelqu'un d'autre.
+8. Conversation déjà ouverte : le serveur envoie toujours la notification ; l'application ne l'affiche pas si cette conversation précise est à l'écran.
+9. Réglage des notifications de messages : stocké côté serveur.
+10. Masquer une conversation : hors périmètre.
+11. Temps réel de la liste des conversations : une salle par utilisateur (`user:<id>`).
 
 ## Alternatives
 - **Seconde passerelle WebSocket dédiée aux messages :** avantage, aucun risque sur les salles de vidéos ; inconvénient, deux connexions, deux authentifications. Écartée par le lead.
