@@ -37,6 +37,8 @@ export interface VideoFileStore {
   save(path: string): Promise<string>;
   // Supprime un fichier rangé par save ; sans effet pour toute autre URL.
   remove(videoUrl: string): Promise<void>;
+  // Taille en octets d'une vidéo hébergée chez nous (/media/videos/...), null si illisible.
+  size(videoUrl: string): Promise<number | null>;
 }
 
 export interface ChannelOwnership {

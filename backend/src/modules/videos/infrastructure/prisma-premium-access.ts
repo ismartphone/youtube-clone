@@ -12,4 +12,13 @@ export class PrismaPremiumAccess implements PremiumAccess {
     });
     return subscription !== null;
   }
+
+  async activeUntil(userId: string): Promise<Date | null> {
+    const subscription = await this.prisma.premiumSubscription.findFirst({
+      where: { userId, expiresAt: { gt: new Date() } },
+      orderBy: { expiresAt: 'desc' },
+      select: { expiresAt: true },
+    });
+    return subscription?.expiresAt ?? null;
+  }
 }

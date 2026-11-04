@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { copyFile, mkdir, rename, rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { copyFile, mkdir, rename, rm, stat } from 'node:fs/promises';
+import { join, resolve, sep } from 'node:path';
 import { MEDIA_URL_PREFIX } from '../../../shared/infrastructure/media.config.js';
 import type { VideoFileStore } from '../domain/video-upload.js';
 
@@ -30,6 +30,22 @@ export class LocalVideoFileStore implements VideoFileStore {
       await rm(path, { force: true });
     }
     return URL_PREFIX + fileName;
+  }
+
+  // Le chemin ne peut pas sortir du dossier des vidéos.
+  async size(videoUrl: string): Promise<number | null> {
+    if (!videoUrl.startsWith(URL_PREFIX)) {
+      return null;
+    }
+    const root = resolve(this.mediaDir, VIDEOS_FOLDER);
+    const file = resolve(root, videoUrl.slice(URL_PREFIX.length));
+    if (!file.startsWith(root + sep)) {
+      return null;
+    }
+    return stat(file).then(
+      (info) => info.size,
+      () => null,
+    );
   }
 
   async remove(videoUrl: string): Promise<void> {

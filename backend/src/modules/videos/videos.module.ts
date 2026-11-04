@@ -43,6 +43,11 @@ import { SearchUseCase } from './application/search.use-case.js';
 import { RegenerateThumbnailUseCase } from './application/regenerate-thumbnail.use-case.js';
 import { UpdateVideoUseCase } from './application/update-video.use-case.js';
 import { GenerateHlsUseCase } from './application/generate-hls.use-case.js';
+import {
+  AuthorizeDownloadUseCase,
+  CheckDownloadsUseCase,
+} from './application/download.use-cases.js';
+import { DownloadsController } from './interfaces/http/downloads.controller.js';
 import { GenerateSubtitlesUseCase } from './application/generate-subtitles.use-case.js';
 import { UploadVideoUseCase } from './application/upload-video.use-case.js';
 import {
@@ -148,6 +153,7 @@ const CATEGORY_USE_CASES = [
     AdminVideosController,
     AdminCategoriesController,
     AdminStatsController,
+    DownloadsController,
   ],
   providers: [
     {
@@ -396,6 +402,22 @@ const CATEGORY_USE_CASES = [
         VIDEO_FILE_STORE,
         CreateVideoUseCase,
       ],
+    },
+    // Téléchargements hors ligne, réservés au Premium (ADR-019, partie 2).
+    {
+      provide: AuthorizeDownloadUseCase,
+      useFactory: (
+        videos: VideoRepository,
+        premium: PremiumAccess,
+        files: VideoFileStore,
+      ) => new AuthorizeDownloadUseCase(videos, premium, files),
+      inject: [VIDEO_REPOSITORY, PREMIUM_ACCESS, VIDEO_FILE_STORE],
+    },
+    {
+      provide: CheckDownloadsUseCase,
+      useFactory: (videos: VideoRepository, premium: PremiumAccess) =>
+        new CheckDownloadsUseCase(videos, premium),
+      inject: [VIDEO_REPOSITORY, PREMIUM_ACCESS],
     },
     {
       provide: UpdateVideoUseCase,
