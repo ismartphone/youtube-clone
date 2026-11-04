@@ -1,9 +1,13 @@
 package com.youtubeclone.app.presentation.watch
 
 import android.Manifest
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
+import android.view.OrientationEventListener
 import android.view.View
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,11 +50,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +65,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -75,6 +82,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -210,6 +220,7 @@ fun WatchScreen(
 
     val context = LocalContext.current
     var showComments by rememberSaveable { mutableStateOf(false) }
+    val fullscreen = rememberFullscreen()
 
     // Visiteur : la connexion est demandée au moment d'agir.
     fun requireLogin(action: () -> Unit) = if (isLoggedIn) action() else onLoginRequired()
@@ -225,6 +236,7 @@ fun WatchScreen(
         is WatchUiState.Success -> {
             val video = state.detail.video
             WatchContent(
+                fullscreen = fullscreen.isOn,
                 detail = state.detail,
                 stats = stats,
                 followState = followState,
@@ -232,6 +244,8 @@ fun WatchScreen(
                 suggestions = suggestions,
                 player = {
                     PlayerArea(
+                        fullscreen = fullscreen.isOn,
+                        onFullscreenToggle = fullscreen::set,
                         detail = state.detail,
                         player = viewModel.player,
                         showThumbnail = showThumbnail,
@@ -290,6 +304,7 @@ fun WatchScreen(
 
 @Composable
 private fun WatchContent(
+    fullscreen: Boolean,
     detail: VideoDetail,
     stats: LiveStats?,
     followState: FollowUiState?,
@@ -310,9 +325,10 @@ private fun WatchContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        // Lecteur collé en haut, toujours visible pendant le défilement.
+        // Lecteur collé en haut, toujours visible pendant le défilement. En plein écran, il est seul,
+        // au même endroit : sa vue n'est pas recréée, la lecture continue sans à-coup.
         player()
-        LazyColumn(
+        if (!fullscreen) LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -346,6 +362,8 @@ private fun WatchContent(
 
 @Composable
 private fun PlayerArea(
+    fullscreen: Boolean,
+    onFullscreenToggle: (Boolean) -> Unit,
     detail: VideoDetail,
     player: Player,
     showThumbnail: Boolean,
@@ -361,15 +379,25 @@ private fun PlayerArea(
     subtitlesEnabled: Boolean,
     onSubtitlesClick: () -> Unit,
 ) {
+    // Surcouche de nos boutons : en plein écran, elle suit la barre de contrôle de Media3, affichée
+    // d'un appui et masquée au second ou après 3 secondes ; en portrait, toujours visible.
+    var controlsVisible by remember { mutableStateOf(false) }
+    val showOverlay = !fullscreen || controlsVisible
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(16f / 9f)
+            .then(if (fullscreen) Modifier.fillMaxSize() else Modifier.aspectRatio(16f / 9f))
             .background(Color.Black),
         contentAlignment = Alignment.Center,
     ) {
         if (detail.videoUrl != null) {
-            VideoPlayer(player = player, modifier = Modifier.fillMaxSize())
+            VideoPlayer(
+                player = player,
+                fullscreen = fullscreen,
+                onFullscreenToggle = onFullscreenToggle,
+                onControlsVisibilityChange = { controlsVisible = it },
+                modifier = Modifier.fillMaxSize(),
+            )
             // Miniature par-dessus le lecteur tant que la première image n'est pas affichée : au
             // lancement, et au retour d'une autre application, pendant que la vidéo se recharge.
             // Un écran noir ferait croire à un plantage.
@@ -388,9 +416,18 @@ private fun PlayerArea(
             if (autoplay != null) {
                 AutoplayOverlay(autoplay, onCancelAutoplay, Modifier.fillMaxSize())
             }
-            BackTopBar(title = "", onBack = onBack, contentColor = Color.White, modifier = Modifier.align(Alignment.TopStart))
+            // Pendant l'annonce en plein écran, rien d'autre qu'« Ignorer » et la bande de l'annonce.
+            if (showOverlay && (!fullscreen || adState == null)) {
+                // En plein écran, la flèche sort du plein écran avant de quitter la vidéo, comme Retour.
+                BackTopBar(
+                    title = "",
+                    onBack = if (fullscreen) ({ onFullscreenToggle(false) }) else onBack,
+                    contentColor = Color.White,
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
+            }
             // Sous-titres et menu du lecteur : pas pendant la publicité.
-            if (adState == null) Row(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
+            if (adState == null && showOverlay) Row(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
                 // Sous-titres générés automatiquement (ADR-017), seulement si la vidéo en a.
                 if (detail.subtitleUrl != null) {
                     IconButton(onClick = onSubtitlesClick) {
@@ -467,11 +504,29 @@ private fun AutoplayOverlay(countdown: AutoplayCountdown, onCancel: () -> Unit, 
 // Vue native de Media3, avec ses contrôles intégrés.
 @OptIn(UnstableApi::class)
 @Composable
-private fun VideoPlayer(player: Player, modifier: Modifier = Modifier) {
+private fun VideoPlayer(
+    player: Player,
+    fullscreen: Boolean,
+    onFullscreenToggle: (Boolean) -> Unit,
+    onControlsVisibilityChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val currentFullscreen by rememberUpdatedState(fullscreen)
+    val currentToggle by rememberUpdatedState(onFullscreenToggle)
+    val currentVisibility by rememberUpdatedState(onControlsVisibilityChange)
     AndroidView(
         factory = { context ->
             PlayerView(context).apply {
                 this.player = player
+                // Bouton plein écran de Media3, en bas à droite de la barre, comme sur YouTube.
+                // setFullscreenButtonState (dans update) appelle aussi cet écouteur : un appel qui
+                // demande l'état actuel vient de là, pas d'un appui, et verrouillerait l'orientation.
+                setFullscreenButtonClickListener { enter -> if (enter != currentFullscreen) currentToggle(enter) }
+                // Barre masquée après 3 secondes sans action ; nos boutons la suivent en plein écran.
+                controllerShowTimeoutMs = CONTROLS_TIMEOUT_MS
+                setControllerVisibilityListener(
+                    PlayerView.ControllerVisibilityListener { visibility -> currentVisibility(visibility == View.VISIBLE) },
+                )
                 // Indicateur de chargement pendant la mise en mémoire tampon.
                 setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                 // Roue dentée de Media3 masquée : notre menu (qualité, sous-titres, lecture
@@ -479,10 +534,73 @@ private fun VideoPlayer(player: Player, modifier: Modifier = Modifier) {
                 findViewById<View>(androidx.media3.ui.R.id.exo_settings)?.visibility = View.GONE
             }
         },
+        update = { view -> view.setFullscreenButtonState(fullscreen) },
         // La vue est détachée du lecteur quand elle quitte l'écran ; le lecteur, lui, reste au ViewModel.
         onRelease = { view -> view.player = null },
         modifier = modifier,
     )
+}
+
+private const val CONTROLS_TIMEOUT_MS = 3_000
+
+/** Plein écran de l'écran de lecture : [isOn] en paysage ; [set] y entre ou en sort. */
+private class FullscreenState(val isOn: Boolean, private val onSet: (Boolean) -> Unit) {
+    fun set(on: Boolean) = onSet(on)
+}
+
+/**
+ * Plein écran = paysage, par le bouton du lecteur (chemin principal) ou en tournant le téléphone
+ * (raccourci). Le bouton de sortie et Retour ramènent en portrait, verrouillé jusqu'à ce que le
+ * téléphone soit de nouveau tenu droit : sinon, tenu à l'horizontale, il repasserait aussitôt en
+ * paysage. De même, le bouton d'entrée verrouille le paysage jusqu'à ce que le téléphone soit
+ * tourné de côté. Barres du système masquées en plein écran ; tout est rétabli en quittant l'écran.
+ */
+@Composable
+private fun rememberFullscreen(): FullscreenState {
+    val activity = LocalActivity.current
+    val isOn = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val set: (Boolean) -> Unit = { on ->
+        activity?.requestedOrientation =
+            if (on) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+    }
+    BackHandler(enabled = isOn) { set(false) }
+    if (activity != null) {
+        LaunchedEffect(isOn) {
+            val controller = WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+            if (isOn) {
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+        DisposableEffect(activity) {
+            // Verrou posé par le bouton levé dès que le téléphone est tenu dans le même sens : droit
+            // pour le portrait, de côté pour le paysage. La rotation redevient alors un raccourci,
+            // dans les deux sens : redresser le téléphone sort du plein écran.
+            val listener = object : OrientationEventListener(activity) {
+                override fun onOrientationChanged(degrees: Int) {
+                    if (degrees == ORIENTATION_UNKNOWN) return
+                    val upright = degrees < 30 || degrees > 330
+                    val sideways = degrees in 60..120 || degrees in 240..300
+                    val locked = activity.requestedOrientation
+                    if ((upright && locked == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) ||
+                        (sideways && locked == ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE)
+                    ) {
+                        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    }
+                }
+            }
+            listener.enable()
+            onDispose {
+                listener.disable()
+                activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                WindowCompat.getInsetsController(activity.window, activity.window.decorView)
+                    .show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
+    return FullscreenState(isOn, set)
 }
 
 // Titre sur deux lignes au plus, puis « vues · date » en gris. « …plus » déplie la description.
@@ -796,6 +914,7 @@ private fun WatchContentPreview() {
     YoutubeCloneTheme {
         val video = previewVideo("1", "Sintel, la bande-annonce du court métrage d'animation libre de la fondation Blender", "Studio Libre", 12_400, 3)
         WatchContent(
+            fullscreen = false,
             detail = VideoDetail(
                 video = video,
                 description = "Une jeune femme part à la recherche de son dragon.",
