@@ -1,5 +1,6 @@
 package com.youtubeclone.app.data.remote.dto
 
+import com.youtubeclone.app.data.remote.resolveMediaUrl
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelSearchResult
 import com.youtubeclone.app.domain.model.SearchPage
@@ -31,7 +32,7 @@ data class SearchResponseDto(
 )
 
 fun ChannelSearchResultDto.toDomain() = ChannelSearchResult(
-    channel = Channel(id = id, name = name, handle = handle, avatarUrl = avatarUrl),
+    channel = Channel(id = id, name = name, handle = handle, avatarUrl = avatarUrl?.let(::resolveMediaUrl)),
     followerCount = followerCount,
 )
 

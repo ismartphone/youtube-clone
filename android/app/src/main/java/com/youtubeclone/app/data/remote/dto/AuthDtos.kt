@@ -1,5 +1,6 @@
 package com.youtubeclone.app.data.remote.dto
 
+import com.youtubeclone.app.data.remote.resolveMediaUrl
 import com.youtubeclone.app.domain.model.User
 import kotlinx.serialization.Serializable
 
@@ -42,5 +43,5 @@ fun UserDto.toDomain() = User(
     id = id,
     email = email,
     displayName = displayName,
-    avatarUrl = avatarUrl,
+    avatarUrl = avatarUrl?.let(::resolveMediaUrl),
 )

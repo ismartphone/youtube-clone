@@ -23,6 +23,19 @@ data class ChannelPage(
     val videos: List<Video>,
 )
 
+/**
+ * Chaîne telle que son propriétaire la personnalise (ADR-018). [hasPhoto] : photo choisie par le
+ * créateur, qui peut la retirer ; sinon l'avatar est généré à partir du nom.
+ */
+data class ChannelProfile(
+    val channel: Channel,
+    val bannerUrl: String?,
+    val description: String?,
+) {
+    // Les photos envoyées sont rangées par le serveur sous /media/channel-photos/.
+    val hasPhoto: Boolean get() = channel.avatarUrl?.contains("/media/channel-photos/") == true
+}
+
 /** Abonnement ou désabonnement réussi, diffusé à tous les écrans qui affichent cette chaîne. */
 data class FollowChange(
     val channelId: String,

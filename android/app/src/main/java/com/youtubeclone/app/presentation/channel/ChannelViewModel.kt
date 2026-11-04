@@ -10,6 +10,7 @@ import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetChannelPostsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
+import com.youtubeclone.app.domain.usecase.ObserveOwnChannelUpdatedUseCase
 import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
@@ -39,6 +40,7 @@ class ChannelViewModel @Inject constructor(
     setFollowing: SetFollowingUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
     observePublications: ObservePublicationsUseCase,
+    observeOwnChannelUpdated: ObserveOwnChannelUpdatedUseCase,
     private val getChannelPosts: GetChannelPostsUseCase,
 ) : ViewModel() {
 
@@ -69,6 +71,10 @@ class ChannelViewModel @Inject constructor(
         // Contenu publié sur cette chaîne depuis l'application : la page le montre aussitôt.
         viewModelScope.launch {
             observePublications().collect { if (it.channelId == channelId) load() }
+        }
+        // Chaîne personnalisée par son propriétaire : nom, images et description à jour.
+        viewModelScope.launch {
+            observeOwnChannelUpdated().collect { if (it.channel.id == channelId) load() }
         }
     }
 

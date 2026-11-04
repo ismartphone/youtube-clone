@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
@@ -102,6 +103,7 @@ fun ChannelScreen(
     onVideoClick: (videoId: String) -> Unit,
     onShortClick: (videoId: String) -> Unit,
     onLoginRequired: () -> Unit,
+    onCustomizeClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChannelViewModel = hiltViewModel(),
 ) {
@@ -126,6 +128,7 @@ fun ChannelScreen(
                 followState = followState,
                 // Visiteur : la connexion est demandée au moment de s'abonner.
                 onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
+                onCustomizeClick = onCustomizeClick,
                 onVideoClick = onVideoClick,
                 onShortClick = onShortClick,
                 modifier = contentModifier,
@@ -145,6 +148,7 @@ private fun ChannelContent(
     onVideoClick: (videoId: String) -> Unit,
     onShortClick: (videoId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onCustomizeClick: () -> Unit = {},
     initialTab: ChannelTab = ChannelTab.Videos,
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
@@ -157,7 +161,7 @@ private fun ChannelContent(
         horizontalArrangement = Arrangement.spacedBy(ShortsGap),
         verticalArrangement = Arrangement.spacedBy(ShortsGap),
     ) {
-        fullWidthItem("header") { ChannelHeader(page, followState, onFollowClick) }
+        fullWidthItem("header") { ChannelHeader(page, followState, onFollowClick, onCustomizeClick) }
         fullWidthItem("tabs") {
             ChannelTabs(selected = selectedTab, onSelect = { selectedTab = it })
         }
@@ -200,6 +204,7 @@ private fun ChannelHeader(
     page: ChannelPage,
     followState: FollowUiState?,
     onFollowClick: () -> Unit,
+    onCustomizeClick: () -> Unit,
 ) {
     val channel = page.channel
     // Le compteur suit le bouton : il change dès que l'abonnement est confirmé.
@@ -236,7 +241,12 @@ private fun ChannelHeader(
             }
         }
         page.description?.let { ExpandableDescription(it) }
-        if (followState != null && followState.canFollow) {
+        if (page.isOwner) {
+            // Sa propre chaîne : on ne s'y abonne pas, on la personnalise (ADR-018).
+            FilledTonalButton(onClick = onCustomizeClick, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.customize_channel_title))
+            }
+        } else if (followState != null && followState.canFollow) {
             FollowButton(state = followState, onClick = onFollowClick, modifier = Modifier.fillMaxWidth())
         }
     }

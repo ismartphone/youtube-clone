@@ -10,8 +10,9 @@ import com.youtubeclone.app.domain.usecase.CancelPremiumUseCase
 import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
 import com.youtubeclone.app.domain.usecase.GetOwnChannelUseCase
 import com.youtubeclone.app.domain.usecase.LogoutUseCase
-import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObserveOwnChannelCreatedUseCase
+import com.youtubeclone.app.domain.usecase.ObserveOwnChannelUpdatedUseCase
+import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -23,8 +24,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -45,6 +46,7 @@ class YouViewModel @Inject constructor(
     observePremium: ObservePremiumStatusUseCase,
     private val cancelPremium: CancelPremiumUseCase,
     observeOwnChannelCreated: ObserveOwnChannelCreatedUseCase,
+    observeOwnChannelUpdated: ObserveOwnChannelUpdatedUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<YouUiState>(YouUiState.Loading)
@@ -70,6 +72,10 @@ class YouViewModel @Inject constructor(
         // Chaîne créée depuis l'application : l'en-tête montre aussitôt « Voir la chaîne ».
         viewModelScope.launch {
             observeOwnChannelCreated().collect { load() }
+        }
+        // Chaîne personnalisée (ADR-018) : le handle affiché dans l'en-tête suit.
+        viewModelScope.launch {
+            observeOwnChannelUpdated().collect { load() }
         }
     }
 

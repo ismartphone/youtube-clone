@@ -15,7 +15,7 @@ fun ChannelSummaryDto.toDomain() = Channel(
     id = id,
     name = name,
     handle = handle,
-    avatarUrl = avatarUrl,
+    avatarUrl = avatarUrl?.let(::resolveMediaUrl),
 )
 
 fun CategoryDto.toDomain() = Category(id = id, name = name)

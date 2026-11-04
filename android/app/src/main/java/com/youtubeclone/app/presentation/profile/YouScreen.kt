@@ -70,6 +70,7 @@ class YouActions(
     val onLoginClick: () -> Unit = {},
     val onRegisterClick: () -> Unit = {},
     val onChannelClick: (channelId: String) -> Unit = {},
+    val onCustomizeChannel: () -> Unit = {},
     val onListClick: (YouList) -> Unit = {},
     val onSubscriptionsClick: () -> Unit = {},
     val onEditInterests: () -> Unit = {},
@@ -87,6 +88,7 @@ fun YouScreen(
     onRegisterClick: () -> Unit,
     onEditInterests: () -> Unit,
     onChannelClick: (channelId: String) -> Unit,
+    onCustomizeChannel: () -> Unit,
     onListClick: (YouList) -> Unit,
     onSubscriptionsClick: () -> Unit,
     onPremiumClick: () -> Unit,
@@ -103,6 +105,7 @@ fun YouScreen(
         onLoginClick = onLoginClick,
         onRegisterClick = onRegisterClick,
         onChannelClick = onChannelClick,
+        onCustomizeChannel = onCustomizeChannel,
         onListClick = onListClick,
         onSubscriptionsClick = onSubscriptionsClick,
         onEditInterests = onEditInterests,
@@ -147,6 +150,7 @@ private fun YouContent(
                     channel = channel,
                     onViewChannel = { channel?.let { actions.onChannelClick(it.id) } },
                     onCreateChannel = actions.onCreateChannel,
+                    onCustomizeChannel = actions.onCustomizeChannel,
                 )
             } else {
                 SignInPrompt(actions.onLoginClick, actions.onRegisterClick)
@@ -173,10 +177,40 @@ private fun YouContent(
     }
 }
 
+// Lien de l'en-tête, comme « Créer une chaîne › » : texte suivi d'un chevron.
+@Composable
+private fun HeaderLink(text: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .clickable(onClick = onClick, role = Role.Button),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+        )
+        Icon(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.size(18.dp),
+        )
+    }
+}
+
 // Grand avatar, nom, puis « @handle · Voir la chaîne › ». Sans chaîne, l'email remplace le handle,
 // suivi d'un lien « Créer une chaîne › ».
 @Composable
-private fun AccountHeader(user: User, channel: Channel?, onViewChannel: () -> Unit, onCreateChannel: () -> Unit) {
+private fun AccountHeader(
+    user: User,
+    channel: Channel?,
+    onViewChannel: () -> Unit,
+    onCreateChannel: () -> Unit,
+    onCustomizeChannel: () -> Unit,
+) {
     Row(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -226,6 +260,9 @@ private fun AccountHeader(user: User, channel: Channel?, onViewChannel: () -> Un
                         )
                     }
                 }
+            }
+            if (channel != null) {
+                HeaderLink(stringResource(R.string.customize_channel_title), onCustomizeChannel)
             }
             if (channel == null) {
                 Row(

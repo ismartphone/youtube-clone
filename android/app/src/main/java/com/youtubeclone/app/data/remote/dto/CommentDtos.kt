@@ -1,5 +1,6 @@
 package com.youtubeclone.app.data.remote.dto
 
+import com.youtubeclone.app.data.remote.resolveMediaUrl
 import com.youtubeclone.app.domain.model.Comment
 import com.youtubeclone.app.domain.model.CommentAuthor
 import com.youtubeclone.app.domain.model.CommentPage
@@ -43,7 +44,7 @@ fun CommentDto.toDomain() = Comment(
     videoId = videoId,
     content = content,
     createdAt = Instant.parse(createdAt),
-    author = CommentAuthor(id = author.id, displayName = author.displayName, avatarUrl = author.avatarUrl),
+    author = CommentAuthor(id = author.id, displayName = author.displayName, avatarUrl = author.avatarUrl?.let(::resolveMediaUrl)),
 )
 
 fun CommentPageDto.toDomain() = CommentPage(

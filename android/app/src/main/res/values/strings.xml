@@ -9,6 +9,16 @@
     <string name="tab_create">Créer</string>
 
     <!-- Feuille de création du bouton + (ADR-015) -->
+    <string name="customize_channel_title">Personnaliser la chaîne</string>
+    <string name="customize_channel_banner">Bannière</string>
+    <string name="customize_channel_photo">Photo de profil</string>
+    <string name="customize_channel_change">Changer</string>
+    <string name="customize_channel_add">Ajouter</string>
+    <string name="customize_channel_remove">Retirer</string>
+    <string name="customize_channel_save">Enregistrer</string>
+    <string name="customize_channel_saved">Modifications enregistrées</string>
+    <string name="customize_channel_image_unreadable">Cette image est illisible. Choisissez-en une autre.</string>
+    <string name="customize_channel_image_too_large">Cette image dépasse %1$d Mo. Choisissez-en une plus légère.</string>
     <string name="create_tab_video">Vidéo</string>
     <string name="create_tab_short">Short</string>
     <string name="create_tab_live">En direct</string>

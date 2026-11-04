@@ -49,6 +49,7 @@ import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.channel.CreateChannelScreen
+import com.youtubeclone.app.presentation.channel.CustomizeChannelScreen
 import com.youtubeclone.app.presentation.create.ComposePostScreen
 import com.youtubeclone.app.presentation.create.CreateSheet
 import com.youtubeclone.app.presentation.create.PublishVideoScreen
@@ -87,6 +88,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class PaywallRoute(val videoId: String? = null)
 // Création de la chaîne de l'utilisateur connecté.
 @Serializable data object CreateChannelRoute
+// Personnalisation de sa chaîne (ADR-018).
+@Serializable data object CustomizeChannelRoute
 // Rédaction d'un post sur sa chaîne.
 @Serializable data object ComposePostRoute
 // Publication d'une vidéo choisie dans la galerie. [format] : nom d'une valeur de VideoFormat.
@@ -104,6 +107,7 @@ private val FULL_SCREEN_ROUTES = listOf(
     InterestsRoute::class,
     PublishVideoRoute::class,
     CreateChannelRoute::class,
+    CustomizeChannelRoute::class,
     ComposePostRoute::class,
 )
 
@@ -253,6 +257,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onVideoClick = openVideo,
                     onShortClick = { videoId -> navController.navigate(ShortsPlayerRoute(videoId)) },
                     onLoginRequired = openLogin,
+                    onCustomizeClick = { navController.navigate(CustomizeChannelRoute) },
                 )
             }
             composable<YouRoute> {
@@ -261,6 +266,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onRegisterClick = { navController.navigate(RegisterRoute) },
                     onEditInterests = { navController.navigate(InterestsRoute) },
                     onChannelClick = openChannel,
+                    onCustomizeChannel = { navController.navigate(CustomizeChannelRoute) },
                     onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
                     onSubscriptionsClick = { openTab(SubscriptionsRoute) },
                     onPremiumClick = openPaywall,
@@ -324,6 +330,9 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                         }
                     },
                 )
+            }
+            composable<CustomizeChannelRoute> {
+                CustomizeChannelScreen(onClose = { navController.popBackStack() })
             }
             composable<InterestsRoute> {
                 InterestsScreen(

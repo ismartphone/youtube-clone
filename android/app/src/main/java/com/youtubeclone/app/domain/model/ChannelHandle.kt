@@ -5,6 +5,12 @@ import java.text.Normalizer
 // Identifiant d'une chaîne (@handle), avec la même règle que le serveur : 3 à 30 caractères,
 // lettres minuscules, chiffres, point, tiret et tiret bas.
 
+/** Photo de profil ou bannière de la chaîne (ADR-018). */
+enum class ChannelImageKind { Photo, Banner }
+
+/** Photo et bannière : 5 Mo au plus, comme le serveur. */
+const val MAX_CHANNEL_IMAGE_BYTES = 5L * 1024 * 1024
+
 const val HANDLE_MIN_LENGTH = 3
 const val HANDLE_MAX_LENGTH = 30
 
