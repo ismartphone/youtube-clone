@@ -33,7 +33,7 @@ const UUID_PATTERN =
  * Messages du client : { "event": "join" | "leave", "data": { "videoId": "..." } }.
  * La salle d'une vidéo privée n'est ouverte qu'à son propriétaire (ADR-016) : pour tout autre,
  * join ne fait rien, exactement comme pour une vidéo qui n'existe pas.
- * Messages du serveur : { "event": "comment:new" | "views:update" | "likes:update", "data": ... }.
+ * Messages du serveur : { "event": "comment:new" | "comment:reply" | "views:update" | "likes:update", "data": ... }.
  */
 @WebSocketGateway({ path: '/realtime' })
 export class RealtimeGateway

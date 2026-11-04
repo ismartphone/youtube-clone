@@ -5,6 +5,8 @@ export const VIDEO_ROOM_PUBLISHER = Symbol('VIDEO_ROOM_PUBLISHER');
 
 export interface RealtimeEvents {
   'comment:new': unknown;
+  // Réponse à un commentaire (ADR-023) : même forme, avec son parentId.
+  'comment:reply': unknown;
   'views:update': { videoId: string; viewCount: number };
   'likes:update': { videoId: string; likeCount: number };
 }

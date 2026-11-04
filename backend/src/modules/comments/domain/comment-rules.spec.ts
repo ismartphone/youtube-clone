@@ -1,4 +1,4 @@
-import { canReachComments } from './comment-rules.js';
+import { canReachComments, threadRootId } from './comment-rules.js';
 
 describe('canReachComments', () => {
   it('refuse une vidéo inexistante', () => {
@@ -22,5 +22,15 @@ describe('canReachComments', () => {
     };
     expect(canReachComments(target, 'owner-id')).toBe(true);
     expect(canReachComments(target, 'other-id')).toBe(false);
+  });
+});
+
+describe('threadRootId', () => {
+  it('garde un commentaire de premier niveau comme parent', () => {
+    expect(threadRootId({ id: 'c1', parentId: null })).toBe('c1');
+  });
+
+  it('remonte au premier niveau pour une réponse à une réponse', () => {
+    expect(threadRootId({ id: 'r1', parentId: 'c1' })).toBe('c1');
   });
 });

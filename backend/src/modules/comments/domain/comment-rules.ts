@@ -17,3 +17,19 @@ export function canReachComments(
     target !== null && canAccessVideo(target.visibility, target.ownerId, userId)
   );
 }
+
+// Cœur posé ou retiré par quelqu'un d'autre que le propriétaire de la chaîne (ADR-023).
+export class NotVideoOwnerError extends Error {
+  constructor() {
+    super('Seul le propriétaire de la chaîne peut mettre un cœur.');
+  }
+}
+
+// Un seul niveau de réponses (ADR-023) : répondre à une réponse range la nouvelle réponse dans
+// le même fil, sous le commentaire de premier niveau.
+export function threadRootId(comment: {
+  id: string;
+  parentId: string | null;
+}): string {
+  return comment.parentId ?? comment.id;
+}
