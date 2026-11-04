@@ -74,8 +74,8 @@ import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.MessageState
 import com.youtubeclone.app.presentation.common.formatCompactCount
-import com.youtubeclone.app.presentation.common.shareVideo
 import com.youtubeclone.app.presentation.home.previewVideo
+import com.youtubeclone.app.presentation.messaging.rememberVideoSharing
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
@@ -90,6 +90,7 @@ fun ShortsScreen(
     onChannelClick: (channelId: String) -> Unit,
     onLoginRequired: () -> Unit,
     onPremiumClick: () -> Unit,
+    onShareToSomeone: (videoId: String) -> Unit,
     modifier: Modifier = Modifier,
     // Lecteur ouvert par-dessus un onglet (depuis une chaîne) : flèche de retour sur la vidéo.
     onBack: (() -> Unit)? = null,
@@ -114,7 +115,15 @@ fun ShortsScreen(
             ShortsUiState.Loading -> LoadingState()
             ShortsUiState.Empty -> MessageState(stringResource(R.string.shorts_empty))
             is ShortsUiState.Error -> ErrorState(state.error, viewModel::load)
-            is ShortsUiState.Success -> ShortsPager(state.videos, viewModel, onChannelClick, onLoginRequired, onPremiumClick, Modifier)
+            is ShortsUiState.Success -> ShortsPager(
+                state.videos,
+                viewModel,
+                onChannelClick,
+                onLoginRequired,
+                onPremiumClick,
+                onShareToSomeone,
+                Modifier,
+            )
         }
         if (onBack != null) {
             BackTopBar(title = stringResource(R.string.tab_shorts), onBack = onBack, contentColor = Color.White)
@@ -129,6 +138,7 @@ private fun ShortsPager(
     onChannelClick: (channelId: String) -> Unit,
     onLoginRequired: () -> Unit,
     onPremiumClick: () -> Unit,
+    onShareToSomeone: (videoId: String) -> Unit,
     modifier: Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { videos.size })
@@ -146,6 +156,8 @@ private fun ShortsPager(
 
     val context = LocalContext.current
     var showComments by rememberSaveable { mutableStateOf(false) }
+    // Partager : « Envoyer à » pour un compte connecté (ADR-025, étape 2).
+    val sharing = rememberVideoSharing(isLoggedIn, onShareToSomeone)
 
     // Visiteur : la connexion est demandée au moment d'agir.
     fun requireLogin(action: () -> Unit) = if (isLoggedIn) action() else onLoginRequired()
@@ -183,7 +195,7 @@ private fun ShortsPager(
             onLikeClick = { requireLogin { viewModel.toggleLike(video.id) } },
             onDislikeClick = { requireLogin { viewModel.toggleDislike(video.id) } },
             onCommentsClick = { showComments = true },
-            onShareClick = { shareVideo(context, video) },
+            onShareClick = { sharing.share(video) },
             onChannelClick = { onChannelClick(video.channel.id) },
             onFollowClick = { requireLogin(viewModel.follow::toggle) },
             onPremiumClick = onPremiumClick,

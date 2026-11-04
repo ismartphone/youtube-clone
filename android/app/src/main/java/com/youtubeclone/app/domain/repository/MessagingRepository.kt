@@ -23,11 +23,17 @@ interface MessagingRepository {
     /** Du plus récent au plus ancien. */
     suspend fun getMessages(conversationId: String, page: Int): MessagePage
 
-    suspend fun sendMessage(conversationId: String, content: String): Message
+    /** [videoId] : vidéo partagée (ADR-025, étape 2) ; le texte est alors facultatif. */
+    suspend fun sendMessage(conversationId: String, content: String, videoId: String? = null): Message
 
     suspend fun markRead(conversationId: String)
 
     suspend fun getUnreadCount(): Int
+
+    /** Réglage « Notifications de messages », stocké côté serveur (ADR-025, étape 3). */
+    suspend fun getMessageNotifications(): Boolean
+
+    suspend fun setMessageNotifications(enabled: Boolean): Boolean
 
     /** Recherche d'un destinataire sur son nom affiché, soi-même exclu. */
     suspend fun searchPeople(query: String): List<Person>

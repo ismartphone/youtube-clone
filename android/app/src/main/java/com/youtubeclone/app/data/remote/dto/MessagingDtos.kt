@@ -6,6 +6,7 @@ import com.youtubeclone.app.domain.model.IncomingMessage
 import com.youtubeclone.app.domain.model.Message
 import com.youtubeclone.app.domain.model.MessagePage
 import com.youtubeclone.app.domain.model.Person
+import com.youtubeclone.app.domain.model.SharedVideo
 import java.time.Instant
 import kotlinx.serialization.Serializable
 
@@ -20,13 +21,26 @@ data class PersonDto(
     val handle: String? = null,
 )
 
+/** Vidéo partagée ; available vaut false si elle est supprimée ou privée pour celui qui lit. */
+@Serializable
+data class SharedVideoDto(
+    val available: Boolean,
+    val id: String? = null,
+    val title: String? = null,
+    val thumbnailUrl: String? = null,
+    val channelName: String? = null,
+    val format: String? = null,
+    val isPremium: Boolean = false,
+)
+
 @Serializable
 data class MessageDto(
     val id: String,
     val conversationId: String,
     val senderId: String,
-    val content: String,
+    val content: String = "",
     val createdAt: String,
+    val video: SharedVideoDto? = null,
 )
 
 @Serializable
@@ -34,8 +48,9 @@ data class IncomingMessageDto(
     val id: String,
     val conversationId: String,
     val senderId: String,
-    val content: String,
+    val content: String = "",
     val createdAt: String,
+    val video: SharedVideoDto? = null,
     val sender: PersonDto,
 )
 
@@ -63,14 +78,32 @@ data class UnreadCountDto(val unreadCount: Int)
 data class StartConversationRequestDto(val userId: String)
 
 @Serializable
-data class SendMessageRequestDto(val content: String)
+data class SendMessageRequestDto(val content: String, val videoId: String? = null)
+
+/** Réglage « Notifications de messages » (ADR-025, étape 3). */
+@Serializable
+data class NotificationSettingsDto(val messages: Boolean)
 
 fun PersonDto.toDomain() = Person(id, displayName, avatarUrl?.let(::resolveMediaUrl), handle)
 
-fun MessageDto.toDomain() = Message(id, conversationId, senderId, content, Instant.parse(createdAt))
+fun SharedVideoDto.toDomain(): SharedVideo =
+    if (available && id != null) {
+        SharedVideo.Available(
+            id = id,
+            title = title.orEmpty(),
+            thumbnailUrl = thumbnailUrl?.let(::resolveMediaUrl),
+            channelName = channelName.orEmpty(),
+            isShort = format == "SHORT",
+            isPremium = isPremium,
+        )
+    } else {
+        SharedVideo.Unavailable
+    }
+
+fun MessageDto.toDomain() = Message(id, conversationId, senderId, content, Instant.parse(createdAt), video?.toDomain())
 
 fun IncomingMessageDto.toDomain() = IncomingMessage(
-    message = Message(id, conversationId, senderId, content, Instant.parse(createdAt)),
+    message = Message(id, conversationId, senderId, content, Instant.parse(createdAt), video?.toDomain()),
     sender = sender.toDomain(),
 )
 

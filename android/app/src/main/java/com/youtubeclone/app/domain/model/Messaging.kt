@@ -16,12 +16,32 @@ data class Person(
     val handle: String?,
 )
 
+/**
+ * Vidéo partagée dans un message (ADR-025, étape 2), telle que le serveur la montre à l'utilisateur
+ * au moment de la lecture : supprimée depuis, ou privée pour lui, elle est indisponible.
+ */
+sealed interface SharedVideo {
+    data object Unavailable : SharedVideo
+
+    data class Available(
+        val id: String,
+        val title: String,
+        val thumbnailUrl: String?,
+        val channelName: String,
+        val isShort: Boolean,
+        val isPremium: Boolean,
+    ) : SharedVideo
+}
+
 data class Message(
     val id: String,
     val conversationId: String,
     val senderId: String,
+    /** Vide quand une vidéo est partagée sans texte. */
     val content: String,
     val createdAt: Instant,
+    /** null pour un message sans vidéo. */
+    val video: SharedVideo? = null,
 )
 
 /** Conversation vue par l'utilisateur : [other] est l'autre participant. */

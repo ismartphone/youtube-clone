@@ -120,9 +120,9 @@ import com.youtubeclone.app.presentation.common.formatCompactCount
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
-import com.youtubeclone.app.presentation.common.shareVideo
 import com.youtubeclone.app.presentation.home.VideoCard
 import com.youtubeclone.app.presentation.home.previewVideo
+import com.youtubeclone.app.presentation.messaging.rememberVideoSharing
 import com.youtubeclone.app.presentation.playlist.SaveToPlaylistSheet
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
@@ -145,6 +145,7 @@ fun WatchScreen(
     onPremiumRequired: (videoId: String) -> Unit,
     onRemoveAdsClick: () -> Unit,
     onOpenDownloads: () -> Unit,
+    onShareToSomeone: (videoId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WatchViewModel = hiltViewModel(),
 ) {
@@ -220,6 +221,8 @@ fun WatchScreen(
 
     val context = LocalContext.current
     var showComments by rememberSaveable { mutableStateOf(false) }
+    // Partager : « Envoyer à » pour un compte connecté (ADR-025, étape 2).
+    val sharing = rememberVideoSharing(isLoggedIn, onShareToSomeone)
     val fullscreen = rememberFullscreen()
 
     // Visiteur : la connexion est demandée au moment d'agir.
@@ -284,7 +287,7 @@ fun WatchScreen(
                         }
                     }
                 },
-                onShareClick = { shareVideo(context, video) },
+                onShareClick = { sharing.share(video) },
                 onCommentsClick = { showComments = true },
                 onSuggestionClick = onVideoClick,
                 modifier = modifier,

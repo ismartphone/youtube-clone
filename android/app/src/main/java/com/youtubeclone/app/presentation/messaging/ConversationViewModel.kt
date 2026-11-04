@@ -49,7 +49,7 @@ class ConversationViewModel @Inject constructor(
     private val messaging: MessagingUseCases,
 ) : ViewModel() {
 
-    private val conversationId = savedStateHandle.toRoute<ConversationRoute>().conversationId
+    val conversationId = savedStateHandle.toRoute<ConversationRoute>().conversationId
 
     private val _uiState = MutableStateFlow<ConversationUiState>(ConversationUiState.Loading)
     val uiState: StateFlow<ConversationUiState> = _uiState.asStateFlow()

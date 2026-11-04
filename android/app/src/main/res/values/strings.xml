@@ -334,6 +334,16 @@
     <string name="messages_send">Envoyer</string>
     <string name="messages_you">Vous : %1$s</string>
     <string name="messages_conversation_empty">Envoyez le premier message.</string>
+    <string name="messages_shared_video">a partagé une vidéo</string>
+    <string name="messages_you_shared_video">Vous avez partagé une vidéo</string>
+    <string name="messages_video_unavailable">Vidéo indisponible</string>
+    <string name="share_send_to">Envoyer à</string>
+    <string name="share_search_someone">Rechercher quelqu\'un d\'autre</string>
+    <string name="share_other_apps">Autres applications</string>
+    <string name="share_sent">Vidéo envoyée à %1$s</string>
+    <string name="notifications_channel_messages">Messages</string>
+    <string name="settings_message_notifications">Notifications de messages</string>
+    <string name="settings_message_notifications_detail">Être prévenu quand quelqu\'un vous écrit ou vous partage une vidéo.</string>
     <!-- Réponses, avis et cœur du créateur (ADR-023) -->
     <string name="comments_sort_top">Top commentaires</string>
     <string name="comments_sort_newest">Les plus récents</string>

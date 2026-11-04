@@ -113,8 +113,15 @@ private fun ConversationRow(conversation: Conversation, myId: String, onClick: (
                 overflow = TextOverflow.Ellipsis,
             )
             conversation.lastMessage?.let { last ->
+                val mine = last.senderId == myId
+                val text = when {
+                    last.content.isNotEmpty() && mine -> stringResource(R.string.messages_you, last.content)
+                    last.content.isNotEmpty() -> last.content
+                    mine -> stringResource(R.string.messages_you_shared_video)
+                    else -> stringResource(R.string.messages_shared_video)
+                }
                 Text(
-                    text = if (last.senderId == myId) stringResource(R.string.messages_you, last.content) else last.content,
+                    text = text,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (unread) FontWeight.Bold else FontWeight.Normal),
                     color = if (unread) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

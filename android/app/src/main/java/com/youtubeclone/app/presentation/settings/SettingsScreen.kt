@@ -22,20 +22,25 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.common.BackTopBar
+import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
-// Paramètres, ouverts depuis l'onglet « Vous » : lecture automatique, et partage des
-// statistiques d'usage (ADR-013).
+// Paramètres, ouverts depuis l'onglet « Vous » : lecture automatique, partage des statistiques
+// d'usage (ADR-013) et, pour un compte connecté, notifications de messages (ADR-025).
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: SettingsViewModel = hiltViewModel()) {
     val autoplay by viewModel.autoplay.collectAsStateWithLifecycle()
     val shareUsageStats by viewModel.shareUsageStats.collectAsStateWithLifecycle()
+    val messageNotifications by viewModel.messageNotifications.collectAsStateWithLifecycle()
+    ErrorToast(viewModel.errors)
     SettingsContent(
         autoplay = autoplay,
         onAutoplayChange = viewModel::onAutoplayChange,
         shareUsageStats = shareUsageStats,
         onShareUsageStatsChange = viewModel::onShareUsageStatsChange,
+        messageNotifications = messageNotifications,
+        onMessageNotificationsChange = viewModel::onMessageNotificationsChange,
         onBack = onBack,
         modifier = modifier,
     )
@@ -48,6 +53,8 @@ private fun SettingsContent(
     shareUsageStats: Boolean?,
     onShareUsageStatsChange: (Boolean) -> Unit,
     onBack: () -> Unit,
+    messageNotifications: Boolean? = null,
+    onMessageNotificationsChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -66,6 +73,15 @@ private fun SettingsContent(
                 detail = stringResource(R.string.settings_share_usage_stats_detail),
                 checked = shareUsageStats,
                 onCheckedChange = onShareUsageStatsChange,
+            )
+        }
+        // Compte connecté seulement : le réglage est stocké sur le serveur (ADR-025, étape 3).
+        if (messageNotifications != null) {
+            SwitchRow(
+                title = stringResource(R.string.settings_message_notifications),
+                detail = stringResource(R.string.settings_message_notifications_detail),
+                checked = messageNotifications,
+                onCheckedChange = onMessageNotificationsChange,
             )
         }
     }

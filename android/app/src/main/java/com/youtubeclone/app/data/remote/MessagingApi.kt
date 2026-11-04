@@ -4,12 +4,14 @@ import com.youtubeclone.app.data.remote.dto.ConversationDto
 import com.youtubeclone.app.data.remote.dto.ConversationPageDto
 import com.youtubeclone.app.data.remote.dto.MessageDto
 import com.youtubeclone.app.data.remote.dto.MessagePageDto
+import com.youtubeclone.app.data.remote.dto.NotificationSettingsDto
 import com.youtubeclone.app.data.remote.dto.PeopleDto
 import com.youtubeclone.app.data.remote.dto.SendMessageRequestDto
 import com.youtubeclone.app.data.remote.dto.StartConversationRequestDto
 import com.youtubeclone.app.data.remote.dto.UnreadCountDto
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -40,4 +42,10 @@ interface MessagingApi {
 
     @GET("users/search")
     suspend fun searchPeople(@Query("q") query: String): PeopleDto
+
+    @GET("me/notification-settings")
+    suspend fun getNotificationSettings(): NotificationSettingsDto
+
+    @PATCH("me/notification-settings")
+    suspend fun setNotificationSettings(@Body body: NotificationSettingsDto): NotificationSettingsDto
 }

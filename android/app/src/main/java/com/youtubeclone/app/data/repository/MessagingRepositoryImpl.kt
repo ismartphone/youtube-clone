@@ -4,6 +4,7 @@ import com.youtubeclone.app.data.realtime.RealtimeSocket
 import com.youtubeclone.app.data.remote.MessagingApi
 import com.youtubeclone.app.data.remote.apiCall
 import com.youtubeclone.app.data.remote.dto.IncomingMessageDto
+import com.youtubeclone.app.data.remote.dto.NotificationSettingsDto
 import com.youtubeclone.app.data.remote.dto.SendMessageRequestDto
 import com.youtubeclone.app.data.remote.dto.StartConversationRequestDto
 import com.youtubeclone.app.data.remote.dto.toDomain
@@ -37,8 +38,14 @@ class MessagingRepositoryImpl @Inject constructor(
         apiCall(json) { api.getMessages(conversationId, page) }.toDomain()
 
     // apiCall garde le message du serveur (par exemple un refus de validation) pour l'afficher.
-    override suspend fun sendMessage(conversationId: String, content: String): Message =
-        apiCall(json) { api.sendMessage(conversationId, SendMessageRequestDto(content)) }.toDomain()
+    override suspend fun sendMessage(conversationId: String, content: String, videoId: String?): Message =
+        apiCall(json) { api.sendMessage(conversationId, SendMessageRequestDto(content, videoId)) }.toDomain()
+
+    override suspend fun getMessageNotifications(): Boolean =
+        apiCall(json) { api.getNotificationSettings() }.messages
+
+    override suspend fun setMessageNotifications(enabled: Boolean): Boolean =
+        apiCall(json) { api.setNotificationSettings(NotificationSettingsDto(enabled)) }.messages
 
     override suspend fun markRead(conversationId: String) = apiCall(json) { api.markRead(conversationId) }
 

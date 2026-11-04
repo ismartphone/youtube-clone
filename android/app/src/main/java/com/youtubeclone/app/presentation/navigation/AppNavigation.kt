@@ -133,7 +133,8 @@ import kotlinx.serialization.Serializable
 
 // Messagerie (ADR-025) : liste des conversations, recherche d'un destinataire, conversation.
 @Serializable data object ConversationsRoute
-@Serializable data object NewConversationRoute
+// [shareVideoId] : vidéo à envoyer à la personne choisie, venue de « Envoyer à » (ADR-025, étape 2).
+@Serializable data class NewConversationRoute(val shareVideoId: String? = null)
 @Serializable data class ConversationRoute(val conversationId: String)
 
 private val FULL_SCREEN_ROUTES = listOf(
@@ -173,6 +174,8 @@ fun AppNavigation(
     onLoginOpened: () -> Unit = {},
     notifiedVideoId: String? = null,
     onNotifiedVideoOpened: () -> Unit = {},
+    notifiedConversationId: String? = null,
+    onNotifiedConversationOpened: () -> Unit = {},
 ) {
     val navController = rememberNavController()
     TrackScreens(navController)
@@ -187,6 +190,13 @@ fun AppNavigation(
         if (notifiedVideoId != null) {
             navController.navigate(WatchRoute(notifiedVideoId))
             onNotifiedVideoOpened()
+        }
+    }
+    // Appui sur une notification de message (ADR-025) : la conversation s'ouvre par-dessus.
+    LaunchedEffect(notifiedConversationId) {
+        if (notifiedConversationId != null) {
+            navController.navigate(ConversationRoute(notifiedConversationId))
+            onNotifiedConversationOpened()
         }
     }
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -287,6 +297,8 @@ fun AppNavigation(
             val openChannelPosts = { channelId: String -> navController.navigate(ChannelRoute(channelId, tab = "Posts")) }
             val openLogin = { navController.navigate(LoginRoute()) }
             val openPaywall = { navController.navigate(PaywallRoute()) }
+            // « Envoyer à », puis « Rechercher quelqu'un d'autre » (ADR-025, étape 2).
+            val shareToSomeone = { videoId: String -> navController.navigate(NewConversationRoute(shareVideoId = videoId)) }
 
             composable<HomeRoute> {
                 HomeScreen(
@@ -318,7 +330,7 @@ fun AppNavigation(
                 ConversationsScreen(
                     onBack = { navController.popBackStack() },
                     onConversationClick = { id -> navController.navigate(ConversationRoute(id)) },
-                    onNewConversation = { navController.navigate(NewConversationRoute) },
+                    onNewConversation = { navController.navigate(NewConversationRoute()) },
                 )
             }
             composable<NewConversationRoute> {
@@ -330,18 +342,32 @@ fun AppNavigation(
                     },
                 )
             }
-            composable<ConversationRoute> { ConversationScreen(onBack = { navController.popBackStack() }) }
+            composable<ConversationRoute> {
+                ConversationScreen(
+                    onBack = { navController.popBackStack() },
+                    // Un Short partagé s'ouvre dans le lecteur des Shorts.
+                    onOpenVideo = { video ->
+                        navController.navigate(if (video.isShort) ShortsPlayerRoute(video.id) else WatchRoute(video.id))
+                    },
+                )
+            }
             composable<AdPlayerRoute> {
                 AdPlayerScreen(onClose = { navController.popBackStack() })
             }
             composable<ShortsRoute> {
-                ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin, onPremiumClick = openPaywall)
+                ShortsScreen(
+                    onChannelClick = openChannel,
+                    onLoginRequired = openLogin,
+                    onPremiumClick = openPaywall,
+                    onShareToSomeone = shareToSomeone,
+                )
             }
             composable<ShortsPlayerRoute> {
                 ShortsScreen(
                     onChannelClick = openChannel,
                     onLoginRequired = openLogin,
                     onPremiumClick = openPaywall,
+                    onShareToSomeone = shareToSomeone,
                     onBack = { navController.popBackStack() },
                 )
             }
@@ -380,6 +406,7 @@ fun AppNavigation(
                     },
                     onRemoveAdsClick = openPaywall,
                     onOpenDownloads = { navController.navigate(DownloadsRoute) },
+                    onShareToSomeone = shareToSomeone,
                 )
             }
             composable<ChannelRoute> {

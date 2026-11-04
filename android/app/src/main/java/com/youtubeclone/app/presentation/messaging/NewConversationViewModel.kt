@@ -1,11 +1,14 @@
 package com.youtubeclone.app.presentation.messaging
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.youtubeclone.app.domain.model.Person
 import com.youtubeclone.app.domain.usecase.MessagingUseCases
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
+import com.youtubeclone.app.presentation.navigation.NewConversationRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -38,8 +41,12 @@ data class NewConversationUiState(
  */
 @HiltViewModel
 class NewConversationViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val messaging: MessagingUseCases,
 ) : ViewModel() {
+
+    // Venue de « Envoyer à » (ADR-025, étape 2) : la vidéo part dès que la personne est choisie.
+    private val shareVideoId = savedStateHandle.toRoute<NewConversationRoute>().shareVideoId
 
     private val _uiState = MutableStateFlow(NewConversationUiState())
     val uiState: StateFlow<NewConversationUiState> = _uiState.asStateFlow()
@@ -81,7 +88,11 @@ class NewConversationViewModel @Inject constructor(
         _uiState.update { it.copy(isOpening = true) }
         viewModelScope.launch {
             try {
-                _opened.send(messaging.repository.startConversation(person.id).id)
+                val conversation = messaging.repository.startConversation(person.id)
+                if (shareVideoId != null) {
+                    messaging.repository.sendMessage(conversation.id, content = "", videoId = shareVideoId)
+                }
+                _opened.send(conversation.id)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

@@ -15,8 +15,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 /**
- * Réception FCM (ADR-020), application ouverte ou fermée : le serveur envoie un message de données,
- * transformé ici en notification. Un jeton renouvelé est réenregistré si une session est ouverte.
+ * Réception FCM, application ouverte ou fermée : le serveur envoie un message de données,
+ * transformé ici en notification. Publications (ADR-020) et messages reçus (ADR-025, étape 3).
+ * Un jeton renouvelé est réenregistré si une session est ouverte.
  */
 @AndroidEntryPoint
 class PublicationMessagingService : FirebaseMessagingService() {
@@ -35,6 +36,16 @@ class PublicationMessagingService : FirebaseMessagingService() {
     // Appelée sur un fil d'arrière-plan, qui peut attendre la miniature.
     override fun onMessageReceived(message: RemoteMessage) {
         val data = message.data
+        if (data["type"] == TYPE_MESSAGE_RECEIVED) {
+            val conversationId = data["conversationId"] ?: return
+            val alert = MessageAlert(
+                conversationId = conversationId,
+                senderName = data["senderName"].orEmpty(),
+                text = data["text"]?.takeIf { it.isNotEmpty() },
+            )
+            MessageNotifications.show(applicationContext, alert)
+            return
+        }
         if (data["type"] != TYPE_VIDEO_PUBLISHED) return
         val videoId = data["videoId"] ?: return
         val alert = PublicationAlert(
@@ -54,6 +65,7 @@ class PublicationMessagingService : FirebaseMessagingService() {
 
     private companion object {
         const val TYPE_VIDEO_PUBLISHED = "video_published"
+        const val TYPE_MESSAGE_RECEIVED = "message_received"
         const val FORMAT_SHORT = "SHORT"
     }
 }

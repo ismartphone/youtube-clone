@@ -1,16 +1,19 @@
 package com.youtubeclone.app.presentation.messaging
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,19 +35,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Message
+import com.youtubeclone.app.domain.model.SharedVideo
+import com.youtubeclone.app.notifications.VisibleConversation
 import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.LoadingState
+import com.youtubeclone.app.presentation.common.PremiumBadge
+import com.youtubeclone.app.presentation.common.VideoThumbnailImage
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 // Bulles : les siennes à droite, en rouge ; celles de l'autre à gauche, en gris.
@@ -54,6 +64,7 @@ private val BubbleShape = RoundedCornerShape(18.dp)
 @Composable
 fun ConversationScreen(
     onBack: () -> Unit,
+    onOpenVideo: (SharedVideo.Available) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ConversationViewModel = hiltViewModel(),
 ) {
@@ -66,13 +77,18 @@ fun ConversationScreen(
     LaunchedEffect(viewModel, lifecycleOwner) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) { viewModel.collectLiveUpdates() }
     }
+    // Conversation à l'écran : ses notifications ne s'affichent pas (ADR-025, décision 8).
+    LifecycleStartEffect(viewModel.conversationId) {
+        VisibleConversation.id = viewModel.conversationId
+        onStopOrDispose { if (VisibleConversation.id == viewModel.conversationId) VisibleConversation.id = null }
+    }
     Column(modifier = modifier.fillMaxSize().imePadding()) {
         val ready = state as? ConversationUiState.Ready
         BackTopBar(title = ready?.other?.displayName.orEmpty(), onBack = onBack)
         when (val current = state) {
             ConversationUiState.Loading -> LoadingState(Modifier.weight(1f).fillMaxWidth())
             is ConversationUiState.Error -> ErrorState(current.error, viewModel::load, Modifier.weight(1f).fillMaxWidth())
-            is ConversationUiState.Ready -> Messages(current, viewModel::loadMore, Modifier.weight(1f))
+            is ConversationUiState.Ready -> Messages(current, viewModel::loadMore, onOpenVideo, Modifier.weight(1f))
         }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -95,7 +111,12 @@ fun ConversationScreen(
 }
 
 @Composable
-private fun Messages(state: ConversationUiState.Ready, onLoadMore: () -> Unit, modifier: Modifier = Modifier) {
+private fun Messages(
+    state: ConversationUiState.Ready,
+    onLoadMore: () -> Unit,
+    onOpenVideo: (SharedVideo.Available) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     if (state.messages.isEmpty()) {
         Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Text(
@@ -127,7 +148,7 @@ private fun Messages(state: ConversationUiState.Ready, onLoadMore: () -> Unit, m
         verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.Bottom),
     ) {
         items(state.messages, key = { it.id }) { message ->
-            Bubble(message, mine = message.senderId == state.myId)
+            MessageItem(message, mine = message.senderId == state.myId, onOpenVideo = onOpenVideo)
         }
         if (state.isLoadingMore) {
             item(key = "loading") {
@@ -139,9 +160,69 @@ private fun Messages(state: ConversationUiState.Ready, onLoadMore: () -> Unit, m
     }
 }
 
+// Vidéo partagée en carte, puis le texte éventuel en bulle, du même côté.
+@Composable
+private fun MessageItem(message: Message, mine: Boolean, onOpenVideo: (SharedVideo.Available) -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        message.video?.let { SharedVideoCard(it, onOpenVideo) }
+        if (message.content.isNotEmpty()) Bubble(message, mine)
+    }
+}
+
+/**
+ * Carte d'une vidéo partagée (ADR-025, étape 2) : miniature, titre et chaîne ; un appui l'ouvre.
+ * Floutée si elle est Premium et le compte sans abonnement (ADR-026). Indisponible (supprimée,
+ * ou privée) : une carte grise, sans rien révéler.
+ */
+@Composable
+private fun SharedVideoCard(video: SharedVideo, onOpenVideo: (SharedVideo.Available) -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+    Column(
+        modifier = Modifier
+            .width(SharedVideoWidth)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .then(if (video is SharedVideo.Available) Modifier.clickable { onOpenVideo(video) } else Modifier),
+    ) {
+        when (video) {
+            is SharedVideo.Available -> {
+                Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
+                    VideoThumbnailImage(video.thumbnailUrl, video.isPremium, Modifier.matchParentSize())
+                    if (video.isPremium) PremiumBadge(Modifier.align(Alignment.TopStart).padding(6.dp))
+                }
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = video.title,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = video.channelName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+            SharedVideo.Unavailable -> Text(
+                text = stringResource(R.string.messages_video_unavailable),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            )
+        }
+    }
+}
+
 @Composable
 private fun Bubble(message: Message, mine: Boolean) {
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
+    Box(contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
         Text(
             text = message.content,
             style = MaterialTheme.typography.bodyMedium,
@@ -156,3 +237,4 @@ private fun Bubble(message: Message, mine: Boolean) {
 }
 
 private const val LOAD_MORE_THRESHOLD = 5
+private val SharedVideoWidth = 240.dp
