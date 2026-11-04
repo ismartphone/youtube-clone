@@ -266,6 +266,19 @@ Tous les comptes du seed ont le mot de passe **`Youtube2026!`**.
 Aucun compte n'est Premium au départ : le passage en Premium se fait depuis l'application, par le
 paiement simulé ([ADR-012](docs/adr/ADR-012-paiement-simule-backend.md)), sans aucun débit.
 
+## Démonstration sans connexion Internet
+
+Les vidéos, miniatures, avatars et bannières sont tous servis par le backend local : seuls Stripe et
+PostHog ont besoin d'Internet. Si la salle n'a pas de connexion :
+
+- **Paiement Premium** — mettre en commentaire `STRIPE_SECRET_KEY` dans `backend/.env`, puis
+  redémarrer le backend (le mode watch ne relit pas le `.env`). Le journal affiche alors « achat
+  simulé (repli) » et l'application propose le paiement simulé, sans débit
+  ([ADR-014](docs/adr/ADR-014-paiement-stripe-mode-test.md)). Retirer le commentaire et redémarrer
+  pour revenir à Stripe.
+- **Mesures PostHog** — rien à faire : sans réseau, les envois échouent en silence sans bloquer
+  l'application, et le test A/B du paywall affiche sa variante par défaut.
+
 ## Pièges courants
 
 | Symptôme | Cause et solution |
