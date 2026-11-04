@@ -62,9 +62,13 @@ export interface RevenueStats {
   monthly: MonthlyRevenue[];
 }
 
-// Fin d'un abonnement acheté maintenant : même jour du mois suivant.
+// Fin d'un abonnement acheté maintenant : même jour du mois suivant, ou dernier jour de ce mois
+// quand ce jour n'existe pas (31 janvier : 28 ou 29 février, jamais 3 mars).
 export function subscriptionEnd(start: Date): Date {
   const end = new Date(start);
+  end.setDate(1);
   end.setMonth(end.getMonth() + SUBSCRIPTION_MONTHS);
+  const lastDay = new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate();
+  end.setDate(Math.min(start.getDate(), lastDay));
   return end;
 }
