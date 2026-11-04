@@ -52,8 +52,8 @@ import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
-import com.youtubeclone.app.domain.model.NotificationLevel
 import com.youtubeclone.app.domain.model.FollowStatus
+import com.youtubeclone.app.domain.model.NotificationLevel
 import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoFormat
@@ -63,6 +63,8 @@ import com.youtubeclone.app.presentation.common.ChannelPageSkeleton
 import com.youtubeclone.app.presentation.common.EmptyStateMessage
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
+import com.youtubeclone.app.presentation.common.PremiumBadge
+import com.youtubeclone.app.presentation.common.VideoThumbnailImage
 import com.youtubeclone.app.presentation.common.VisibilityBadge
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
@@ -357,18 +359,15 @@ private fun ShortTile(video: Video, modifier: Modifier = Modifier) {
             .aspectRatio(9f / 16f)
             .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        AsyncImage(
-            model = video.thumbnailUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.matchParentSize(),
-        )
+        // Floutée avec un cadenas pour un compte sans Premium (ADR-026).
+        VideoThumbnailImage(video.thumbnailUrl, video.isPremium, Modifier.matchParentSize())
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .background(Brush.verticalGradient(0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.6f))),
         )
         VisibilityBadge(video.visibility, Modifier.align(Alignment.TopStart).padding(8.dp))
+        if (video.isPremium) PremiumBadge(Modifier.align(Alignment.TopEnd).padding(8.dp))
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)

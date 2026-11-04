@@ -3,6 +3,7 @@ package com.youtubeclone.app.presentation.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -10,6 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.youtubeclone.app.presentation.account.AccountsViewModel
+import com.youtubeclone.app.presentation.common.LocalIsPremiumViewer
 import com.youtubeclone.app.presentation.onboarding.AppStartState
 import com.youtubeclone.app.presentation.onboarding.AppStartViewModel
 import com.youtubeclone.app.presentation.onboarding.OnboardingScreen
@@ -40,12 +43,19 @@ fun AppRoot(
                 TrackScreen("Onboarding")
                 OnboardingScreen(onLoginClick = { loginRequested = true })
             }
-            AppStartState.Ready -> AppNavigation(
-                openLoginAtStart = loginRequested,
-                onLoginOpened = { loginRequested = false },
-                notifiedVideoId = notifiedVideoId,
-                onNotifiedVideoOpened = onNotifiedVideoOpened,
-            )
+            AppStartState.Ready -> {
+                // Statut Premium du compte actif, pour toutes les miniatures (ADR-026). Même
+                // instance que celle de la navigation : le ViewModel est lié à l'activité.
+                val isPremium by hiltViewModel<AccountsViewModel>().isPremium.collectAsStateWithLifecycle()
+                CompositionLocalProvider(LocalIsPremiumViewer provides isPremium) {
+                    AppNavigation(
+                        openLoginAtStart = loginRequested,
+                        onLoginOpened = { loginRequested = false },
+                        notifiedVideoId = notifiedVideoId,
+                        onNotifiedVideoOpened = onNotifiedVideoOpened,
+                    )
+                }
+            }
         }
         if (!openingDone) {
             OpeningAnimation(isAppReady = isAppReady, onFinished = { openingDone = true })

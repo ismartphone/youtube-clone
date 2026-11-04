@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,9 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -32,12 +28,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.presentation.common.ChannelAvatar
+import com.youtubeclone.app.presentation.common.PremiumBadge
+import com.youtubeclone.app.presentation.common.VideoThumbnailImage
 import com.youtubeclone.app.presentation.common.formatDuration
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
@@ -118,36 +114,10 @@ internal fun VideoThumbnail(video: Video, modifier: Modifier = Modifier) {
             .aspectRatio(16f / 9f)
             .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        AsyncImage(
-            model = video.thumbnailUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.matchParentSize(),
-        )
+        // Floutée avec un cadenas pour un compte sans Premium (ADR-026).
+        VideoThumbnailImage(video.thumbnailUrl, video.isPremium, Modifier.matchParentSize())
         // Vidéo exclusive : le badge prévient avant d'ouvrir ; l'accès reste vérifié par le serveur.
-        if (video.isPremium) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-                    .background(Color.Black.copy(alpha = 0.8f), RoundedCornerShape(4.dp))
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_premium),
-                    contentDescription = null,
-                    tint = Color(0xFFFFC107),
-                    modifier = Modifier.size(12.dp),
-                )
-                Text(
-                    text = stringResource(R.string.premium_badge),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
-                )
-            }
-        }
+        if (video.isPremium) PremiumBadge(Modifier.align(Alignment.TopStart).padding(8.dp))
         Text(
             text = formatDuration(video.durationSeconds),
             style = MaterialTheme.typography.labelSmall,

@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -40,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.PlaylistDetail
 import com.youtubeclone.app.presentation.common.BackTopBar
@@ -48,6 +46,7 @@ import com.youtubeclone.app.presentation.common.EmptyStateMessage
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.LoadingState
+import com.youtubeclone.app.presentation.common.VideoThumbnailImage
 import com.youtubeclone.app.presentation.watch.SuggestedVideoCard
 
 /**
@@ -156,14 +155,10 @@ private fun PlaylistHeader(playlist: PlaylistDetail, onRename: () -> Unit, onDel
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {
-            val thumbnail = playlist.videos.firstOrNull()?.thumbnailUrl
-            if (thumbnail != null) {
-                AsyncImage(
-                    model = thumbnail,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.matchParentSize(),
-                )
+            val first = playlist.videos.firstOrNull()
+            if (first != null) {
+                // Couverture : la miniature de la première vidéo, floutée si elle est réservée (ADR-026).
+                VideoThumbnailImage(first.thumbnailUrl, first.isPremium, Modifier.matchParentSize())
             } else {
                 Icon(
                     painter = painterResource(R.drawable.ic_save),

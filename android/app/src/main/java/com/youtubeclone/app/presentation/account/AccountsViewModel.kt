@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.youtubeclone.app.domain.model.Account
 import com.youtubeclone.app.domain.usecase.ObserveAccountsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveActiveAccountUseCase
+import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.RefreshAccountProfileUseCase
 import com.youtubeclone.app.domain.usecase.RemoveAccountUseCase
 import com.youtubeclone.app.domain.usecase.SwitchAccountUseCase
@@ -12,10 +13,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
@@ -38,7 +40,13 @@ class AccountsViewModel @Inject constructor(
     private val switchAccount: SwitchAccountUseCase,
     private val removeAccount: RemoveAccountUseCase,
     refreshProfile: RefreshAccountProfileUseCase,
+    observePremium: ObservePremiumStatusUseCase,
 ) : ViewModel() {
+
+    /** Le compte actif est Premium : ses miniatures Premium s'affichent nettes (ADR-026). */
+    val isPremium: StateFlow<Boolean> = observePremium()
+        .map { it?.isPremium == true }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     init {
         // Profil relu à chaque compte actif : démarrage, connexion, bascule.
