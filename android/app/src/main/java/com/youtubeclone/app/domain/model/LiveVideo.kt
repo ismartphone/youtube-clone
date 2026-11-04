@@ -19,6 +19,9 @@ sealed interface LiveVideoEvent {
     data object Connected : LiveVideoEvent
 
     data class CommentAdded(val comment: Comment) : LiveVideoEvent
+
+    /** Réponse à un commentaire (ADR-023), avec son parentId. */
+    data class ReplyAdded(val reply: Comment) : LiveVideoEvent
     data class ViewsUpdated(val viewCount: Int) : LiveVideoEvent
     data class LikesUpdated(val likeCount: Int) : LiveVideoEvent
 }

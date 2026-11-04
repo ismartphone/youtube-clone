@@ -10,8 +10,9 @@ class PostCommentUseCase @Inject constructor(
     private val repository: CommentRepository,
     private val analytics: Analytics,
 ) {
-    suspend operator fun invoke(videoId: String, content: String): Comment =
-        repository.postComment(videoId, content.trim()).also {
+    /** [parentId] : commentaire auquel on répond (ADR-023), réponse comprise. */
+    suspend operator fun invoke(videoId: String, content: String, parentId: String? = null): Comment =
+        repository.postComment(videoId, content.trim(), parentId).also {
             analytics.track(AnalyticsEvent.CommentPosted(videoId))
         }
 

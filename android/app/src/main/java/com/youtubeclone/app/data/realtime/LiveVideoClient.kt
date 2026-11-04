@@ -124,6 +124,7 @@ class LiveVideoClient @Inject constructor(
         val data = root.getValue("data").jsonObject
         when (root.getValue("event").jsonPrimitive.content) {
             "comment:new" -> LiveVideoEvent.CommentAdded(json.decodeFromJsonElement(CommentDto.serializer(), data).toDomain())
+            "comment:reply" -> LiveVideoEvent.ReplyAdded(json.decodeFromJsonElement(CommentDto.serializer(), data).toDomain())
             "views:update" -> data.forVideo(videoId)?.let { LiveVideoEvent.ViewsUpdated(it.getValue("viewCount").jsonPrimitive.int) }
             "likes:update" -> data.forVideo(videoId)?.let { LiveVideoEvent.LikesUpdated(it.getValue("likeCount").jsonPrimitive.int) }
             else -> null

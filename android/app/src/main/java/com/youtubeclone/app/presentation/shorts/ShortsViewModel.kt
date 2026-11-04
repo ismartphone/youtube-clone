@@ -9,17 +9,17 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
-import com.youtubeclone.app.domain.usecase.GetCommentsUseCase
+import com.youtubeclone.app.domain.usecase.CommentUseCases
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
 import com.youtubeclone.app.domain.usecase.GetVideosUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
-import com.youtubeclone.app.domain.usecase.PostCommentUseCase
 import com.youtubeclone.app.domain.usecase.RecordViewUseCase
 import com.youtubeclone.app.domain.usecase.SetDislikedUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
@@ -81,8 +81,7 @@ class ShortsViewModel @Inject constructor(
     private val setLiked: SetLikedUseCase,
     private val setDisliked: SetDislikedUseCase,
     private val getChannelPage: GetChannelPageUseCase,
-    private val getComments: GetCommentsUseCase,
-    private val postComment: PostCommentUseCase,
+    private val commentUseCases: CommentUseCases,
     observeSession: ObserveSessionUseCase,
     setFollowing: SetFollowingUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
@@ -90,6 +89,9 @@ class ShortsViewModel @Inject constructor(
 
     // Short d'ouverture (ShortsPlayerRoute, depuis une page de chaîne) ; null pour l'onglet Shorts.
     private val startVideoId: String? = savedStateHandle["startVideoId"]
+
+    // Chaîne de l'utilisateur, si le Short affiché en est : il peut y mettre un cœur (ADR-023).
+    private var ownedChannelId: String? = null
 
     private val _uiState = MutableStateFlow<ShortsUiState>(ShortsUiState.Loading)
     val uiState: StateFlow<ShortsUiState> = _uiState.asStateFlow()
@@ -193,9 +195,11 @@ class ShortsViewModel @Inject constructor(
 
         _playback.value = ShortsPlayback(page = page)
         recordViewOnce(video)
-        _comments.value = CommentsController(viewModelScope, video.id, getComments, postComment)
-            .also { it.loadFirstPage() }
-        loadFollowStatus(video.channel.id)
+        _comments.value = CommentsController(viewModelScope, video.id, commentUseCases).also {
+            it.setCreator(video.channel, isOwner = ownedChannelId == video.channel.id)
+            it.loadFirstPage()
+        }
+        loadFollowStatus(video.channel)
 
         playJob?.cancel()
         currentUrl = null
@@ -334,7 +338,9 @@ class ShortsViewModel @Inject constructor(
         }
 
     // L'état d'abonnement vient de la page de chaîne. En cas d'échec, le bouton reste masqué.
-    private fun loadFollowStatus(channelId: String) {
+    // Le propriétaire de la chaîne, lui, peut mettre un cœur sur les commentaires (ADR-023).
+    private fun loadFollowStatus(channel: Channel) {
+        val channelId = channel.id
         if (_followChannelId.value == channelId) return
         _followChannelId.value = null
         followJob?.cancel()
@@ -343,6 +349,8 @@ class ShortsViewModel @Inject constructor(
                 val page = getChannelPage(channelId)
                 follow.show(channelId, page.followStatus, canFollow = !page.isOwner)
                 _followChannelId.value = channelId
+                ownedChannelId = channelId.takeIf { page.isOwner }
+                _comments.value?.setCreator(channel, isOwner = page.isOwner)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -358,7 +366,9 @@ class ShortsViewModel @Inject constructor(
         _likes.value = emptyMap()
         detailOf(video.id)
         _followChannelId.value = null
-        loadFollowStatus(video.channel.id)
+        loadFollowStatus(video.channel)
+        // Avis de l'utilisateur sur chaque commentaire (ADR-023).
+        _comments.value?.loadFirstPage()
     }
 
     // Une vue par vidéo, dès qu'elle devient visible. Un échec d'envoi est ignoré.

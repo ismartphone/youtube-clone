@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
@@ -43,14 +44,27 @@ internal fun CommentsSheet(
             CommentsSection(
                 state = state,
                 isLoggedIn = isLoggedIn,
-                onDraftChange = controller::onDraftChange,
-                onPost = controller::post,
+                actions = remember(controller) {
+                    CommentsActions(
+                        onDraftChange = controller::onDraftChange,
+                        onPost = controller::post,
+                        onLoadMore = controller::loadMore,
+                        onRetry = controller::loadFirstPage,
+                        onSortChange = controller::setSort,
+                        onToggleReplies = controller::toggleReplies,
+                        onLoadMoreReplies = controller::loadMoreReplies,
+                        onReply = controller::startReply,
+                        onCancelReply = controller::cancelReply,
+                        onReplyDraftChange = controller::onReplyDraftChange,
+                        onPostReply = controller::postReply,
+                        onReact = controller::react,
+                        onToggleHeart = controller::toggleHeart,
+                    )
+                },
                 onLoginRequired = {
                     onDismiss()
                     onLoginRequired()
                 },
-                onLoadMore = controller::loadMore,
-                onRetry = controller::loadFirstPage,
             )
         }
     }

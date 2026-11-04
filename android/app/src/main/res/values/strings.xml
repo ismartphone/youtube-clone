@@ -317,6 +317,22 @@
     <string name="comments_login_to_comment">Connectez-vous pour ajouter un commentaire.</string>
     <string name="comments_empty">Aucun commentaire pour le moment.</string>
     <string name="comments_load_more">Afficher plus de commentaires</string>
+    <!-- Réponses, avis et cœur du créateur (ADR-023) -->
+    <string name="comments_sort_top">Top commentaires</string>
+    <string name="comments_sort_newest">Les plus récents</string>
+    <string name="comments_reply">Répondre</string>
+    <plurals name="comments_reply_count">
+        <item quantity="one">%d réponse</item>
+        <item quantity="other">%d réponses</item>
+    </plurals>
+    <string name="comments_more_replies">Afficher plus de réponses</string>
+    <string name="comments_reply_placeholder">Ajouter une réponse…</string>
+    <string name="comments_reply_cancel">Annuler</string>
+    <string name="comments_like">J\'aime ce commentaire</string>
+    <string name="comments_dislike">Je n\'aime pas ce commentaire</string>
+    <string name="comments_heart_add">Mettre un cœur</string>
+    <string name="comments_heart_remove">Retirer le cœur</string>
+    <string name="comments_hearted_by">Cœur de %1$s</string>
 
     <string name="onboarding_tagline">Vidéos, Shorts et chaînes : regardez ce qui vous plaît, avec ou sans compte.</string>
     <string name="onboarding_start">Commencer</string>

@@ -17,6 +17,7 @@ import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.analytics.AdPlacement
 import com.youtubeclone.app.domain.analytics.Analytics
+import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.DownloadProblem
 import com.youtubeclone.app.domain.model.DownloadedVideo
@@ -28,7 +29,7 @@ import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.usecase.DownloadVideoUseCase
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
-import com.youtubeclone.app.domain.usecase.GetCommentsUseCase
+import com.youtubeclone.app.domain.usecase.CommentUseCases
 import com.youtubeclone.app.domain.usecase.GetSuggestedVideosUseCase
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
 import com.youtubeclone.app.domain.usecase.ObserveAutoplayUseCase
@@ -37,7 +38,6 @@ import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveLiveVideoUseCase
 import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
-import com.youtubeclone.app.domain.usecase.PostCommentUseCase
 import com.youtubeclone.app.domain.usecase.RecordViewUseCase
 import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.SetDislikedUseCase
@@ -115,9 +115,8 @@ class WatchViewModel @Inject constructor(
     setFollowing: SetFollowingUseCase,
     setNotificationLevel: SetNotificationLevelUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
-    getComments: GetCommentsUseCase,
+    commentUseCases: CommentUseCases,
     private val getSuggestedVideos: GetSuggestedVideosUseCase,
-    postComment: PostCommentUseCase,
     private val observePremium: ObservePremiumStatusUseCase,
     private val backgroundPlayback: BackgroundPlayback,
     private val observeAutoplay: ObserveAutoplayUseCase,
@@ -243,7 +242,7 @@ class WatchViewModel @Inject constructor(
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     val follow = FollowController(viewModelScope, setFollowing, observeFollowChanges, setNotificationLevel)
-    val comments = CommentsController(viewModelScope, videoId, getComments, postComment)
+    val comments = CommentsController(viewModelScope, videoId, commentUseCases)
 
     // Première connexion temps réel déjà établie : les suivantes sont des reconnexions.
     private var hasConnectedOnce = false
@@ -263,8 +262,10 @@ class WatchViewModel @Inject constructor(
             observeSession().collect { loggedIn ->
                 _isLoggedIn.value = loggedIn
                 (_uiState.value as? WatchUiState.Success)?.let {
-                    loadFollowStatus(it.detail.video.channel.id)
+                    loadFollowStatus(it.detail.video.channel)
                     refreshStats()
+                    // Avis de l'utilisateur sur chaque commentaire (ADR-023).
+                    comments.loadFirstPage()
                 }
             }
         }
@@ -283,7 +284,8 @@ class WatchViewModel @Inject constructor(
                 }
                 showStats(detail)
                 loadSuggestions(detail.video)
-                loadFollowStatus(detail.video.channel.id)
+                comments.setCreator(detail.video.channel, isOwner = false)
+                loadFollowStatus(detail.video.channel)
                 WatchUiState.Success(detail)
             } catch (e: CancellationException) {
                 throw e
@@ -311,6 +313,7 @@ class WatchViewModel @Inject constructor(
                     hasConnectedOnce = true
                 }
                 is LiveVideoEvent.CommentAdded -> comments.onCommentReceived(event.comment)
+                is LiveVideoEvent.ReplyAdded -> comments.onReplyReceived(event.reply)
                 is LiveVideoEvent.ViewsUpdated -> _stats.update { it?.copy(viewCount = event.viewCount) }
                 is LiveVideoEvent.LikesUpdated -> _stats.update { it?.copy(likeCount = event.likeCount) }
             }
@@ -537,11 +540,13 @@ class WatchViewModel @Inject constructor(
     // sans gêner la lecture.
     // Amélioration possible : cette page renvoie aussi toutes les vidéos de la chaîne, inutiles ici.
     // Une route légère (abonnés et statut seulement) suffirait quand le catalogue grandira.
-    private fun loadFollowStatus(channelId: String) {
+    // Le propriétaire de la chaîne, lui, peut mettre un cœur sur les commentaires (ADR-023).
+    private fun loadFollowStatus(channel: Channel) {
         viewModelScope.launch {
             try {
-                val page = getChannelPage(channelId)
-                follow.show(channelId, page.followStatus, canFollow = !page.isOwner)
+                val page = getChannelPage(channel.id)
+                follow.show(channel.id, page.followStatus, canFollow = !page.isOwner)
+                comments.setCreator(channel, isOwner = page.isOwner)
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
