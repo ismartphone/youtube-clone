@@ -34,6 +34,7 @@ import com.youtubeclone.app.domain.usecase.PostCommentUseCase
 import com.youtubeclone.app.domain.usecase.RecordViewUseCase
 import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
+import com.youtubeclone.app.domain.usecase.SetDislikedUseCase
 import com.youtubeclone.app.domain.usecase.SetLikedUseCase
 import com.youtubeclone.app.playback.BackgroundPlayback
 import com.youtubeclone.app.presentation.channel.FollowController
@@ -86,7 +87,8 @@ data class LiveStats(
     val viewCount: Int,
     val likeCount: Int,
     val isLiked: Boolean,
-    /** Appel « j'aime » en cours : le bouton est désactivé pour éviter les doubles clics. */
+    val isDisliked: Boolean = false,
+    /** Appel « j'aime » ou « je n'aime pas » en cours : les boutons ignorent les doubles clics. */
     val likePending: Boolean = false,
 )
 
@@ -98,6 +100,7 @@ class WatchViewModel @Inject constructor(
     private val recordView: RecordViewUseCase,
     private val getChannelPage: GetChannelPageUseCase,
     private val setLiked: SetLikedUseCase,
+    private val setDisliked: SetDislikedUseCase,
     private val observeLiveVideo: ObserveLiveVideoUseCase,
     observeSession: ObserveSessionUseCase,
     setFollowing: SetFollowingUseCase,
@@ -280,7 +283,37 @@ class WatchViewModel @Inject constructor(
             try {
                 val status = setLiked(videoId, like = !current.isLiked)
                 _stats.update {
-                    it?.copy(likeCount = status.likeCount, isLiked = status.isLiked, likePending = false)
+                    it?.copy(
+                        likeCount = status.likeCount,
+                        isLiked = status.isLiked,
+                        isDisliked = status.isDisliked,
+                        likePending = false,
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _stats.update { it?.copy(likePending = false) }
+                _errors.tryEmit(e.toUiError())
+            }
+        }
+    }
+
+    /** « Je n'aime pas » : remplace le « j'aime » éventuel, dont le compteur baisse alors. */
+    fun toggleDislike() {
+        val current = _stats.value ?: return
+        if (current.likePending) return
+        _stats.value = current.copy(likePending = true)
+        viewModelScope.launch {
+            try {
+                val status = setDisliked(videoId, dislike = !current.isDisliked)
+                _stats.update {
+                    it?.copy(
+                        likeCount = status.likeCount,
+                        isLiked = status.isLiked,
+                        isDisliked = status.isDisliked,
+                        likePending = false,
+                    )
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -385,6 +418,7 @@ class WatchViewModel @Inject constructor(
             viewCount = detail.video.viewCount,
             likeCount = detail.likeStatus.likeCount,
             isLiked = detail.likeStatus.isLiked,
+            isDisliked = detail.likeStatus.isDisliked,
         )
     }
 

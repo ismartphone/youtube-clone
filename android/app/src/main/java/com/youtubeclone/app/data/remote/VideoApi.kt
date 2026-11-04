@@ -31,6 +31,13 @@ interface VideoApi {
     @DELETE("videos/{id}/like")
     suspend fun unlike(@Path("id") id: String): LikeStatusDto
 
+    // « Je n'aime pas » (ADR-019) : retire le « j'aime » éventuel ; aucun nombre n'est renvoyé.
+    @POST("videos/{id}/dislike")
+    suspend fun dislike(@Path("id") id: String): LikeStatusDto
+
+    @DELETE("videos/{id}/dislike")
+    suspend fun undislike(@Path("id") id: String): LikeStatusDto
+
     // Route protégée : l'access token est ajouté par AuthInterceptor.
     @GET("me/feed")
     suspend fun getSubscriptionFeed(

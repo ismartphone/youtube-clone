@@ -38,6 +38,10 @@ class VideoRepositoryImpl @Inject constructor(
         (if (like) api.like(id) else api.unlike(id)).toDomain()
     }
 
+    override suspend fun setDisliked(id: String, dislike: Boolean): LikeStatus = call {
+        (if (dislike) api.dislike(id) else api.undislike(id)).toDomain()
+    }
+
     override suspend fun getSubscriptionFeed(page: Int, pageSize: Int): VideoPage = call {
         api.getSubscriptionFeed(page, pageSize).toDomain()
     }

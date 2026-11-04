@@ -56,14 +56,16 @@ data class VideoDetailDto(
     // Null sans sous-titres (vidéo externe, transcription pas faite ou échouée) ou accès refusé.
     val subtitleUrl: String? = null,
     val likeCount: Int = 0,
-    // Vrai seulement si la requête portait le token d'un utilisateur qui a aimé la vidéo.
+    // Vrais seulement si la requête portait le token d'un utilisateur qui a donné cet avis.
     val isLiked: Boolean = false,
+    val isDisliked: Boolean = false,
 )
 
 @Serializable
 data class LikeStatusDto(
     val likeCount: Int,
     val isLiked: Boolean,
+    val isDisliked: Boolean = false,
 )
 
 @Serializable

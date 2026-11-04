@@ -1,9 +1,13 @@
 package com.youtubeclone.app.domain.model
 
-/** « J'aime » d'une vidéo, vus par l'utilisateur courant. [isLiked] vaut toujours false pour un visiteur. */
+/**
+ * « J'aime » d'une vidéo, vus par l'utilisateur courant. [isLiked] et [isDisliked] valent toujours
+ * false pour un visiteur. Le nombre de « Je n'aime pas » n'existe pas : il n'est jamais affiché.
+ */
 data class LikeStatus(
     val likeCount: Int,
     val isLiked: Boolean,
+    val isDisliked: Boolean = false,
 )
 
 /** Événements reçus en direct pour la vidéo regardée (ADR-004). */

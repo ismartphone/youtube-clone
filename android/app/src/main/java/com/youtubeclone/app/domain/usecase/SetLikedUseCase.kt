@@ -16,3 +16,11 @@ class SetLikedUseCase @Inject constructor(
             if (like) analytics.track(AnalyticsEvent.VideoLiked(videoId))
         }
 }
+
+/** « Je n'aime pas » : enregistré, jamais compté ni affiché (ADR-019). */
+class SetDislikedUseCase @Inject constructor(
+    private val repository: VideoRepository,
+) {
+    suspend operator fun invoke(videoId: String, dislike: Boolean): LikeStatus =
+        repository.setDisliked(videoId, dislike)
+}

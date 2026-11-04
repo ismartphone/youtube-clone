@@ -228,6 +228,8 @@
     <string name="watch_like">J\'aime</string>
     <string name="watch_liked">Aimée</string>
     <string name="watch_not_liked">Pas encore aimée</string>
+    <string name="watch_disliked">Vous n\'aimez pas cette vidéo</string>
+    <string name="watch_not_disliked">Aucun avis négatif</string>
     <string name="watch_dislike">Je n\'aime pas</string>
     <string name="watch_share">Partager</string>
     <string name="watch_share_chooser">Partager la vidéo</string>

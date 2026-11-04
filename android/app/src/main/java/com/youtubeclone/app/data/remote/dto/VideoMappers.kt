@@ -55,10 +55,10 @@ fun VideoDetailDto.toDomain() = VideoDetail(
     videoUrl = videoUrl?.let(::resolveMediaUrl),
     hlsUrl = hlsUrl?.let(::resolveMediaUrl),
     subtitleUrl = subtitleUrl?.let(::resolveMediaUrl),
-    likeStatus = LikeStatus(likeCount = likeCount, isLiked = isLiked),
+    likeStatus = LikeStatus(likeCount = likeCount, isLiked = isLiked, isDisliked = isDisliked),
 )
 
-fun LikeStatusDto.toDomain() = LikeStatus(likeCount = likeCount, isLiked = isLiked)
+fun LikeStatusDto.toDomain() = LikeStatus(likeCount = likeCount, isLiked = isLiked, isDisliked = isDisliked)
 
 fun VideoPageDto.toDomain() = VideoPage(
     items = items.map { it.toDomain() },

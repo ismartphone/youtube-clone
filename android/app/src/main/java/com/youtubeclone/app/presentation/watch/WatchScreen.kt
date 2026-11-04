@@ -217,6 +217,7 @@ fun WatchScreen(
                 onChannelClick = { onChannelClick(video.channel.id) },
                 onFollowClick = { requireLogin(viewModel.follow::toggle) },
                 onLikeClick = { requireLogin(viewModel::toggleLike) },
+                onDislikeClick = { requireLogin(viewModel::toggleDislike) },
                 onShareClick = { shareVideo(context, video) },
                 // Je n'aime pas, Télécharger et Enregistrer : pas encore de fonctionnalité derrière
                 // (pas d'API ; playlists hors périmètre). Les boutons suivent la maquette.
@@ -251,6 +252,7 @@ private fun WatchContent(
     onChannelClick: () -> Unit,
     onFollowClick: () -> Unit,
     onLikeClick: () -> Unit,
+    onDislikeClick: () -> Unit,
     onShareClick: () -> Unit,
     onUnavailableClick: () -> Unit,
     onCommentsClick: () -> Unit,
@@ -267,7 +269,7 @@ private fun WatchContent(
         ) {
             item(key = "title") { TitleBlock(detail, viewCount = stats?.viewCount ?: detail.video.viewCount) }
             item(key = "channel") { ChannelRow(detail.video.channel, followState, onChannelClick, onFollowClick) }
-            item(key = "actions") { ActionsRow(stats, onLikeClick, onShareClick, onUnavailableClick) }
+            item(key = "actions") { ActionsRow(stats, onLikeClick, onDislikeClick, onShareClick, onUnavailableClick) }
             // Commentaires désactivés (ADR-016) : le bloc n'apparaît pas.
             if (detail.video.commentsEnabled) {
                 item(key = "comments") { CommentsTeaser(comments, onCommentsClick) }
@@ -546,6 +548,7 @@ private fun ChannelRow(
 private fun ActionsRow(
     stats: LiveStats?,
     onLikeClick: () -> Unit,
+    onDislikeClick: () -> Unit,
     onShareClick: () -> Unit,
     onUnavailableClick: () -> Unit,
 ) {
@@ -554,7 +557,7 @@ private fun ActionsRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (stats != null) {
-            item(key = "like") { LikeDislikeChip(stats, onLikeClick, onDislikeClick = onUnavailableClick) }
+            item(key = "like") { LikeDislikeChip(stats, onLikeClick, onDislikeClick) }
         }
         item(key = "share") { ActionChip(R.drawable.ic_share, stringResource(R.string.watch_share), onShareClick) }
         item(key = "download") { ActionChip(R.drawable.ic_download, stringResource(R.string.watch_download), onUnavailableClick) }
@@ -579,11 +582,18 @@ private fun ActionChip(@DrawableRes icon: Int, label: String, onClick: () -> Uni
     }
 }
 
-// Une seule pastille, séparée par un trait : J'aime avec son compteur, puis Je n'aime pas.
+// Une seule pastille, séparée par un trait : J'aime avec son compteur, puis Je n'aime pas, sans
+// compteur (ADR-019). Le bouton actif prend la couleur d'accent.
 @Composable
 private fun LikeDislikeChip(stats: LiveStats, onLikeClick: () -> Unit, onDislikeClick: () -> Unit) {
     val reduceMotion = LocalReduceMotion.current
     val stateText = stringResource(if (stats.isLiked) R.string.watch_liked else R.string.watch_not_liked)
+    val dislikeStateText = stringResource(if (stats.isDisliked) R.string.watch_disliked else R.string.watch_not_disliked)
+    val dislikeTint by animateColorAsState(
+        targetValue = if (stats.isDisliked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+        animationSpec = tween(if (reduceMotion) Motion.REDUCED_FADE_MS else Motion.SHORT_MS),
+        label = "dislikeTint",
+    )
 
     // Rebond bref de l'icône à chaque clic (supprimé avec les animations réduites).
     val iconScale = remember { Animatable(1f) }
@@ -659,14 +669,18 @@ private fun LikeDislikeChip(stats: LiveStats, onLikeClick: () -> Unit, onDislike
         Box(
             modifier = Modifier
                 .fillMaxHeight()
-                .clickable(onClick = onDislikeClick)
+                .clickable(enabled = !stats.likePending, onClick = onDislikeClick)
+                .semantics {
+                    role = Role.Switch
+                    stateDescription = dislikeStateText
+                }
                 .padding(start = 12.dp, end = 14.dp),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_dislike),
                 contentDescription = stringResource(R.string.watch_dislike),
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = dislikeTint,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -759,6 +773,7 @@ private fun WatchContentPreview() {
             onChannelClick = {},
             onFollowClick = {},
             onLikeClick = {},
+            onDislikeClick = {},
             onShareClick = {},
             onUnavailableClick = {},
             onCommentsClick = {},

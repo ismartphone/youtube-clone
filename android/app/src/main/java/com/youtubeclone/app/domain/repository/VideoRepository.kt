@@ -29,4 +29,7 @@ interface VideoRepository {
 
     /** Aime ou retire son « j'aime ». Exige une session ouverte. */
     suspend fun setLiked(id: String, like: Boolean): LikeStatus
+
+    /** Donne (true) ou retire (false) un « Je n'aime pas » ; il remplace le « j'aime » éventuel. */
+    suspend fun setDisliked(id: String, dislike: Boolean): LikeStatus
 }
