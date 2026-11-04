@@ -58,8 +58,22 @@ model User {
   premiumSubscriptions PremiumSubscription[]
   watchHistory         WatchHistory[]
   playlists            Playlist[]
+  deviceTokens         DeviceToken[]
 
   @@map("users")
+}
+
+// Jeton FCM d'un appareil connecté (ADR-020) ; plusieurs appareils par utilisateur. Un jeton
+// n'appartient qu'à un compte : la connexion d'un autre compte sur l'appareil le reprend.
+model DeviceToken {
+  token     String   @id
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
 }
 
 // Une seule chaîne par utilisateur : simplification assumée pour le socle.
@@ -132,6 +146,8 @@ model Video {
   // Compteur dénormalisé des lignes Like, reporté depuis Redis par lot (ADR-004).
   likeCount       Int             @default(0)
   publishedAt     DateTime        @default(now())
+  // Date d'envoi des notifications de publication (ADR-020) : une vidéo ne notifie qu'une fois.
+  notifiedAt      DateTime?
 
   channel       Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
   category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)

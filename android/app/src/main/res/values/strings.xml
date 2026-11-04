@@ -239,7 +239,9 @@
     <string name="help_follow_vs_premium_q">S\'abonner à une chaîne, est-ce payant ?</string>
     <string name="help_follow_vs_premium_a">Non. S\'abonner à une chaîne est gratuit : ses nouvelles vidéos apparaissent dans l\'onglet Abonnements. Premium est un abonnement payant distinct, qui ne concerne pas une chaîne en particulier.</string>
     <string name="help_follow_where_q">Où retrouver les chaînes auxquelles je suis abonné ?</string>
-    <string name="help_follow_where_a">Dans l\'onglet Abonnements, en bas de l\'écran. Pour vous désabonner, ouvrez la chaîne et appuyez sur Abonné.</string>
+    <string name="help_follow_where_a">Dans l\'onglet Abonnements, en bas de l\'écran. Pour vous désabonner, ouvrez la chaîne, appuyez sur Abonné, puis sur Se désabonner.</string>
+    <string name="help_notifications_q">Quand suis-je prévenu des nouvelles vidéos d\'une chaîne ?</string>
+    <string name="help_notifications_a">Quand vous êtes abonné, appuyez sur Abonné pour choisir avec la cloche. Toutes : vous êtes prévenu de chaque nouvelle vidéo et de chaque Short. Personnalisées, le réglage par défaut : vous êtes prévenu des nouvelles vidéos, mais pas des Shorts. Ce n\'est pas un tri automatique : seuls les Shorts sont écartés. Aucune : vous n\'êtes jamais prévenu. Les notifications doivent aussi être autorisées dans les réglages du téléphone.</string>
     <string name="help_topic_subtitles">Sous-titres</string>
     <string name="help_subtitles_how_q">Comment afficher les sous-titres ?</string>
     <string name="help_subtitles_how_a">Pendant la lecture d\'une vidéo, appuyez sur le bouton CC en haut du lecteur, ou ouvrez le menu du lecteur. Les sous-titres sont générés automatiquement à partir de la parole.</string>
@@ -262,6 +264,7 @@
     <string name="notifications_personalized_caption">Vidéos, sans les Shorts</string>
     <string name="notifications_none">Aucune</string>
     <string name="notifications_none_caption">Aucune notification</string>
+    <string name="notifications_channel_publications">Nouvelles vidéos de vos abonnements</string>
     <string name="notifications_denied_title">Notifications désactivées</string>
     <string name="notifications_denied_message">Autorisez les notifications pour être prévenu des nouvelles vidéos de vos abonnements. Votre choix de cloche est enregistré.</string>
     <string name="notifications_open_settings">Ouvrir les réglages</string>

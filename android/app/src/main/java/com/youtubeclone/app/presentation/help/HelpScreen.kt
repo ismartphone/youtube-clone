@@ -63,6 +63,7 @@ private val TOPICS = listOf(
         listOf(
             Faq(R.string.help_follow_vs_premium_q, R.string.help_follow_vs_premium_a),
             Faq(R.string.help_follow_where_q, R.string.help_follow_where_a),
+            Faq(R.string.help_notifications_q, R.string.help_notifications_a),
         ),
     ),
     HelpTopic(

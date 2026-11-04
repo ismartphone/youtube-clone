@@ -8,6 +8,7 @@ import {
   type ThumbnailGenerator,
 } from '../domain/thumbnail-generator.js';
 import { ADMIN_VIEWER } from '../domain/video.js';
+import type { PublicationNotifier } from '../../notifications/domain/publication-notifier.js';
 import { toVideoViews, type VideoView } from './video-view.js';
 
 // Publication d'une vidéo depuis le back-office, à partir d'URL déjà hébergées.
@@ -19,6 +20,7 @@ export class CreateVideoUseCase {
     private readonly thumbnails: ThumbnailGenerator,
     private readonly hlsQueue: HlsQueue,
     private readonly subtitleQueue: SubtitleQueue,
+    private readonly notifier: PublicationNotifier,
   ) {}
 
   async execute(draft: VideoDraft): Promise<VideoView> {
@@ -36,6 +38,8 @@ export class CreateVideoUseCase {
       // sans sous-titres (ADR-017).
       this.hlsQueue.enqueue(video.id);
       this.subtitleQueue.enqueue(video.id);
+      // Abonnés prévenus en arrière-plan (ADR-020) ; rien pour une vidéo privée ou non répertoriée.
+      if (video.visibility === 'PUBLIC') this.notifier.notify(video.id);
       return view;
     } catch (error) {
       // Vidéo refusée (chaîne inconnue...) : la miniature générée pour elle ne sert plus.

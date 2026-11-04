@@ -10,6 +10,7 @@ import {
 import { ADMIN_VIEWER } from '../domain/video.js';
 import type { VideoRepository } from '../domain/video.repository.js';
 import type { VideoRoomGuard } from '../../realtime/domain/video-room-guard.js';
+import type { PublicationNotifier } from '../../notifications/domain/publication-notifier.js';
 import { toVideoViews, type VideoView } from './video-view.js';
 
 export class UpdateVideoUseCase {
@@ -23,6 +24,7 @@ export class UpdateVideoUseCase {
     private readonly hlsQueue: HlsQueue,
     private readonly subtitles: SubtitleGenerator,
     private readonly subtitleQueue: SubtitleQueue,
+    private readonly notifier: PublicationNotifier,
   ) {}
 
   // Renvoie null si la vidéo n'existe pas.
@@ -83,6 +85,11 @@ export class UpdateVideoUseCase {
     // sinon ils continueraient de recevoir commentaires et compteurs (ADR-016).
     if (video.visibility !== current.visibility) {
       await this.rooms.revalidate(id);
+    }
+    // Passage à publique : c'est une publication pour les abonnés (ADR-020). Une vidéo déjà
+    // annoncée ne l'est pas une seconde fois.
+    if (video.visibility === 'PUBLIC' && current.visibility !== 'PUBLIC') {
+      this.notifier.notify(id);
     }
     const [view] = await toVideoViews([video], ADMIN_VIEWER, this.counters);
     return view;

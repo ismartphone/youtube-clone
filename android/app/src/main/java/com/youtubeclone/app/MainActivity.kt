@@ -1,18 +1,26 @@
 package com.youtubeclone.app
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.youtubeclone.app.notifications.PublicationNotifications
 import com.youtubeclone.app.presentation.navigation.AppRoot
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    // Vidéo à ouvrir, venue d'un appui sur une notification de publication (ADR-020).
+    private var notifiedVideoId by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Écran de démarrage natif à fond sombre (Theme.App.Starting), avant la première image de Compose.
         installSplashScreen()
@@ -22,10 +30,20 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
+        // Une recréation (rotation...) ne rouvre pas la vidéo déjà ouverte.
+        if (savedInstanceState == null) notifiedVideoId = intent.notifiedVideoId()
         setContent {
             YoutubeCloneTheme {
-                AppRoot()
+                AppRoot(notifiedVideoId = notifiedVideoId, onNotifiedVideoOpened = { notifiedVideoId = null })
             }
         }
     }
+
+    // Application déjà ouverte : la notification revient ici.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.notifiedVideoId()?.let { notifiedVideoId = it }
+    }
+
+    private fun Intent.notifiedVideoId(): String? = getStringExtra(PublicationNotifications.EXTRA_VIDEO_ID)
 }

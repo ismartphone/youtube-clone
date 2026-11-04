@@ -8,6 +8,7 @@ import com.youtubeclone.app.data.remote.AuthInterceptor
 import com.youtubeclone.app.data.remote.CategoryApi
 import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.CommentApi
+import com.youtubeclone.app.data.remote.DeviceApi
 import com.youtubeclone.app.data.remote.DownloadApi
 import com.youtubeclone.app.data.remote.PlaylistApi
 import com.youtubeclone.app.data.remote.PostApi
@@ -24,6 +25,7 @@ import com.youtubeclone.app.data.repository.CommentRepositoryImpl
 import com.youtubeclone.app.data.repository.DownloadsRepositoryImpl
 import com.youtubeclone.app.data.repository.InMemoryPublicationFeed
 import com.youtubeclone.app.data.repository.PlaylistRepositoryImpl
+import com.youtubeclone.app.data.repository.PushTokenRepositoryImpl
 import com.youtubeclone.app.data.repository.PostRepositoryImpl
 import com.youtubeclone.app.data.repository.PreferencesRepositoryImpl
 import com.youtubeclone.app.data.repository.PremiumRepositoryImpl
@@ -39,6 +41,7 @@ import com.youtubeclone.app.domain.repository.CommentRepository
 import com.youtubeclone.app.domain.repository.DownloadsRepository
 import com.youtubeclone.app.domain.repository.LiveVideoRepository
 import com.youtubeclone.app.domain.repository.PlaylistRepository
+import com.youtubeclone.app.domain.repository.PushTokenRepository
 import com.youtubeclone.app.domain.repository.PostRepository
 import com.youtubeclone.app.domain.repository.PreferencesRepository
 import com.youtubeclone.app.domain.repository.PremiumRepository
@@ -122,6 +125,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideDeviceApi(retrofit: Retrofit): DeviceApi = retrofit.create(DeviceApi::class.java)
+
+    @Provides
+    @Singleton
     fun providePlaylistApi(retrofit: Retrofit): PlaylistApi = retrofit.create(PlaylistApi::class.java)
 
     @Provides
@@ -167,6 +174,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindChannelRepository(impl: ChannelRepositoryImpl): ChannelRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPushTokenRepository(impl: PushTokenRepositoryImpl): PushTokenRepository
 
     @Binds
     @Singleton

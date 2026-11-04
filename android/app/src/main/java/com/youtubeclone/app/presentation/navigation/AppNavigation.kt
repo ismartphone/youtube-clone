@@ -136,13 +136,25 @@ private enum class Tab(
 
 /** [openLoginAtStart] : ouvre la connexion au-dessus du fil d'accueil, puis appelle [onLoginOpened]. */
 @Composable
-fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit = {}) {
+fun AppNavigation(
+    openLoginAtStart: Boolean = false,
+    onLoginOpened: () -> Unit = {},
+    notifiedVideoId: String? = null,
+    onNotifiedVideoOpened: () -> Unit = {},
+) {
     val navController = rememberNavController()
     TrackScreens(navController)
     LaunchedEffect(openLoginAtStart) {
         if (openLoginAtStart) {
             navController.navigate(LoginRoute)
             onLoginOpened()
+        }
+    }
+    // Appui sur une notification de publication : la vidéo s'ouvre par-dessus l'écran courant.
+    LaunchedEffect(notifiedVideoId) {
+        if (notifiedVideoId != null) {
+            navController.navigate(WatchRoute(notifiedVideoId))
+            onNotifiedVideoOpened()
         }
     }
     val backStackEntry by navController.currentBackStackEntryAsState()

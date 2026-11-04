@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    // Lit app/google-services.json pour Firebase Cloud Messaging (ADR-020).
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -98,6 +100,10 @@ dependencies {
 
     // Paiement Premium par Stripe en mode test, avec sa PaymentSheet (ADR-014)
     implementation(libs.stripe.android)
+
+    // Notifications de publication par Firebase Cloud Messaging, sans Firebase Analytics (ADR-020)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

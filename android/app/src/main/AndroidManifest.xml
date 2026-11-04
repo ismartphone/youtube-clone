@@ -50,6 +50,15 @@
             android:name=".playback.download.AppDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- Notifications de publication par Firebase Cloud Messaging (ADR-020). -->
+        <service
+            android:name=".notifications.PublicationMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

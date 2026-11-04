@@ -17,6 +17,7 @@ NestJS (TypeScript), PostgreSQL avec Prisma 7, Redis. Architecture hexagonale en
 | `realtime` | Passerelle WebSocket `/realtime`, salles par vidéo ([ADR-010](../docs/adr/ADR-010-websocket-salles-compteurs.md)) |
 | `premium` | Paiement Stripe en mode test, achat simulé en repli, abonnement payant (`PREMIUM_SUBSCRIPTION`) ([ADR-014](../docs/adr/ADR-014-paiement-stripe-mode-test.md)) |
 | `playlists` | Playlists privées de l'utilisateur : créer, renommer, supprimer, ajouter et retirer des vidéos ([ADR-019](../docs/adr/ADR-019-je-naime-pas-telechargements-playlists-aide.md)) |
+| `notifications` | Jetons d'appareil (`POST` et `DELETE /me/devices`), notification FCM aux abonnés à la publication d'une vidéo ([ADR-020](../docs/adr/ADR-020-notifications-fcm.md)) |
 
 ## Lancer
 
@@ -113,6 +114,7 @@ l'environnement en production.
 | `AVATAR_FONT` | non | Police (`.ttf`) des initiales des avatars générés à la création d'une chaîne | Arial sous Windows, DejaVu sous Linux |
 | `STRIPE_SECRET_KEY` | non | Clé secrète Stripe **de test** (`sk_test_…`). Absente : achat simulé de repli ([ADR-014](../docs/adr/ADR-014-paiement-stripe-mode-test.md)). Ne quitte jamais le backend | — |
 | `STRIPE_PUBLISHABLE_KEY` | si `STRIPE_SECRET_KEY` | Clé publiable Stripe de test (`pk_test_…`), transmise à l'application par `GET /me/premium/config` | — |
+| `FIREBASE_SERVICE_ACCOUNT` | non | Chemin de la clé de compte de service Firebase (`firebase-service-account.json`, jamais versionnée). Absente ou illisible : le serveur démarre sans notifications ([ADR-020](../docs/adr/ADR-020-notifications-fcm.md)) | — |
 
 Une variable obligatoire manquante fait échouer le démarrage avec un message explicite. Les clés Stripe
 se trouvent dans le tableau de bord Stripe, en mode test (Développeurs → Clés API) ; `backend/.env`

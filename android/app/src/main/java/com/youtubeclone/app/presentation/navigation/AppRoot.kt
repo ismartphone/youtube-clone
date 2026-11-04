@@ -18,9 +18,14 @@ import com.youtubeclone.app.presentation.onboarding.OpeningAnimation
 /**
  * Point d'entrée de l'interface : écran d'accueil au tout premier lancement, sinon directement
  * l'application. L'animation d'ouverture recouvre l'écran choisi, qui charge dessous en même temps.
+ * [notifiedVideoId] : vidéo à ouvrir après un appui sur une notification (ADR-020).
  */
 @Composable
-fun AppRoot(viewModel: AppStartViewModel = hiltViewModel()) {
+fun AppRoot(
+    notifiedVideoId: String? = null,
+    onNotifiedVideoOpened: () -> Unit = {},
+    viewModel: AppStartViewModel = hiltViewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val isAppReady by viewModel.isAppReady.collectAsStateWithLifecycle()
     // Jouée une fois par lancement : ni une rotation ni un retour de l'arrière-plan ne la rejouent.
@@ -38,6 +43,8 @@ fun AppRoot(viewModel: AppStartViewModel = hiltViewModel()) {
             AppStartState.Ready -> AppNavigation(
                 openLoginAtStart = loginRequested,
                 onLoginOpened = { loginRequested = false },
+                notifiedVideoId = notifiedVideoId,
+                onNotifiedVideoOpened = onNotifiedVideoOpened,
             )
         }
         if (!openingDone) {

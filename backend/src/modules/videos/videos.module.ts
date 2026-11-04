@@ -17,6 +17,11 @@ import {
   VIDEO_ROOM_PUBLISHER,
   type VideoRoomPublisher,
 } from '../realtime/domain/video-room-publisher.js';
+import {
+  PUBLICATION_NOTIFIER,
+  type PublicationNotifier,
+} from '../notifications/domain/publication-notifier.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { RealtimeModule } from '../realtime/realtime.module.js';
 import { CreateVideoUseCase } from './application/create-video.use-case.js';
 import { DeleteVideoUseCase } from './application/delete-video.use-case.js';
@@ -143,7 +148,7 @@ const CATEGORY_USE_CASES = [
 ];
 
 @Module({
-  imports: [AuthModule, RealtimeModule],
+  imports: [AuthModule, RealtimeModule, NotificationsModule],
   controllers: [
     VideosController,
     FeedController,
@@ -357,6 +362,7 @@ const CATEGORY_USE_CASES = [
         thumbnails: ThumbnailGenerator,
         hlsQueue: HlsQueue,
         subtitleQueue: SubtitleQueue,
+        notifier: PublicationNotifier,
       ) =>
         new CreateVideoUseCase(
           catalog,
@@ -364,6 +370,7 @@ const CATEGORY_USE_CASES = [
           thumbnails,
           hlsQueue,
           subtitleQueue,
+          notifier,
         ),
       inject: [
         VIDEO_CATALOG,
@@ -371,6 +378,7 @@ const CATEGORY_USE_CASES = [
         THUMBNAIL_GENERATOR,
         HLS_QUEUE,
         SUBTITLE_QUEUE,
+        PUBLICATION_NOTIFIER,
       ],
     },
     // Envoi depuis l'application mobile (ADR-015). ffprobe est cherché au démarrage ;
@@ -431,6 +439,7 @@ const CATEGORY_USE_CASES = [
         hlsQueue: HlsQueue,
         subtitles: SubtitleGenerator,
         subtitleQueue: SubtitleQueue,
+        notifier: PublicationNotifier,
       ) =>
         new UpdateVideoUseCase(
           videos,
@@ -442,6 +451,7 @@ const CATEGORY_USE_CASES = [
           hlsQueue,
           subtitles,
           subtitleQueue,
+          notifier,
         ),
       inject: [
         VIDEO_REPOSITORY,
@@ -453,6 +463,7 @@ const CATEGORY_USE_CASES = [
         HLS_QUEUE,
         SUBTITLE_GENERATOR,
         SUBTITLE_QUEUE,
+        PUBLICATION_NOTIFIER,
       ],
     },
     {
