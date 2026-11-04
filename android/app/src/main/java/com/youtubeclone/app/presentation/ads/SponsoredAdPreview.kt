@@ -67,10 +67,14 @@ class SponsoredAdPreview(context: Context) {
         updatePlayback()
     }
 
-    /** La carte entre dans l'écran ou en sort, au défilement. */
+    /**
+     * La carte entre dans l'écran ou en sort, au défilement. Hors de vue, la liste peut détruire sa
+     * vue : la piste vidéo est coupée aussi, pour ne pas garder un décodeur sans surface.
+     */
     fun setVisible(isVisible: Boolean) {
         if (visible == isVisible) return
         visible = isVisible
+        updateVideoTrack()
         updatePlayback()
     }
 
@@ -78,13 +82,8 @@ class SponsoredAdPreview(context: Context) {
     fun setFeedShown(shown: Boolean) {
         if (feedShown == shown) return
         feedShown = shown
-        if (!shown) {
-            setMuted(true)
-            _firstFrameShown.value = false
-        }
-        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
-            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, !shown)
-            .build()
+        if (!shown) setMuted(true)
+        updateVideoTrack()
         updatePlayback()
     }
 
@@ -102,6 +101,16 @@ class SponsoredAdPreview(context: Context) {
     private fun setMuted(muted: Boolean) {
         _muted.value = muted
         player.volume = if (muted) 0f else 1f
+    }
+
+    // Image seulement quand la carte est visible sur le fil affiché ; sinon le décodeur est libéré,
+    // et la miniature recouvre le cadre jusqu'à la première image au retour.
+    private fun updateVideoTrack() {
+        val showVideo = visible && feedShown
+        if (!showVideo) _firstFrameShown.value = false
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, !showVideo)
+            .build()
     }
 
     private fun updatePlayback() {
