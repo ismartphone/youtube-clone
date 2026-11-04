@@ -64,7 +64,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 **Ensuite** — « j'aime », commentaires en temps réel, offre payante, mesures et test A/B, recherche, historique.
 
-**Hors périmètre** — version iOS, live, monétisation des créateurs, mot de passe oublié, tendances, mini-lecteur, signalement, « à regarder plus tard ».
+**Hors périmètre** — version iOS, live, monétisation des créateurs, mot de passe oublié, tendances, signalement, « à regarder plus tard ».
 
 ## Conventions
 

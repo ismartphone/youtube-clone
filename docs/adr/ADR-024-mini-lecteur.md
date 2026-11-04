@@ -1,7 +1,7 @@
 # ADR-024 — Mini-lecteur : lecteur unique remonté au niveau de l'ossature de l'application
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 **Contradiction avec CLAUDE.md :** CLAUDE.md classe le mini-lecteur « Hors périmètre ». Le 4 novembre 2026, le lead développeur le fait entrer dans le périmètre. À l'acceptation de cet ADR, CLAUDE.md devra le retirer du hors-périmètre ; c'est le lead qui s'en charge.
