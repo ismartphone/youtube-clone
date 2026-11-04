@@ -85,6 +85,10 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer.hls)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.session)
+    // Métadonnées des vidéos téléchargées, lisibles hors ligne (ADR-019).
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // Stockage local (tokens de session, chiffrés)
     implementation(libs.androidx.datastore.preferences)

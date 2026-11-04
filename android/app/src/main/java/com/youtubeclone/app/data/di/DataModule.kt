@@ -8,6 +8,7 @@ import com.youtubeclone.app.data.remote.AuthInterceptor
 import com.youtubeclone.app.data.remote.CategoryApi
 import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.CommentApi
+import com.youtubeclone.app.data.remote.DownloadApi
 import com.youtubeclone.app.data.remote.PlaylistApi
 import com.youtubeclone.app.data.remote.PostApi
 import com.youtubeclone.app.data.remote.PremiumApi
@@ -20,6 +21,7 @@ import com.youtubeclone.app.data.repository.AuthRepositoryImpl
 import com.youtubeclone.app.data.repository.CategoryRepositoryImpl
 import com.youtubeclone.app.data.repository.ChannelRepositoryImpl
 import com.youtubeclone.app.data.repository.CommentRepositoryImpl
+import com.youtubeclone.app.data.repository.DownloadsRepositoryImpl
 import com.youtubeclone.app.data.repository.InMemoryPublicationFeed
 import com.youtubeclone.app.data.repository.PlaylistRepositoryImpl
 import com.youtubeclone.app.data.repository.PostRepositoryImpl
@@ -34,6 +36,7 @@ import com.youtubeclone.app.domain.repository.AuthRepository
 import com.youtubeclone.app.domain.repository.CategoryRepository
 import com.youtubeclone.app.domain.repository.ChannelRepository
 import com.youtubeclone.app.domain.repository.CommentRepository
+import com.youtubeclone.app.domain.repository.DownloadsRepository
 import com.youtubeclone.app.domain.repository.LiveVideoRepository
 import com.youtubeclone.app.domain.repository.PlaylistRepository
 import com.youtubeclone.app.domain.repository.PostRepository
@@ -115,6 +118,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideDownloadApi(retrofit: Retrofit): DownloadApi = retrofit.create(DownloadApi::class.java)
+
+    @Provides
+    @Singleton
     fun providePlaylistApi(retrofit: Retrofit): PlaylistApi = retrofit.create(PlaylistApi::class.java)
 
     @Provides
@@ -192,6 +199,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindPostRepository(impl: PostRepositoryImpl): PostRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDownloadsRepository(impl: DownloadsRepositoryImpl): DownloadsRepository
 
     @Binds
     @Singleton

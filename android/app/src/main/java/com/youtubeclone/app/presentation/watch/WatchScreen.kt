@@ -1,8 +1,12 @@
 package com.youtubeclone.app.presentation.watch
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.view.View
-import android.widget.Toast
 import androidx.activity.compose.LocalActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedContent
@@ -69,6 +73,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -83,6 +88,8 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.Comment
 import com.youtubeclone.app.domain.model.CommentAuthor
+import com.youtubeclone.app.domain.model.DownloadState
+import com.youtubeclone.app.domain.model.DownloadedVideo
 import com.youtubeclone.app.domain.model.LikeStatus
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
@@ -120,9 +127,18 @@ fun WatchScreen(
     onLoginRequired: () -> Unit,
     onPremiumRequired: (videoId: String) -> Unit,
     onRemoveAdsClick: () -> Unit,
+    onOpenDownloads: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WatchViewModel = hiltViewModel(),
 ) {
+    val download by viewModel.download.collectAsStateWithLifecycle()
+    // Sans Premium, Télécharger ouvre l'offre (ADR-019, décision 15).
+    LaunchedEffect(viewModel) { viewModel.downloadNeedsPremium.collect { onRemoveAdsClick() } }
+    // Android 13 et plus : la notification de progression des téléchargements demande une
+    // autorisation. Refusée, le téléchargement se fait quand même, sans notification visible.
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        viewModel.startDownload()
+    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val adSecondsLeft by viewModel.adSecondsLeft.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
@@ -224,12 +240,20 @@ fun WatchScreen(
                 onLikeClick = { requireLogin(viewModel::toggleLike) },
                 onDislikeClick = { requireLogin(viewModel::toggleDislike) },
                 onSaveClick = { requireLogin { showSaveSheet = true } },
-                onShareClick = { shareVideo(context, video) },
-                // Je n'aime pas, Télécharger et Enregistrer : pas encore de fonctionnalité derrière
-                // (pas d'API ; playlists hors périmètre). Les boutons suivent la maquette.
-                onUnavailableClick = {
-                    Toast.makeText(context, R.string.watch_soon, Toast.LENGTH_SHORT).show()
+                download = download,
+                onDownloadClick = {
+                    requireLogin {
+                        when {
+                            download != null -> onOpenDownloads()
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                                PackageManager.PERMISSION_GRANTED ->
+                                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            else -> viewModel.startDownload()
+                        }
+                    }
                 },
+                onShareClick = { shareVideo(context, video) },
                 onCommentsClick = { showComments = true },
                 onSuggestionClick = onVideoClick,
                 modifier = modifier,
@@ -261,7 +285,8 @@ private fun WatchContent(
     onDislikeClick: () -> Unit,
     onSaveClick: () -> Unit,
     onShareClick: () -> Unit,
-    onUnavailableClick: () -> Unit,
+    download: DownloadedVideo?,
+    onDownloadClick: () -> Unit,
     onCommentsClick: () -> Unit,
     onSuggestionClick: (videoId: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -276,7 +301,17 @@ private fun WatchContent(
         ) {
             item(key = "title") { TitleBlock(detail, viewCount = stats?.viewCount ?: detail.video.viewCount) }
             item(key = "channel") { ChannelRow(detail.video.channel, followState, onChannelClick, onFollowClick) }
-            item(key = "actions") { ActionsRow(stats, onLikeClick, onDislikeClick, onShareClick, onSaveClick, onUnavailableClick) }
+            item(key = "actions") { ActionsRow(
+                    stats = stats,
+                    onLikeClick = onLikeClick,
+                    onDislikeClick = onDislikeClick,
+                    onShareClick = onShareClick,
+                    onSaveClick = onSaveClick,
+                    // Vidéo externe : pas téléchargeable, pas de bouton (décision 8).
+                    canDownload = detail.videoUrl?.contains("/media/videos/") == true,
+                    download = download,
+                    onDownloadClick = onDownloadClick,
+                ) }
             // Commentaires désactivés (ADR-016) : le bloc n'apparaît pas.
             if (detail.video.commentsEnabled) {
                 item(key = "comments") { CommentsTeaser(comments, onCommentsClick) }
@@ -558,7 +593,9 @@ private fun ActionsRow(
     onDislikeClick: () -> Unit,
     onShareClick: () -> Unit,
     onSaveClick: () -> Unit,
-    onUnavailableClick: () -> Unit,
+    canDownload: Boolean,
+    download: DownloadedVideo?,
+    onDownloadClick: () -> Unit,
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 12.dp),
@@ -568,7 +605,17 @@ private fun ActionsRow(
             item(key = "like") { LikeDislikeChip(stats, onLikeClick, onDislikeClick) }
         }
         item(key = "share") { ActionChip(R.drawable.ic_share, stringResource(R.string.watch_share), onShareClick) }
-        item(key = "download") { ActionChip(R.drawable.ic_download, stringResource(R.string.watch_download), onUnavailableClick) }
+        if (canDownload) {
+            item(key = "download") {
+                val label = when (download?.state) {
+                    null -> stringResource(R.string.watch_download)
+                    DownloadState.Completed -> stringResource(R.string.watch_downloaded)
+                    DownloadState.Failed -> stringResource(R.string.downloads_failed)
+                    else -> stringResource(R.string.downloads_in_progress, (download.progress * 100).toInt())
+                }
+                ActionChip(R.drawable.ic_download, label, onDownloadClick)
+            }
+        }
         item(key = "save") { ActionChip(R.drawable.ic_save, stringResource(R.string.watch_save), onSaveClick) }
     }
 }
@@ -783,8 +830,9 @@ private fun WatchContentPreview() {
             onLikeClick = {},
             onDislikeClick = {},
             onSaveClick = {},
+            download = null,
+            onDownloadClick = {},
             onShareClick = {},
-            onUnavailableClick = {},
             onCommentsClick = {},
             onSuggestionClick = {},
         )

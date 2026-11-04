@@ -54,6 +54,8 @@ import com.youtubeclone.app.presentation.create.ComposePostScreen
 import com.youtubeclone.app.presentation.create.CreateSheet
 import com.youtubeclone.app.presentation.create.PublishVideoScreen
 import com.youtubeclone.app.presentation.create.PublishedBanner
+import com.youtubeclone.app.presentation.downloads.DownloadsScreen
+import com.youtubeclone.app.presentation.downloads.OfflinePlayerScreen
 import com.youtubeclone.app.presentation.help.HelpScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
@@ -92,6 +94,9 @@ import kotlinx.serialization.Serializable
 @Serializable data object CreateChannelRoute
 // Une playlist de l'utilisateur (ADR-019). Le nom du paramètre est lu par PlaylistViewModel.
 @Serializable data class PlaylistRoute(val playlistId: String)
+// Téléchargements et lecture hors ligne (ADR-019). Le nom du paramètre est lu par OfflinePlayerViewModel.
+@Serializable data object DownloadsRoute
+@Serializable data class OfflinePlayerRoute(val videoId: String)
 // Aide : questions fréquentes (ADR-019).
 @Serializable data object HelpRoute
 // Personnalisation de sa chaîne (ADR-018).
@@ -255,6 +260,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                         navController.navigate(PaywallRoute(videoId)) { popUpTo<WatchRoute> { inclusive = true } }
                     },
                     onRemoveAdsClick = openPaywall,
+                    onOpenDownloads = { navController.navigate(DownloadsRoute) },
                 )
             }
             composable<ChannelRoute> {
@@ -275,6 +281,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onCustomizeChannel = { navController.navigate(CustomizeChannelRoute) },
                     onHelpClick = { navController.navigate(HelpRoute) },
                     onPlaylistClick = { playlistId -> navController.navigate(PlaylistRoute(playlistId)) },
+                    onDownloadsClick = { navController.navigate(DownloadsRoute) },
                     onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
                     onSubscriptionsClick = { openTab(SubscriptionsRoute) },
                     onPremiumClick = openPaywall,
@@ -342,6 +349,13 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
             composable<PlaylistRoute> {
                 PlaylistScreen(onBack = { navController.popBackStack() }, onVideoClick = openVideo)
             }
+            composable<DownloadsRoute> {
+                DownloadsScreen(
+                    onBack = { navController.popBackStack() },
+                    onPlay = { videoId -> navController.navigate(OfflinePlayerRoute(videoId)) },
+                )
+            }
+            composable<OfflinePlayerRoute> { OfflinePlayerScreen(onBack = { navController.popBackStack() }) }
             composable<HelpRoute> { HelpScreen(onBack = { navController.popBackStack() }) }
             composable<CustomizeChannelRoute> {
                 CustomizeChannelScreen(onClose = { navController.popBackStack() })

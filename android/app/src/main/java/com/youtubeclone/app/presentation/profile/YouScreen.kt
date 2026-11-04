@@ -78,6 +78,7 @@ class YouActions(
     val onEditInterests: () -> Unit = {},
     val onHelpClick: () -> Unit = {},
     val onPlaylistClick: (playlistId: String) -> Unit = {},
+    val onDownloadsClick: () -> Unit = {},
     val onLogoutClick: () -> Unit = {},
     val onPremiumClick: () -> Unit = {},
     val onCancelPremium: () -> Unit = {},
@@ -94,6 +95,7 @@ fun YouScreen(
     onCustomizeChannel: () -> Unit,
     onHelpClick: () -> Unit,
     onPlaylistClick: (playlistId: String) -> Unit,
+    onDownloadsClick: () -> Unit,
     onListClick: (YouList) -> Unit,
     onSubscriptionsClick: () -> Unit,
     onPremiumClick: () -> Unit,
@@ -116,6 +118,7 @@ fun YouScreen(
         onEditInterests = onEditInterests,
         onHelpClick = onHelpClick,
         onPlaylistClick = onPlaylistClick,
+        onDownloadsClick = onDownloadsClick,
         onLogoutClick = viewModel::onLogoutClick,
         onPremiumClick = onPremiumClick,
         onCancelPremium = viewModel::onCancelPremium,
@@ -125,7 +128,16 @@ fun YouScreen(
 
     when (val current = state) {
         YouUiState.Loading -> LoadingState(modifier)
-        is YouUiState.Error -> ErrorState(current.error, onRetry = viewModel::load, modifier = modifier)
+        // Sans réseau, les téléchargements restent accessibles (ADR-019).
+        is YouUiState.Error -> Column(modifier = modifier.fillMaxSize()) {
+            ErrorState(current.error, onRetry = viewModel::load, modifier = Modifier.weight(1f))
+            OutlinedButton(
+                onClick = onDownloadsClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            ) { Text(stringResource(R.string.downloads_title)) }
+        }
         YouUiState.LoggedOut -> YouContent(user = null, channel = null, premium = null, actions = actions, modifier = modifier)
         is YouUiState.LoggedIn -> YouContent(current.user, current.channel, premium, actions, modifier, playlists)
     }
@@ -176,6 +188,7 @@ private fun YouContent(
                 },
                 onLiked = { openList(YouList.Liked) },
                 onSubscriptions = actions.onSubscriptionsClick,
+                onDownloads = { if (user != null) actions.onDownloadsClick() else actions.onLoginClick() },
             )
         }
         if (user != null && playlists != null) {
@@ -451,12 +464,14 @@ private fun Shortcuts(
     onYourVideos: () -> Unit,
     onLiked: () -> Unit,
     onSubscriptions: () -> Unit,
+    onDownloads: () -> Unit,
 ) {
     val shortcuts = listOf(
         Shortcut(R.drawable.ic_history, R.string.you_history, onHistory),
         Shortcut(R.drawable.ic_your_videos, R.string.you_your_videos, onYourVideos),
         Shortcut(R.drawable.ic_like, R.string.you_liked_videos, onLiked),
         Shortcut(R.drawable.ic_tab_subscriptions, R.string.tab_subscriptions, onSubscriptions),
+        Shortcut(R.drawable.ic_download, R.string.downloads_title, onDownloads),
     )
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),

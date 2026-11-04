@@ -55,6 +55,7 @@ private val TOPICS = listOf(
         listOf(
             Faq(R.string.help_premium_what_q, R.string.help_premium_what_a),
             Faq(R.string.help_premium_renewal_q, R.string.help_premium_renewal_a),
+            Faq(R.string.help_downloads_q, R.string.help_downloads_a),
         ),
     ),
     HelpTopic(

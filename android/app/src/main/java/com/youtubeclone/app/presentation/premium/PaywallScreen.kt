@@ -182,6 +182,7 @@ private fun PaywallContent(
                 Benefit(R.drawable.ic_no_ads, R.string.premium_benefit_no_ads, R.string.premium_benefit_no_ads_detail)
                 Benefit(R.drawable.ic_premium, R.string.premium_benefit_exclusive, R.string.premium_benefit_exclusive_detail)
                 Benefit(R.drawable.ic_background_play, R.string.premium_benefit_background, R.string.premium_benefit_background_detail)
+                Benefit(R.drawable.ic_download, R.string.premium_benefit_downloads, R.string.premium_benefit_downloads_detail)
             }
         }
         Column(

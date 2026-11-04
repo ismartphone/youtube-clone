@@ -16,16 +16,21 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.DataError
+import com.youtubeclone.app.domain.model.DownloadProblem
+import com.youtubeclone.app.domain.model.DownloadedVideo
 import com.youtubeclone.app.domain.model.LiveVideoEvent
+import com.youtubeclone.app.domain.model.MAX_DOWNLOADS
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
+import com.youtubeclone.app.domain.usecase.DownloadVideoUseCase
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetCommentsUseCase
 import com.youtubeclone.app.domain.usecase.GetSuggestedVideosUseCase
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
 import com.youtubeclone.app.domain.usecase.IsPremiumUseCase
 import com.youtubeclone.app.domain.usecase.ObserveAutoplayUseCase
+import com.youtubeclone.app.domain.usecase.ObserveDownloadsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveLiveVideoUseCase
 import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
@@ -33,8 +38,8 @@ import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.domain.usecase.PostCommentUseCase
 import com.youtubeclone.app.domain.usecase.RecordViewUseCase
 import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
-import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
 import com.youtubeclone.app.domain.usecase.SetDislikedUseCase
+import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
 import com.youtubeclone.app.domain.usecase.SetLikedUseCase
 import com.youtubeclone.app.playback.BackgroundPlayback
 import com.youtubeclone.app.presentation.channel.FollowController
@@ -55,6 +60,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -101,6 +107,8 @@ class WatchViewModel @Inject constructor(
     private val getChannelPage: GetChannelPageUseCase,
     private val setLiked: SetLikedUseCase,
     private val setDisliked: SetDislikedUseCase,
+    observeDownloads: ObserveDownloadsUseCase,
+    private val downloadVideo: DownloadVideoUseCase,
     private val observeLiveVideo: ObserveLiveVideoUseCase,
     observeSession: ObserveSessionUseCase,
     setFollowing: SetFollowingUseCase,
@@ -131,6 +139,15 @@ class WatchViewModel @Inject constructor(
     // Vidéos suggérées sous la vidéo ; liste vide tant qu'elles ne sont pas chargées.
     private val _suggestions = MutableStateFlow<List<Video>>(emptyList())
     val suggestions: StateFlow<List<Video>> = _suggestions.asStateFlow()
+
+    /** Téléchargement de cette vidéo (ADR-019), ou null si elle n'est pas téléchargée. */
+    val download: StateFlow<DownloadedVideo?> = observeDownloads()
+        .map { list -> list.firstOrNull { it.videoId == videoId } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    // Téléchargement refusé faute de Premium : l'écran ouvre l'offre.
+    private val _downloadNeedsPremium = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val downloadNeedsPremium: SharedFlow<Unit> = _downloadNeedsPremium.asSharedFlow()
 
     // Qualités réellement disponibles pour cette vidéo, de la meilleure à la plus faible.
     private val _qualities = MutableStateFlow<List<QualityOption>>(emptyList())
@@ -294,6 +311,26 @@ class WatchViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 _stats.update { it?.copy(likePending = false) }
+                _errors.tryEmit(e.toUiError())
+            }
+        }
+    }
+
+    /** Bouton Télécharger : le serveur autorise d'abord ; sans Premium, l'offre s'ouvre. */
+    fun startDownload() {
+        val video = (_uiState.value as? WatchUiState.Success)?.detail?.video ?: return
+        viewModelScope.launch {
+            try {
+                downloadVideo(video)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: DataError.PremiumRequired) {
+                _downloadNeedsPremium.tryEmit(Unit)
+            } catch (_: DownloadProblem.TooMany) {
+                _errors.tryEmit(UiError(R.string.downloads_too_many, code = MAX_DOWNLOADS))
+            } catch (_: DownloadProblem.NotEnoughSpace) {
+                _errors.tryEmit(UiError(R.string.downloads_no_space))
+            } catch (e: Exception) {
                 _errors.tryEmit(e.toUiError())
             }
         }

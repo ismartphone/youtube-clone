@@ -6,6 +6,9 @@
     <!-- Lecture en arrière-plan des comptes Premium (PlaybackService). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Téléchargements hors ligne (ADR-019) : service au premier plan et sa notification de progression. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- networkSecurityConfig : HTTP vers 10.0.2.2 autorisé en debug seulement (voir src/debug). -->
     <application
@@ -41,6 +44,12 @@
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
+
+        <!-- Téléchargements hors ligne (ADR-019), dans le stockage privé de l'application. -->
+        <service
+            android:name=".playback.download.AppDownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>
