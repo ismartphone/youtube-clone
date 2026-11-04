@@ -270,3 +270,18 @@ model PlaylistItem {
   @@index([videoId])
   @@map("playlist_items")
 }
+
+// Publicité vidéo (ADR-021) : lue avant les vidéos et dans le bandeau sponsorisé des comptes non
+// Premium, tirée au sort parmi toutes les lignes. Ce n'est pas une vidéo du catalogue.
+model Ad {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String
+  videoUrl        String
+  // Échelle HLS générée en tâche de fond après l'import ; le MP4 est lu en attendant.
+  hlsUrl          String?
+  thumbnailUrl    String?
+  durationSeconds Int
+  createdAt       DateTime @default(now())
+
+  @@map("ads")
+}

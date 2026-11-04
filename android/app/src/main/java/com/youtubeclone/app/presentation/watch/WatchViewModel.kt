@@ -15,12 +15,14 @@ import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.DownloadProblem
 import com.youtubeclone.app.domain.model.DownloadedVideo
 import com.youtubeclone.app.domain.model.LiveVideoEvent
 import com.youtubeclone.app.domain.model.MAX_DOWNLOADS
 import com.youtubeclone.app.domain.model.Video
+import com.youtubeclone.app.domain.model.VideoAd
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.usecase.DownloadVideoUseCase
@@ -28,7 +30,6 @@ import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetCommentsUseCase
 import com.youtubeclone.app.domain.usecase.GetSuggestedVideosUseCase
 import com.youtubeclone.app.domain.usecase.GetVideoDetailUseCase
-import com.youtubeclone.app.domain.usecase.IsPremiumUseCase
 import com.youtubeclone.app.domain.usecase.ObserveAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.ObserveDownloadsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
@@ -43,6 +44,7 @@ import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
 import com.youtubeclone.app.domain.usecase.SetNotificationLevelUseCase
 import com.youtubeclone.app.domain.usecase.SetLikedUseCase
 import com.youtubeclone.app.playback.BackgroundPlayback
+import com.youtubeclone.app.presentation.ads.AdPlaybackController
 import com.youtubeclone.app.presentation.channel.FollowController
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -73,9 +75,6 @@ sealed interface WatchUiState {
     /** Vidéo exclusive sans abonnement Premium en cours : l'écran ouvre le paywall. */
     data object PremiumRequired : WatchUiState
 }
-
-/** Durée de la publicité simulée avant la lecture, pour les comptes non Premium (ADR-007). */
-private const val AD_SECONDS = 5
 
 /** Décompte affiché avant d'enchaîner sur la vidéo suggérée (lecture automatique). */
 private const val AUTOPLAY_SECONDS = 5
@@ -118,19 +117,20 @@ class WatchViewModel @Inject constructor(
     getComments: GetCommentsUseCase,
     private val getSuggestedVideos: GetSuggestedVideosUseCase,
     postComment: PostCommentUseCase,
-    private val isPremium: IsPremiumUseCase,
     private val observePremium: ObservePremiumStatusUseCase,
     private val backgroundPlayback: BackgroundPlayback,
     private val observeAutoplay: ObserveAutoplayUseCase,
     private val setAutoplay: SetAutoplayUseCase,
+    analytics: Analytics,
 ) : ViewModel() {
 
     val videoId = savedStateHandle.toRoute<WatchRoute>().videoId
 
-    // Secondes restantes de la publicité simulée ; null quand aucune n'est affichée.
-    private val _adSecondsLeft = MutableStateFlow<Int?>(null)
-    val adSecondsLeft: StateFlow<Int?> = _adSecondsLeft.asStateFlow()
-    private var playbackJob: Job? = null
+    // Publicité avant la vidéo (ADR-021), choisie par le serveur ; la vidéo démarre à sa fin.
+    val ads = AdPlaybackController(context, viewModelScope, analytics)
+
+    // La vidéo elle-même a démarré (après l'éventuelle publicité).
+    private var videoStarted = false
 
     private val _uiState = MutableStateFlow<WatchUiState>(WatchUiState.Loading)
     val uiState: StateFlow<WatchUiState> = _uiState.asStateFlow()
@@ -231,6 +231,11 @@ class WatchViewModel @Inject constructor(
 
     init {
         player.addListener(playerListener)
+        // Abonnement Premium pris pendant la publicité (lien « Supprimer les publicités ») :
+        // elle s'arrête et la vidéo démarre.
+        viewModelScope.launch {
+            observePremium().collect { if (it?.isPremium == true) ads.cancel() }
+        }
         load()
         comments.loadFirstPage()
         // Après une connexion demandée par S'abonner, J'aime ou un commentaire, seuls les états
@@ -254,8 +259,8 @@ class WatchViewModel @Inject constructor(
                 playingVideo = detail.video
                 // HLS quand il existe (choix de la qualité), MP4 sinon (ADR-017).
                 when {
-                    detail.hlsUrl != null -> startPlayback(detail.hlsUrl, isHls = true, detail.subtitleUrl)
-                    detail.videoUrl != null -> startPlayback(detail.videoUrl, isHls = false, detail.subtitleUrl)
+                    detail.hlsUrl != null -> startPlayback(detail.hlsUrl, isHls = true, detail.subtitleUrl, detail.ad)
+                    detail.videoUrl != null -> startPlayback(detail.videoUrl, isHls = false, detail.subtitleUrl, detail.ad)
                 }
                 showStats(detail)
                 loadSuggestions(detail.video)
@@ -372,6 +377,7 @@ class WatchViewModel @Inject constructor(
         isScreenVisible = false
         cancelAutoplay()
         if (!appInBackground || observePremium().value?.isPremium != true) player.pause()
+        ads.pause()
     }
 
     /**
@@ -380,7 +386,8 @@ class WatchViewModel @Inject constructor(
      */
     fun onScreenStarted() {
         isScreenVisible = true
-        if (playbackJob?.isCompleted == true && observePremium().value?.isPremium == true) {
+        ads.resume()
+        if (videoStarted && observePremium().value?.isPremium == true) {
             backgroundPlayback.start(player)
         }
     }
@@ -502,9 +509,10 @@ class WatchViewModel @Inject constructor(
         }
     }
 
-    // La vidéo se charge tout de suite mais ne démarre qu'après la publicité simulée, que les
-    // comptes Premium ne voient pas. Un abonnement pris pendant la publicité l'interrompt.
-    private fun startPlayback(url: String, isHls: Boolean, subtitleUrl: String?) {
+    // La vidéo ne démarre qu'après la publicité [ad], choisie par le serveur : aucune pour un
+    // compte Premium ou un Short (ADR-021). Elle n'est préparée qu'ensuite : deux décodeurs vidéo
+    // ouverts en même temps figent l'annonce sur certains appareils (constaté sur l'émulateur).
+    private fun startPlayback(url: String, isHls: Boolean, subtitleUrl: String?, ad: VideoAd?) {
         // Media3 lit le HLS et adapte la qualité au débit ; une qualité choisie lui est imposée.
         // Les sous-titres WebVTT sont une piste à part, ajoutée à la vidéo (HLS ou MP4).
         val item = MediaItem.Builder()
@@ -526,20 +534,15 @@ class WatchViewModel @Inject constructor(
             .build()
         player.setMediaItem(item)
         player.playWhenReady = false
+        if (ad != null) ads.play(ad, onFinished = ::startVideo) else startVideo()
+    }
+
+    private fun startVideo() {
         player.prepare()
-        playbackJob?.cancel()
-        playbackJob = viewModelScope.launch {
-            if (!isPremium()) {
-                for (left in AD_SECONDS downTo 1) {
-                    if (observePremium().value?.isPremium == true) break
-                    _adSecondsLeft.value = left
-                    delay(1_000)
-                }
-                _adSecondsLeft.value = null
-            }
-            if (observePremium().value?.isPremium == true) backgroundPlayback.start(player)
-            player.playWhenReady = true
-        }
+        videoStarted = true
+        if (observePremium().value?.isPremium == true) backgroundPlayback.start(player)
+        // Publicité finie pendant que l'écran était masqué : la vidéo attend le retour.
+        player.playWhenReady = isScreenVisible
     }
 
     // Une vue par ouverture de l'écran, au premier démarrage effectif de la lecture.
@@ -562,5 +565,6 @@ class WatchViewModel @Inject constructor(
         player.removeListener(playerListener)
         backgroundPlayback.stop(player)
         player.release()
+        ads.release()
     }
 }

@@ -27,7 +27,8 @@
     "videos:localize": "tsx prisma/localize-external-videos.ts",
     "seed:videos": "tsx prisma/fetch-seed-videos.ts",
     "seed:banners": "tsx prisma/generate-seed-banners.ts",
-    "seed:cc-videos": "tsx prisma/import-cc-videos.ts"
+    "seed:cc-videos": "tsx prisma/import-cc-videos.ts",
+    "ads:import": "tsx src/scripts/import-ads.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.1",

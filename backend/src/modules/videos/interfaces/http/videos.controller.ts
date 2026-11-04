@@ -22,6 +22,8 @@ import {
   JwtAuthGuard,
   OptionalJwtAuthGuard,
 } from '../../../auth/interfaces/http/jwt-auth.guard.js';
+import { presentAd } from '../../../ads/interfaces/http/ad.presenter.js';
+import { ChooseAdUseCase } from '../../application/choose-ad.use-case.js';
 import { GetVideoUseCase } from '../../application/get-video.use-case.js';
 import {
   GetLikeStatusUseCase,
@@ -52,6 +54,7 @@ export class VideosController {
     private readonly likeVideo: LikeVideoUseCase,
     private readonly getLikeStatus: GetLikeStatusUseCase,
     private readonly resolveViewer: ResolveViewerUseCase,
+    private readonly chooseAd: ChooseAdUseCase,
   ) {}
 
   @Get()
@@ -88,7 +91,12 @@ export class VideosController {
         message: 'Cette vidéo est réservée aux membres Premium',
       });
     }
-    return presentVideoDetail(video, reaction);
+    // Publicité avant lecture (ADR-021) : tirée au sort ici, null pour un Premium ou un Short.
+    const ad = await this.chooseAd.beforeVideo(viewer, video.format);
+    return {
+      ...presentVideoDetail(video, reaction),
+      ad: ad ? presentAd(ad) : null,
+    };
   }
 
   // Ouverte aux visiteurs. Avec une session, la vidéo entre aussi dans l'historique de l'utilisateur.

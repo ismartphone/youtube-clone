@@ -148,8 +148,9 @@
     <string name="premium_cancel_confirm">Annuler l\'abonnement</string>
     <string name="premium_cancel_keep">Garder Premium</string>
     <string name="premium_canceled">Abonnement Premium annulé</string>
-    <string name="ad_label">Publicité</string>
-    <string name="ad_countdown">Votre vidéo commence dans %1$d s</string>
+    <string name="ad_label">Annonce</string>
+    <string name="ad_skip_in">L\'annonce peut être ignorée dans %1$d s</string>
+    <string name="ad_skip">Ignorer</string>
     <string name="ad_remove">Supprimer les publicités</string>
     <string name="playback_channel_name">Lecture</string>
 

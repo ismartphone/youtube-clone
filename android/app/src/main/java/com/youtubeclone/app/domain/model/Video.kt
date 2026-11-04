@@ -49,6 +49,8 @@ data class VideoDetail(
     /** Sous-titres WebVTT générés automatiquement (ADR-017) ; null s'il n'y en a pas. */
     val subtitleUrl: String? = null,
     val likeStatus: LikeStatus,
+    /** Publicité à lire avant la vidéo (ADR-021) ; null pour un compte Premium ou un Short. */
+    val ad: VideoAd? = null,
 )
 
 data class VideoPage(

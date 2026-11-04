@@ -10,7 +10,11 @@ import { hlsRungs, type HlsGenerator } from '../domain/hls.js';
 const run = promisify(execFile);
 
 const HLS_FOLDER = 'hls';
-const VIDEOS_PREFIX = `${MEDIA_URL_PREFIX}/videos/`;
+// Fichiers hébergés chez nous : vidéos, et publicités (ADR-021), traitées de la même façon.
+const LOCAL_PREFIXES = [
+  `${MEDIA_URL_PREFIX}/videos/`,
+  `${MEDIA_URL_PREFIX}/ads/`,
+];
 const URL_PREFIX = `${MEDIA_URL_PREFIX}/${HLS_FOLDER}/`;
 const MASTER = 'master.m3u8';
 // Dossier généré : identifiant aléatoire, distinct de celui de la vidéo (ADR-017).
@@ -44,7 +48,7 @@ export class FfmpegHlsGenerator implements HlsGenerator {
   }
 
   isLocal(videoUrl: string): boolean {
-    return videoUrl.startsWith(VIDEOS_PREFIX);
+    return LOCAL_PREFIXES.some((prefix) => videoUrl.startsWith(prefix));
   }
 
   async generate(videoUrl: string): Promise<string> {

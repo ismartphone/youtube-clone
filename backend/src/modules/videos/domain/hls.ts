@@ -35,7 +35,8 @@ export function hlsRungs(width: number, height: number): HlsRung[] {
 }
 
 export interface HlsGenerator {
-  // Vrai si la vidéo est hébergée chez nous (/media/videos/...) : seule celle-ci a un HLS.
+  // Vrai si la vidéo est hébergée chez nous (/media/videos/... ou, pour une publicité,
+  // /media/ads/...) : seule celle-ci a un HLS.
   isLocal(videoUrl: string): boolean;
   /**
    * Génère l'échelle HLS de la vidéo [videoUrl] et renvoie l'URL relative du manifeste principal.

@@ -53,12 +53,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
 function send(path: string, options: RequestOptions, token: string | undefined) {
   const headers: Record<string, string> = {};
-  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  // Un envoi de fichier (FormData) garde l'en-tête multipart choisi par le navigateur.
+  const isForm = options.body instanceof FormData;
+  if (options.body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   if (token) headers.Authorization = `Bearer ${token}`;
   return fetch(API_PREFIX + path, {
     method: options.method ?? "GET",
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.body === undefined ? undefined : isForm ? (options.body as FormData) : JSON.stringify(options.body),
   }).catch(() => {
     throw new ApiError(0, "Impossible de joindre l'API. Vérifiez que le backend est démarré.");
   });

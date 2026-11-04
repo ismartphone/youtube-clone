@@ -59,6 +59,8 @@ data class VideoDetailDto(
     // Vrais seulement si la requête portait le token d'un utilisateur qui a donné cet avis.
     val isLiked: Boolean = false,
     val isDisliked: Boolean = false,
+    // Publicité avant lecture, choisie par le serveur (ADR-021).
+    val ad: AdDto? = null,
 )
 
 @Serializable

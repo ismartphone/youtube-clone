@@ -56,6 +56,7 @@ fun VideoDetailDto.toDomain() = VideoDetail(
     hlsUrl = hlsUrl?.let(::resolveMediaUrl),
     subtitleUrl = subtitleUrl?.let(::resolveMediaUrl),
     likeStatus = LikeStatus(likeCount = likeCount, isLiked = isLiked, isDisliked = isDisliked),
+    ad = ad?.toDomain(),
 )
 
 fun LikeStatusDto.toDomain() = LikeStatus(likeCount = likeCount, isLiked = isLiked, isDisliked = isDisliked)

@@ -95,6 +95,8 @@ import com.youtubeclone.app.domain.model.NotificationLevel
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
 import com.youtubeclone.app.presentation.channel.FollowButton
+import com.youtubeclone.app.presentation.ads.AdPlaybackOverlay
+import com.youtubeclone.app.presentation.ads.AdPlaybackState
 import com.youtubeclone.app.presentation.channel.FollowUiState
 import com.youtubeclone.app.presentation.channel.NotificationPermissionRequest
 import com.youtubeclone.app.presentation.common.BackTopBar
@@ -143,7 +145,7 @@ fun WatchScreen(
         viewModel.startDownload()
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val adSecondsLeft by viewModel.adSecondsLeft.collectAsStateWithLifecycle()
+    val adState by viewModel.ads.state.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
@@ -229,8 +231,13 @@ fun WatchScreen(
                     PlayerArea(
                         detail = state.detail,
                         player = viewModel.player,
-                        adSecondsLeft = adSecondsLeft,
-                        onRemoveAdsClick = onRemoveAdsClick,
+                        adState = adState,
+                        adPlayer = viewModel.ads.player,
+                        onSkipAd = viewModel.ads::skip,
+                        onRemoveAdsClick = {
+                            viewModel.ads.onRemoveAdsClicked()
+                            onRemoveAdsClick()
+                        },
                         autoplay = autoplay,
                         onCancelAutoplay = viewModel::cancelAutoplay,
                         onBack = onBack,
@@ -336,7 +343,9 @@ private fun WatchContent(
 private fun PlayerArea(
     detail: VideoDetail,
     player: Player,
-    adSecondsLeft: Int?,
+    adState: AdPlaybackState?,
+    adPlayer: Player,
+    onSkipAd: () -> Unit,
     onRemoveAdsClick: () -> Unit,
     autoplay: AutoplayCountdown?,
     onCancelAutoplay: () -> Unit,
@@ -354,14 +363,16 @@ private fun PlayerArea(
     ) {
         if (detail.videoUrl != null) {
             VideoPlayer(player = player, modifier = Modifier.fillMaxSize())
-            if (adSecondsLeft != null) {
-                AdOverlay(adSecondsLeft, onRemoveAdsClick, Modifier.fillMaxSize())
+            // Publicité avant la vidéo (ADR-021), en plein lecteur et sans contrôle de lecture.
+            if (adState != null) {
+                AdPlaybackOverlay(adState, adPlayer, onSkipAd, onRemoveAdsClick, Modifier.fillMaxSize())
             }
             if (autoplay != null) {
                 AutoplayOverlay(autoplay, onCancelAutoplay, Modifier.fillMaxSize())
             }
             BackTopBar(title = "", onBack = onBack, contentColor = Color.White, modifier = Modifier.align(Alignment.TopStart))
-            Row(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
+            // Sous-titres et menu du lecteur : pas pendant la publicité.
+            if (adState == null) Row(modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
                 // Sous-titres générés automatiquement (ADR-017), seulement si la vidéo en a.
                 if (detail.subtitleUrl != null) {
                     IconButton(onClick = onSubtitlesClick) {
@@ -431,45 +442,6 @@ private fun AutoplayOverlay(countdown: AutoplayCountdown, onCancel: () -> Unit, 
                 .clickable(onClick = onCancel, role = Role.Button)
                 .background(Color.White.copy(alpha = 0.15f))
                 .padding(horizontal = 20.dp, vertical = 8.dp),
-        )
-    }
-}
-
-// Publicité simulée (ADR-007) : quelques secondes avant la lecture, sans régie réelle et sans
-// bouton pour la passer. Les comptes Premium ne la voient pas.
-@Composable
-private fun AdOverlay(secondsLeft: Int, onRemoveAdsClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .background(Color(0xFF1A1A1A))
-            .padding(12.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.ad_label),
-            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-            color = Color.Black,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .background(Color(0xFFFFC107), RoundedCornerShape(4.dp))
-                .padding(horizontal = 6.dp, vertical = 2.dp),
-        )
-        Text(
-            text = stringResource(R.string.ad_countdown, secondsLeft),
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.align(Alignment.Center),
-        )
-        Text(
-            text = stringResource(R.string.ad_remove),
-            style = MaterialTheme.typography.labelLarge,
-            color = Color.White,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .clip(RoundedCornerShape(4.dp))
-                .clickable(onClick = onRemoveAdsClick)
-                .background(Color.White.copy(alpha = 0.15f))
-                .padding(horizontal = 10.dp, vertical = 6.dp),
         )
     }
 }

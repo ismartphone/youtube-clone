@@ -17,6 +17,7 @@ NestJS (TypeScript), PostgreSQL avec Prisma 7, Redis. Architecture hexagonale en
 | `realtime` | Passerelle WebSocket `/realtime`, salles par vidéo ([ADR-010](../docs/adr/ADR-010-websocket-salles-compteurs.md)) |
 | `premium` | Paiement Stripe en mode test, achat simulé en repli, abonnement payant (`PREMIUM_SUBSCRIPTION`) ([ADR-014](../docs/adr/ADR-014-paiement-stripe-mode-test.md)) |
 | `playlists` | Playlists privées de l'utilisateur : créer, renommer, supprimer, ajouter et retirer des vidéos ([ADR-019](../docs/adr/ADR-019-je-naime-pas-telechargements-playlists-aide.md)) |
+| `ads` | Publicités vidéo : import, liste et suppression par le back-office (`/admin/ads`), tirage au sort pour la lecture et le bandeau ([ADR-021](../docs/adr/ADR-021-publicites-preroll-bandeau.md)) |
 | `notifications` | Jetons d'appareil (`POST` et `DELETE /me/devices`), notification FCM aux abonnés à la publication d'une vidéo ([ADR-020](../docs/adr/ADR-020-notifications-fcm.md)) |
 
 ## Lancer
@@ -34,6 +35,7 @@ npm run seed:videos           # vidéos de démonstration dans storage/ (FFmpeg,
 npm run seed:banners          # bannières des chaînes, après seed:videos
 npm run thumbnails:regenerate # vraies miniatures à la place des images génériques du seed
 npm run seed:cc-videos        # vidéos Creative Commons, si les fichiers cc-*.mp4 sont fournis
+npm run ads:import            # publicités déposées dans storage/media/ads/
 npm run avatars:generate      # avatar (initiales) des chaînes du seed, qui n'en ont pas
 npm run hls:generate          # échelle HLS multi-qualités des vidéos hébergées (quelques minutes)
 npm run subtitles:generate    # sous-titres des vidéos hébergées, après le téléchargement du modèle
@@ -93,6 +95,7 @@ Autres commandes :
 | `npm run subtitles:generate` | Génère les sous-titres WebVTT des vidéos hébergées chez nous qui n'en ont pas. Une vidéo à la fois ; une transcription est abandonnée au-delà de deux fois la durée de la vidéo, et de 5 minutes au plus. Les vidéos sans piste audio ou sans parole restent sans sous-titres et sont signalées à chaque lancement (ADR-017) |
 | `npm run videos:localize` | Rapatrie dans le stockage local toute vidéo du catalogue dont le fichier ou la miniature est une URL externe (même procédé que `seed:videos` : ffprobe, réencodage 720p, vérification finale), puis régénère miniature, HLS et sous-titres. Une vidéo dont la source est injoignable est retirée du catalogue. L'application fonctionne ainsi sans Internet, avec le seul serveur local |
 | `npm run avatars:generate` | Génère un avatar (initiales sur fond de couleur) pour chaque chaîne qui n'en a pas. Les chaînes créées par `POST /channels` reçoivent déjà le leur |
+| `npm run ads:import` | Enregistre les publicités déposées à la main dans `storage/media/ads/` (ADR-021) : vérification ffprobe, miniature, échelle HLS, titre tiré du nom du fichier. Sans doublon : un fichier enregistré prend un nom généré et l'original est retiré du dossier ; un fichier refusé reste en place. Les fichiers ne sont pas versionnés : sur une autre machine, les déposer à la main |
 | `npm run seed:cc-videos` | Ajoute les six vidéos Creative Commons à la base existante, sans rien effacer ni dupliquer. Les fichiers `cc-*.mp4` ne se retéléchargent pas : ils doivent être fournis à la main dans `storage/media/videos/`. Voir [docs/sources-videos.md](../docs/sources-videos.md) |
 
 ## Variables d'environnement

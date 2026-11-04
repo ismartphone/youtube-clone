@@ -21,6 +21,8 @@ import {
   PUBLICATION_NOTIFIER,
   type PublicationNotifier,
 } from '../notifications/domain/publication-notifier.js';
+import { AD_PICKER, type AdPicker } from '../ads/domain/ad-picker.js';
+import { AdsModule } from '../ads/ads.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { RealtimeModule } from '../realtime/realtime.module.js';
 import { CreateVideoUseCase } from './application/create-video.use-case.js';
@@ -44,6 +46,7 @@ import {
 } from './application/manage-categories.use-case.js';
 import { RecordViewUseCase } from './application/record-view.use-case.js';
 import { ResolveViewerUseCase } from './application/resolve-viewer.use-case.js';
+import { ChooseAdUseCase } from './application/choose-ad.use-case.js';
 import { SearchUseCase } from './application/search.use-case.js';
 import { RegenerateThumbnailUseCase } from './application/regenerate-thumbnail.use-case.js';
 import { UpdateVideoUseCase } from './application/update-video.use-case.js';
@@ -130,6 +133,7 @@ import {
 import { CategoriesController } from './interfaces/http/categories.controller.js';
 import { FeedController } from './interfaces/http/feed.controller.js';
 import { SearchController } from './interfaces/http/search.controller.js';
+import { SponsoredController } from './interfaces/http/sponsored.controller.js';
 import { UploadController } from './interfaces/http/upload.controller.js';
 import { VideosController } from './interfaces/http/videos.controller.js';
 
@@ -148,9 +152,10 @@ const CATEGORY_USE_CASES = [
 ];
 
 @Module({
-  imports: [AuthModule, RealtimeModule, NotificationsModule],
+  imports: [AuthModule, RealtimeModule, NotificationsModule, AdsModule],
   controllers: [
     VideosController,
+    SponsoredController,
     FeedController,
     SearchController,
     CategoriesController,
@@ -234,6 +239,11 @@ const CATEGORY_USE_CASES = [
       provide: PREMIUM_ACCESS,
       useFactory: (prisma: PrismaService) => new PrismaPremiumAccess(prisma),
       inject: [PrismaService],
+    },
+    {
+      provide: ChooseAdUseCase,
+      useFactory: (ads: AdPicker) => new ChooseAdUseCase(ads),
+      inject: [AD_PICKER],
     },
     {
       provide: ResolveViewerUseCase,

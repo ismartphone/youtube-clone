@@ -73,6 +73,15 @@ sealed class AnalyticsEvent(val name: String, val properties: Map<String, Any> =
     class PurchaseStarted(variant: PaywallVariant) : AnalyticsEvent("purchase_started", variant.toProperties())
     class PurchaseConfirmed(variant: PaywallVariant) : AnalyticsEvent("purchase_confirmed", variant.toProperties())
     class PaywallDismissed(variant: PaywallVariant) : AnalyticsEvent("paywall_dismissed", variant.toProperties())
+
+    // Publicités (ADR-021) : chaque événement porte l'identifiant de la publicité. Le lien
+    // « Supprimer les publicités » a un nom par emplacement, pour comparer leur conversion.
+    class AdStarted(adId: String) : AnalyticsEvent("ad_started", mapOf("ad_id" to adId))
+    class AdSkipped(adId: String, elapsedSeconds: Int) :
+        AnalyticsEvent("ad_skipped", mapOf("ad_id" to adId, "elapsed_seconds" to elapsedSeconds))
+    class AdCompleted(adId: String) : AnalyticsEvent("ad_completed", mapOf("ad_id" to adId))
+    class RemoveAdsClickedPreroll(adId: String) :
+        AnalyticsEvent("remove_ads_clicked_preroll", mapOf("ad_id" to adId))
 }
 
 private fun PaywallVariant.toProperties(): Map<String, Any> = mapOf("paywall_variant" to key)

@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Tableau de bord" },
   { href: "/videos", label: "Vidéos" },
   { href: "/categories", label: "Catégories" },
+  { href: "/ads", label: "Publicités" },
   { href: "/channels", label: "Chaînes" },
   { href: "/payments", label: "Paiements" },
 ];
