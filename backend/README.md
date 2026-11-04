@@ -16,6 +16,7 @@ NestJS (TypeScript), PostgreSQL avec Prisma 7, Redis. Architecture hexagonale en
 | `comments` | Commentaires |
 | `realtime` | Passerelle WebSocket `/realtime`, salles par vidéo ([ADR-010](../docs/adr/ADR-010-websocket-salles-compteurs.md)) |
 | `premium` | Paiement Stripe en mode test, achat simulé en repli, abonnement payant (`PREMIUM_SUBSCRIPTION`) ([ADR-014](../docs/adr/ADR-014-paiement-stripe-mode-test.md)) |
+| `playlists` | Playlists privées de l'utilisateur : créer, renommer, supprimer, ajouter et retirer des vidéos ([ADR-019](../docs/adr/ADR-019-je-naime-pas-telechargements-playlists-aide.md)) |
 
 ## Lancer
 
@@ -39,6 +40,11 @@ npm run start:dev             # http://localhost:3000
 ```
 
 Vérification : http://localhost:3000/videos doit renvoyer du JSON.
+
+**Après une migration et `npx prisma generate`, arrêter puis relancer `npm run start:dev`.** Sous
+Windows, le mode watch ne recharge pas le client Prisma régénéré : il signale des erreurs de type
+(« Property ... does not exist ») et le serveur continue de servir l'ancien code sans prévenir.
+Arrêter le backend avec Ctrl+C dans son terminal, pour ne pas laisser de processus orphelin.
 
 ### Sous-titres automatiques
 

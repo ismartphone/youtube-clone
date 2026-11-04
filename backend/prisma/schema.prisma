@@ -50,6 +50,7 @@ model User {
   follows              Follow[]
   premiumSubscriptions PremiumSubscription[]
   watchHistory         WatchHistory[]
+  playlists            Playlist[]
 
   @@map("users")
 }
@@ -125,11 +126,12 @@ model Video {
   likeCount       Int             @default(0)
   publishedAt     DateTime        @default(now())
 
-  channel      Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  category     Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  comments     Comment[]
-  likes        Like[]
-  watchHistory WatchHistory[]
+  channel       Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  category      Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  comments      Comment[]
+  likes         Like[]
+  watchHistory  WatchHistory[]
+  playlistItems PlaylistItem[]
 
   @@index([format, publishedAt(sort: Desc)]) // fil d'accueil et onglet Shorts
   @@index([channelId, format, publishedAt(sort: Desc)]) // page de chaîne
@@ -212,4 +214,34 @@ model WatchHistory {
   @@unique([userId, videoId])
   @@index([userId, watchedAt(sort: Desc)])
   @@map("watch_history")
+}
+
+// Playlist d'un utilisateur (ADR-019) : privée, seul son propriétaire la voit ; vidéos dans l'ordre
+// d'ajout. 50 playlists par utilisateur, 200 vidéos par playlist, vérifiés par le serveur.
+model Playlist {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items PlaylistItem[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("playlists")
+}
+
+// Une vidéo ne figure qu'une fois dans une playlist ; elle en disparaît si elle est supprimée.
+model PlaylistItem {
+  playlistId String   @db.Uuid
+  videoId    String   @db.Uuid
+  addedAt    DateTime @default(now())
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  video    Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, videoId])
+  @@index([videoId])
+  @@map("playlist_items")
 }
