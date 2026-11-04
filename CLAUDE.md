@@ -36,7 +36,7 @@ minSdk 26.
 **Backend** — NestJS (TypeScript), PostgreSQL, Prisma, Redis (cache, sessions, compteurs),
 passerelle WebSocket NestJS, firebase-admin (envoi des notifications FCM). Stockage vidéo : dossier local en développement, Cloudflare R2 + CDN au déploiement.
 Architecture **hexagonale, monolithe modulaire** : `domain/` · `application/` · `infrastructure/` · `interfaces/`.
-Modules : auth, channels (dont les abonnements), videos, comments, premium, realtime, playlists, notifications, ads.
+Modules : auth, channels (dont les abonnements), videos, comments, premium, realtime, playlists, notifications, ads, messaging.
 
 **Back-office** — Next.js (TypeScript), Tailwind CSS.
 Architecture **MVC** : `app/` · `controllers/` · `models/` · `views/` · `services/`.
@@ -47,7 +47,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 ## Modèle de données
 
-`USER` · `CHANNEL` · `VIDEO` · `CATEGORY` · `COMMENT` · `LIKE` · `FOLLOW` · `PREMIUM_SUBSCRIPTION` · `WATCH_HISTORY` · `POST` · `PLAYLIST` · `PLAYLIST_ITEM` · `DEVICE_TOKEN` · `AD`
+`USER` · `CHANNEL` · `VIDEO` · `CATEGORY` · `COMMENT` · `LIKE` · `FOLLOW` · `PREMIUM_SUBSCRIPTION` · `WATCH_HISTORY` · `POST` · `PLAYLIST` · `PLAYLIST_ITEM` · `DEVICE_TOKEN` · `AD` · `COMMENT_LIKE` · `CONVERSATION` · `MESSAGE`
 
 - `LIKE.type` vaut `LIKE` ou `DISLIKE` : « J'aime » et « Je n'aime pas » s'excluent (ADR-019).
 - `FOLLOW` = abonnement **gratuit** à une chaîne. `PREMIUM_SUBSCRIPTION` = abonnement **payant**. Ne jamais confondre les deux.
@@ -55,6 +55,8 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 - `VIDEO.format` vaut `SHORT` ou `LONG` : Shorts et vidéos classiques partagent la même table.
 - `DEVICE_TOKEN` = jeton FCM d'un appareil connecté, lié à `USER` (plusieurs appareils possibles) ; un jeton refusé par Firebase est supprimé. `VIDEO.notifiedAt` = date d'envoi des notifications de publication : une vidéo n'est annoncée qu'une fois (ADR-020).
 - `AD` = publicité vidéo (ADR-021), lue avant les vidéos classiques et dans le bandeau sponsorisé des comptes non Premium, tirée au sort parmi toutes les lignes. Ce n'est pas une vidéo du catalogue : ni vue, ni page, ni recherche. Le serveur décide seul s'il en joint une.
+- `COMMENT.parentId` porte les réponses, sur un seul niveau : une réponse à une réponse est rangée sous le commentaire de premier niveau. `COMMENT_LIKE` = avis sur un commentaire (`LIKE` ou `DISLIKE`, un par utilisateur) ; seuls les « j'aime » sont comptés, dans `COMMENT.likeCount`. `COMMENT.creatorHeartedAt` = cœur du propriétaire de la chaîne (ADR-023).
+- `CONVERSATION` = conversation à deux, une seule par paire (identifiants rangés dans l'ordre) ; `MESSAGE` = message de 2000 caractères au plus, ni modifié ni supprimé. Lu / non lu par une date de lecture par participant sur `CONVERSATION` (ADR-025).
 - `VIDEO.isPremium` marque les vidéos exclusives. L'accès est **toujours vérifié côté serveur**, jamais seulement dans l'application.
 - La base ne stocke que l'URL ou le chemin relatif des fichiers, jamais les fichiers eux-mêmes.
 

@@ -20,6 +20,7 @@ import com.youtubeclone.app.domain.usecase.ObserveInterestsUseCase
 import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
+import com.youtubeclone.app.domain.usecase.UnreadMessages
 import com.youtubeclone.app.presentation.ads.SponsoredAdPreview
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -63,7 +64,11 @@ class HomeViewModel @Inject constructor(
     observePremium: ObservePremiumStatusUseCase,
     private val analytics: Analytics,
     private val getLatestPost: GetLatestPostUseCase,
+    unreadMessages: UnreadMessages,
 ) : ViewModel() {
+
+    /** Pastille de la messagerie dans la barre du haut (ADR-025). */
+    val unreadMessages: StateFlow<Int> = unreadMessages.count
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()

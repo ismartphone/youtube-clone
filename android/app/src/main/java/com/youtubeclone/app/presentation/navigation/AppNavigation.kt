@@ -65,6 +65,9 @@ import com.youtubeclone.app.presentation.downloads.DownloadsScreen
 import com.youtubeclone.app.presentation.downloads.OfflinePlayerScreen
 import com.youtubeclone.app.presentation.help.HelpScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
+import com.youtubeclone.app.presentation.messaging.ConversationScreen
+import com.youtubeclone.app.presentation.messaging.ConversationsScreen
+import com.youtubeclone.app.presentation.messaging.NewConversationScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
 import com.youtubeclone.app.presentation.playlist.PlaylistScreen
 import com.youtubeclone.app.presentation.premium.PaywallScreen
@@ -128,7 +131,15 @@ import kotlinx.serialization.Serializable
 // Nom d'une valeur de YouList : historique, vidéos aimées ou vos vidéos.
 @Serializable data class YouListRoute(val list: String)
 
+// Messagerie (ADR-025) : liste des conversations, recherche d'un destinataire, conversation.
+@Serializable data object ConversationsRoute
+@Serializable data object NewConversationRoute
+@Serializable data class ConversationRoute(val conversationId: String)
+
 private val FULL_SCREEN_ROUTES = listOf(
+    ConversationsRoute::class,
+    NewConversationRoute::class,
+    ConversationRoute::class,
     WatchRoute::class,
     AdPlayerRoute::class,
     ShortsPlayerRoute::class,
@@ -299,8 +310,27 @@ fun AppNavigation(
                     },
                     onRemoveAdsClick = openPaywall,
                     onPostClick = openChannelPosts,
+                    onMessagesClick = { navController.navigate(ConversationsRoute) },
+                    onLoginRequired = openLogin,
                 )
             }
+            composable<ConversationsRoute> {
+                ConversationsScreen(
+                    onBack = { navController.popBackStack() },
+                    onConversationClick = { id -> navController.navigate(ConversationRoute(id)) },
+                    onNewConversation = { navController.navigate(NewConversationRoute) },
+                )
+            }
+            composable<NewConversationRoute> {
+                NewConversationScreen(
+                    onBack = { navController.popBackStack() },
+                    // La recherche cède la place à la conversation : Retour ramène à la liste.
+                    onConversationOpened = { id ->
+                        navController.navigate(ConversationRoute(id)) { popUpTo<NewConversationRoute> { inclusive = true } }
+                    },
+                )
+            }
+            composable<ConversationRoute> { ConversationScreen(onBack = { navController.popBackStack() }) }
             composable<AdPlayerRoute> {
                 AdPlayerScreen(onClose = { navController.popBackStack() })
             }

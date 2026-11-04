@@ -11,13 +11,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.youtubeclone.app.domain.usecase.UnreadMessages
 import com.youtubeclone.app.notifications.PublicationNotifications
 import com.youtubeclone.app.presentation.navigation.AppRoot
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var unreadMessages: UnreadMessages
+
     // Vidéo à ouvrir, venue d'un appui sur une notification de publication (ADR-020).
     private var notifiedVideoId by mutableStateOf<String?>(null)
 
@@ -37,6 +41,12 @@ class MainActivity : ComponentActivity() {
                 AppRoot(notifiedVideoId = notifiedVideoId, onNotifiedVideoOpened = { notifiedVideoId = null })
             }
         }
+    }
+
+    // Retour au premier plan : la pastille des messages non lus est relue (ADR-025, décision 2).
+    override fun onStart() {
+        super.onStart()
+        unreadMessages.refresh()
     }
 
     // Application déjà ouverte : la notification revient ici.

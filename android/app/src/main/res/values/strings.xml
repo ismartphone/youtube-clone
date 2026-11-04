@@ -317,6 +317,22 @@
     <string name="comments_login_to_comment">Connectez-vous pour ajouter un commentaire.</string>
     <string name="comments_empty">Aucun commentaire pour le moment.</string>
     <string name="comments_load_more">Afficher plus de commentaires</string>
+    <!-- Messagerie (ADR-025) -->
+    <string name="messages_title">Messages</string>
+    <string name="messages_open">Messages</string>
+    <plurals name="messages_unread">
+        <item quantity="one">%d message non lu</item>
+        <item quantity="other">%d messages non lus</item>
+    </plurals>
+    <string name="messages_new">Nouvelle conversation</string>
+    <string name="messages_empty_title">Aucune conversation</string>
+    <string name="messages_empty_message">Écrivez à quelqu\'un en appuyant sur +.</string>
+    <string name="messages_search_placeholder">Rechercher un nom</string>
+    <string name="messages_search_empty">Personne ne porte ce nom.</string>
+    <string name="messages_placeholder">Écrire un message…</string>
+    <string name="messages_send">Envoyer</string>
+    <string name="messages_you">Vous : %1$s</string>
+    <string name="messages_conversation_empty">Envoyez le premier message.</string>
     <!-- Réponses, avis et cœur du créateur (ADR-023) -->
     <string name="comments_sort_top">Top commentaires</string>
     <string name="comments_sort_newest">Les plus récents</string>

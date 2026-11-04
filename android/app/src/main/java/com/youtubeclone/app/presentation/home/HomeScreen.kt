@@ -25,6 +25,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -101,9 +104,12 @@ fun HomeScreen(
     onSponsoredAdPlay: (VideoAd) -> Unit,
     onRemoveAdsClick: () -> Unit,
     onPostClick: (channelId: String) -> Unit,
+    onMessagesClick: () -> Unit,
+    onLoginRequired: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
+    val unreadMessages by viewModel.unreadMessages.collectAsStateWithLifecycle()
     val latestPost by viewModel.latestPost.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sponsoredAd by viewModel.sponsoredAd.collectAsStateWithLifecycle()
@@ -140,6 +146,9 @@ fun HomeScreen(
         onSponsoredAdVisibilityChanged = viewModel::onSponsoredAdVisibilityChanged,
         latestPost = latestPost,
         onPostClick = onPostClick,
+        unreadMessages = unreadMessages,
+        onMessagesClick = onMessagesClick,
+        onLoginRequired = onLoginRequired,
     )
 }
 
@@ -164,13 +173,23 @@ private fun HomeContent(
     onSponsoredAdVisibilityChanged: (Boolean) -> Unit = {},
     latestPost: Post? = null,
     onPostClick: (channelId: String) -> Unit = {},
+    unreadMessages: Int = 0,
+    onMessagesClick: () -> Unit = {},
+    onLoginRequired: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        HomeTopBar(account = account, onSearchClick = onSearchClick, onAccountClick = onAccountClick)
+        HomeTopBar(
+            account = account,
+            unreadMessages = unreadMessages,
+            onSearchClick = onSearchClick,
+            // Un visiteur qui touche la messagerie est invité à se connecter.
+            onMessagesClick = if (account != null) onMessagesClick else onLoginRequired,
+            onAccountClick = onAccountClick,
+        )
         CategoryFilters(filters = filters, onSelect = onCategorySelect)
         when (uiState) {
             HomeUiState.Loading -> VideoListSkeleton()
@@ -242,7 +261,13 @@ private fun HomeContent(
 
 // Barre du haut : logo à gauche, recherche et avatar à droite, fond sombre, hauteur contenue.
 @Composable
-private fun HomeTopBar(account: User?, onSearchClick: () -> Unit, onAccountClick: () -> Unit) {
+private fun HomeTopBar(
+    account: User?,
+    unreadMessages: Int,
+    onSearchClick: () -> Unit,
+    onMessagesClick: () -> Unit,
+    onAccountClick: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -268,6 +293,26 @@ private fun HomeTopBar(account: User?, onSearchClick: () -> Unit, onAccountClick
                 contentDescription = stringResource(R.string.home_search),
                 tint = MaterialTheme.colorScheme.onBackground,
             )
+        }
+        // Messagerie (ADR-025), à gauche de l'avatar, avec la pastille des messages non lus.
+        IconButton(onClick = onMessagesClick) {
+            BadgedBox(
+                badge = {
+                    if (unreadMessages > 0) {
+                        Badge { Text(if (unreadMessages > 99) "99+" else unreadMessages.toString()) }
+                    }
+                },
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_messages),
+                    contentDescription = if (unreadMessages > 0) {
+                        pluralStringResource(R.plurals.messages_unread, unreadMessages, unreadMessages)
+                    } else {
+                        stringResource(R.string.messages_open)
+                    },
+                    tint = MaterialTheme.colorScheme.onBackground,
+                )
+            }
         }
         IconButton(onClick = onAccountClick) {
             AccountAvatar(account)
