@@ -139,6 +139,11 @@ class WatchViewModel @Inject constructor(
     private var stoppedAt: Long? = null
     private var restoring = false
 
+    // Miniature affichée par-dessus le lecteur tant que la première image n'est pas rendue : au
+    // lancement, et pendant le rechargement au retour. La vue vidéo est noire avant cette image.
+    private val _showThumbnail = MutableStateFlow(true)
+    val showThumbnail: StateFlow<Boolean> = _showThumbnail.asStateFlow()
+
     private val _uiState = MutableStateFlow<WatchUiState>(WatchUiState.Loading)
     val uiState: StateFlow<WatchUiState> = _uiState.asStateFlow()
 
@@ -197,6 +202,10 @@ class WatchViewModel @Inject constructor(
     private var playingVideo: Video? = null
 
     private val playerListener = object : Player.Listener {
+        override fun onRenderedFirstFrame() {
+            _showThumbnail.value = false
+        }
+
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (isPlaying) {
                 recordViewOnce()
@@ -391,7 +400,9 @@ class WatchViewModel @Inject constructor(
         cancelAutoplay()
         if (appInBackground && observePremium().value?.isPremium == true) {
             setVideoTrackDisabled(true)
+            _showThumbnail.value = true
         } else if (videoStarted && player.playbackState != Player.STATE_IDLE) {
+            _showThumbnail.value = true
             stoppedAt = player.currentPosition
             player.pause()
             player.stop()

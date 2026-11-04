@@ -135,6 +135,7 @@ private fun ShortsPager(
     val playback by viewModel.playback.collectAsStateWithLifecycle()
     // Suivi permanent (pas seulement au premier plan) : la vue doit lâcher le lecteur dès sa libération.
     val sharedPlayer by viewModel.player.collectAsState()
+    val firstFrameShown by viewModel.firstFrameShown.collectAsState()
     val likes by viewModel.likes.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
@@ -168,6 +169,7 @@ private fun ShortsPager(
         ShortPage(
             video = video,
             player = sharedPlayer.takeIf { isActive },
+            coverWithThumbnail = isActive && !firstFrameShown,
             pausedByUser = isActive && playback.pausedByUser,
             blockedReason = playback.blockedReason?.takeIf { isActive }?.let {
                 if (it.code != null) stringResource(it.messageRes, it.code) else stringResource(it.messageRes)
@@ -205,6 +207,7 @@ private fun ShortsPager(
 private fun ShortPage(
     video: Video,
     player: Player?,
+    coverWithThumbnail: Boolean,
     pausedByUser: Boolean,
     blockedReason: String?,
     premiumRequired: Boolean,
@@ -239,6 +242,15 @@ private fun ShortPage(
         )
         // Une vue neuve pour chaque instance du lecteur, recréé après un passage en arrière-plan.
         if (player != null) key(player) { ShortPlayer(player, Modifier.fillMaxSize()) }
+        // La vue vidéo est noire avant la première image : la miniature la recouvre jusque-là.
+        if (player != null && coverWithThumbnail) {
+            AsyncImage(
+                model = video.thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
 
         // Dégradé sombre du bas vers le haut : texte et icônes restent lisibles sur une image claire.
         Box(
@@ -460,6 +472,7 @@ private fun ShortPagePreview() {
         ShortPage(
             video = previewVideo("1", "Le ballet des méduses, filmé de très près dans un aquarium géant", "Studio Libre", 2_300, 7),
             player = null,
+            coverWithThumbnail = false,
             pausedByUser = true,
             blockedReason = null,
             premiumRequired = false,

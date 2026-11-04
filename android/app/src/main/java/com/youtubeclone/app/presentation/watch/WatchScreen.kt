@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -84,6 +85,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
+import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.Comment
@@ -94,9 +96,9 @@ import com.youtubeclone.app.domain.model.LikeStatus
 import com.youtubeclone.app.domain.model.NotificationLevel
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoDetail
-import com.youtubeclone.app.presentation.channel.FollowButton
 import com.youtubeclone.app.presentation.ads.AdPlaybackOverlay
 import com.youtubeclone.app.presentation.ads.AdPlaybackState
+import com.youtubeclone.app.presentation.channel.FollowButton
 import com.youtubeclone.app.presentation.channel.FollowUiState
 import com.youtubeclone.app.presentation.channel.NotificationPermissionRequest
 import com.youtubeclone.app.presentation.common.BackTopBar
@@ -146,6 +148,7 @@ fun WatchScreen(
     }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val adState by viewModel.ads.state.collectAsStateWithLifecycle()
+    val showThumbnail by viewModel.showThumbnail.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
@@ -231,6 +234,7 @@ fun WatchScreen(
                     PlayerArea(
                         detail = state.detail,
                         player = viewModel.player,
+                        showThumbnail = showThumbnail,
                         adState = adState,
                         adPlayer = viewModel.ads.player,
                         onSkipAd = viewModel.ads::skip,
@@ -344,6 +348,7 @@ private fun WatchContent(
 private fun PlayerArea(
     detail: VideoDetail,
     player: Player,
+    showThumbnail: Boolean,
     adState: AdPlaybackState?,
     adPlayer: Player,
     onSkipAd: () -> Unit,
@@ -365,6 +370,17 @@ private fun PlayerArea(
     ) {
         if (detail.videoUrl != null) {
             VideoPlayer(player = player, modifier = Modifier.fillMaxSize())
+            // Miniature par-dessus le lecteur tant que la première image n'est pas affichée : au
+            // lancement, et au retour d'une autre application, pendant que la vidéo se recharge.
+            // Un écran noir ferait croire à un plantage.
+            if (showThumbnail) {
+                AsyncImage(
+                    model = detail.video.thumbnailUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             // Publicité avant la vidéo (ADR-021), en plein lecteur et sans contrôle de lecture.
             if (adState != null) {
                 AdPlaybackOverlay(adState, adPlayer, onSkipAd, onRemoveAdsClick, onVisitAdSite, Modifier.fillMaxSize())

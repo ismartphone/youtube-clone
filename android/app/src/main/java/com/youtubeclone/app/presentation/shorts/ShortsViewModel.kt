@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
@@ -118,6 +119,17 @@ class ShortsViewModel @Inject constructor(
     // Un seul lecteur pour toutes les pages, qui n'existe que lorsque l'onglet est affiché :
     // il est libéré quand on change d'onglet, puis recréé au retour.
     private val _player = MutableStateFlow<ExoPlayer?>(null)
+
+    // Première image du Short courant affichée. Avant, la miniature recouvre le lecteur, dont la
+    // vue vidéo est noire : au lancement, au changement de Short et au retour de l'arrière-plan.
+    private val _firstFrameShown = MutableStateFlow(false)
+    val firstFrameShown: StateFlow<Boolean> = _firstFrameShown.asStateFlow()
+
+    private val firstFrameListener = object : Player.Listener {
+        override fun onRenderedFirstFrame() {
+            _firstFrameShown.value = true
+        }
+    }
     val player: StateFlow<Player?> = _player.asStateFlow()
     private val appContext = context.applicationContext
 
@@ -260,6 +272,7 @@ class ShortsViewModel @Inject constructor(
         if (_player.value != null) return
         val player = ExoPlayer.Builder(appContext).build().apply {
             repeatMode = Player.REPEAT_MODE_ONE
+            addListener(firstFrameListener)
         }
         _player.value = player
         loadCurrent(player)
@@ -273,18 +286,34 @@ class ShortsViewModel @Inject constructor(
         player.release()
     }
 
-    /** Application en arrière-plan : simple pause, le lecteur est gardé. */
+    /**
+     * Application en arrière-plan : pause, et piste vidéo coupée, ce qui libère son décodeur. Gardé
+     * pendant que la surface d'affichage est détruite puis recréée, il affiche une image corrompue
+     * au retour (constaté sur l'émulateur). Le lecteur lui-même est gardé.
+     */
     fun onBackground() {
-        _player.value?.pause()
+        val player = _player.value ?: return
+        player.pause()
+        setVideoTrackDisabled(player, true)
+        _firstFrameShown.value = false
     }
 
-    /** Retour au premier plan : reprise, sauf si l'utilisateur avait mis en pause. */
+    /** Retour au premier plan : l'image revient et la lecture reprend, sauf pause de l'utilisateur. */
     fun onForeground() {
-        if (!_playback.value.pausedByUser) _player.value?.playWhenReady = true
+        val player = _player.value ?: return
+        setVideoTrackDisabled(player, false)
+        if (!_playback.value.pausedByUser) player.playWhenReady = true
+    }
+
+    private fun setVideoTrackDisabled(player: Player, disabled: Boolean) {
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, disabled)
+            .build()
     }
 
     private fun loadCurrent(player: ExoPlayer) {
         val url = currentUrl ?: return
+        _firstFrameShown.value = false
         player.setMediaItem(MediaItem.fromUri(url), resumePositionMs)
         player.prepare()
         player.playWhenReady = !_playback.value.pausedByUser

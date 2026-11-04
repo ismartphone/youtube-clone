@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.datasource.cache.SimpleCache
@@ -63,7 +64,18 @@ class OfflinePlayerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<OfflinePlayerUiState>(OfflinePlayerUiState.Loading)
     val uiState: StateFlow<OfflinePlayerUiState> = _uiState.asStateFlow()
 
+    // Miniature par-dessus le lecteur tant que la première image n'est pas rendue.
+    private val _showThumbnail = MutableStateFlow(true)
+    val showThumbnail: StateFlow<Boolean> = _showThumbnail.asStateFlow()
+
+    private val firstFrameListener = object : Player.Listener {
+        override fun onRenderedFirstFrame() {
+            _showThumbnail.value = false
+        }
+    }
+
     init {
+        player.addListener(firstFrameListener)
         viewModelScope.launch {
             val video = getDownload(videoId)
             val request = withContext(Dispatchers.IO) { downloadManager.downloadIndex.getDownload(videoId)?.request }
@@ -94,7 +106,27 @@ class OfflinePlayerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Écran masqué : la lecture continue en arrière-plan, comme avant, mais sans image. Le décodeur
+     * vidéo est ainsi libéré : gardé pendant que la surface d'affichage est détruite puis recréée,
+     * il affiche une image corrompue au retour (constaté sur l'émulateur).
+     */
+    fun onScreenStopped() {
+        setVideoTrackDisabled(true)
+        _showThumbnail.value = true
+    }
+
+    /** Retour : l'image revient ; la miniature reste affichée jusqu'à la première image. */
+    fun onScreenStarted() = setVideoTrackDisabled(false)
+
+    private fun setVideoTrackDisabled(disabled: Boolean) {
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, disabled)
+            .build()
+    }
+
     override fun onCleared() {
+        player.removeListener(firstFrameListener)
         player.release()
     }
 }
