@@ -1,7 +1,7 @@
 # ADR-023 — Réponses et « j'aime » sur les commentaires
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Les commentaires sont plats aujourd'hui : on ne peut ni répondre à un commentaire, ni l'aimer. Le 4 novembre 2026, le lead développeur demande les réponses, les « j'aime » sur les commentaires, le cœur du créateur et deux tris.
@@ -19,10 +19,10 @@ Les commentaires sont plats aujourd'hui : on ne peut ni répondre à un commenta
 ### Réponses
 - Un seul niveau. Répondre à une réponse place la nouvelle réponse dans le même fil : son parent est le commentaire de premier niveau, comme sur YouTube.
 - Sous chaque commentaire : « Répondre », et « N réponses », qui déplie le fil.
-- Le champ de réponse préremplit le @handle de la personne à qui on répond. C'est du texte simple : ni lien, ni notification.
+- Le champ de réponse préremplit le @handle de la personne à qui on répond. Si elle n'a pas de chaîne, donc pas de @handle, il préremplit son nom affiché suivi d'une espace : on voit ainsi à qui on répond. C'est du texte simple : ni lien, ni notification.
 - Le compteur de commentaires de la vidéo (`total`) compte commentaires et réponses.
 - **Modèle :** champ `parentId` facultatif sur COMMENT, qui renvoie à un COMMENT de la même vidéo, avec un index (`parentId`, `createdAt`). Le domaine remonte toujours au premier niveau : si le parent visé est lui-même une réponse, `parentId` prend le parent de celui-ci. Une migration Prisma.
-- **Routes :** POST /videos/:videoId/comments accepte un `parentId` facultatif. GET /comments/:id/replies est paginé. La liste de la vidéo ne renvoie que les commentaires de premier niveau, chacun avec son nombre de réponses.
+- **Routes :** POST /videos/:videoId/comments accepte un `parentId` facultatif. GET /comments/:id/replies renvoie 10 réponses par page, avec « Afficher plus de réponses » dans l'application. La liste de la vidéo ne renvoie que les commentaires de premier niveau, chacun avec son nombre de réponses.
 - Visibilité (ADR-016) et commentaires désactivés s'appliquent aux réponses comme aux commentaires.
 
 ### « J'aime » sur un commentaire
@@ -46,10 +46,11 @@ Option C, compter les lignes à la lecture :
 - Avantage : aucune colonne.
 - Inconvénient : tri « Top » coûteux, puisqu'il faut compter pour chaque commentaire avant de trier.
 
-**Recommandation : option A.** Les « j'aime » de commentaires ne passent pas par le temps réel, et le volume du projet est petit : un compteur en base suffit.
+**Option A retenue** (recommandation validée à l'acceptation). Les « j'aime » de commentaires ne passent pas par le temps réel, et le volume du projet est petit : un compteur en base suffit.
 
 ### Cœur du créateur
-- Le propriétaire de la chaîne peut mettre un cœur sur un commentaire de sa vidéo. Il s'affiche sur l'avatar de l'auteur du commentaire.
+- Le propriétaire de la chaîne peut mettre un cœur sur un commentaire de sa vidéo, réponses comprises.
+- Affichage comme sur YouTube : l'avatar du créateur avec un petit cœur, sous le commentaire.
 - **Modèle :** champ `creatorHeartedAt` facultatif sur COMMENT (date ou rien).
 - **Routes :** PUT et DELETE /comments/:id/heart, refusées à toute personne qui n'est pas propriétaire de la chaîne de la vidéo.
 
@@ -59,32 +60,30 @@ Option C, compter les lignes à la lecture :
   - Top : date décroissante, puis `id`, pour un ordre total et stable.
   - Récents : `id` en second critère.
 - Index (`videoId`, `parentId`, `likeCount` desc, `createdAt` desc) pour le tri Top.
-- **Pagination du tri Top :** les compteurs bougent entre deux pages.
-  - Option 1, garder la pagination par page actuelle, et l'application ignore les commentaires déjà affichés (par `id`). Avantage : aucune nouvelle forme de requête. Inconvénient : un commentaire qui monte entre deux pages peut être sauté.
-  - Option 2, pagination par curseur (`likeCount`, `createdAt`, `id`) : la page suivante part du dernier élément reçu. Avantage : pas de doublon. Inconvénient : un commentaire qui monte au-dessus du curseur n'est pas vu avant le rechargement ; requête et réponse changent de forme.
-  - **Recommandation : option 1**, la plus légère dans le délai. La limite est assumée : la liste est exacte à chaque rechargement.
-- Les réponses d'un fil sont affichées dans l'ordre chronologique, la plus ancienne d'abord (question 3).
+- **Pagination du tri Top :** les compteurs bougent entre deux pages. On garde la pagination par page actuelle, et l'application retire les doublons (par `id`).
+  - **Limite assumée :** un commentaire qui monte entre deux pages peut être sauté, ou ne jamais s'afficher, jusqu'au rechargement de la liste.
+  - Option écartée : la pagination par curseur (`likeCount`, `createdAt`, `id`). Avec un catalogue petit, ce serait du travail pour rien.
+- Les réponses d'un fil sont affichées de la plus ancienne à la plus récente.
 
 ### Temps réel
 - Une réponse publiée arrive en direct dans la salle de la vidéo.
-- Option 1, réutiliser `comment:new`, avec `parentId` dans les données. Avantage : un seul événement. Inconvénient : un client qui ignore `parentId` affiche la réponse comme un commentaire de premier niveau.
-- Option 2, nouvel événement `comment:reply`, avec `parentId`. Avantage : sans ambiguïté. Inconvénient : un cas de plus dans la passerelle et dans `LiveVideoClient`.
-- **Recommandation : option 2, `comment:reply`.**
-- Dans les deux cas, le compteur de commentaires de la vidéo augmente aussi à la réception d'une réponse.
+- Nouvel événement `comment:reply`, avec `parentId`. Il est sans ambiguïté, au prix d'un cas de plus dans la passerelle et dans `LiveVideoClient`.
+- Option écartée : réutiliser `comment:new` avec `parentId`. Un client qui ignore `parentId` afficherait la réponse comme un commentaire de premier niveau.
+- Le compteur de commentaires de la vidéo augmente aussi à la réception d'une réponse.
 - Les « j'aime » de commentaires et le cœur ne passent pas par le temps réel.
 
 ### Commentaires désactivés (ADR-016)
 - Ils bloquent aussi les réponses et les « j'aime », côté API (403, `CommentsDisabledError`) comme côté écran.
-- Le cœur suit la même règle (question 5).
+- Le cœur du créateur est bloqué aussi, sans exception.
 
-### Questions au lead développeur
-1. **@handle préremplie pour un auteur sans chaîne :** le @handle appartient à la chaîne. Que préremplir quand l'auteur n'en a pas (nom affiché, ou rien) ? Que montre l'en-tête d'un commentaire dans ce cas aujourd'hui ?
-2. **Pagination du tri Top :** pages actuelles et dédoublonnage dans l'application (recommandé), ou curseur ?
-3. **Ordre des réponses dans un fil :** la plus ancienne d'abord, comme recommandé ?
-4. **Cœur du créateur :** sur les réponses aussi, ou seulement sur les commentaires de premier niveau ? Et « s'affiche sur l'avatar de l'auteur » : petit cœur posé sur l'avatar de l'auteur, ou, comme sur YouTube, avatar du créateur avec un cœur sous le commentaire ?
-5. **Cœur quand les commentaires sont désactivés :** bloqué lui aussi ?
-6. **Nom de l'événement temps réel :** `comment:reply` (recommandé) ?
-7. **Pagination des réponses :** taille de page (par exemple 10, avec « Afficher plus de réponses ») ?
+### Décisions du lead développeur (4 novembre 2026)
+1. Auteur sans chaîne : le champ de réponse préremplit son nom affiché suivi d'une espace, au lieu du @handle. Mieux que rien, et on voit à qui on répond.
+2. Pagination du tri Top : pages actuelles, doublons retirés côté application. Le catalogue est petit : un curseur serait du travail pour rien. Limite : un commentaire qui monte entre deux pages peut être sauté, ou ne jamais s'afficher.
+3. Réponses d'un fil : de la plus ancienne à la plus récente.
+4. Cœur du créateur : possible aussi sur les réponses. Affichage à la YouTube : l'avatar du créateur avec un petit cœur, sous le commentaire.
+5. Commentaires désactivés : le cœur est bloqué aussi, sans exception.
+6. Événement temps réel : `comment:reply`.
+7. 10 réponses par page, avec « Afficher plus de réponses ».
 
 ## Alternatives
 - **Réponses imbriquées sur plusieurs niveaux.** Avantage : conversations plus fidèles. Inconvénient : affichage profond illisible sur mobile ; le lead a choisi un seul niveau.
@@ -102,9 +101,9 @@ Option C, compter les lignes à la lecture :
 ### Négatives
 - Deux migrations Prisma : `parentId`, `likeCount` et `creatorHeartedAt` sur COMMENT, et la table COMMENT_LIKE. CLAUDE.md est mis à jour par un humain à l'acceptation (COMMENT_LIKE au modèle de données).
 - `total` change de sens : il compte aussi les réponses.
-- Le tri Top paginé par page peut sauter un commentaire dont le compteur monte.
+- Le tri Top paginé par page peut sauter un commentaire dont le compteur monte entre deux pages, voire ne jamais l'afficher avant un rechargement.
 - Nouveaux routes et nouvel événement temps réel ; l'écran des commentaires (feuille et section) est largement repris.
-- Le @handle n'existe que pour les auteurs qui ont une chaîne.
+- Le @handle n'existe que pour les auteurs qui ont une chaîne ; pour les autres, la réponse est préremplie avec le nom affiché.
 - L'aide (ADR-019) doit décrire les réponses, les « j'aime » et le cœur.
 
 ## Liens
