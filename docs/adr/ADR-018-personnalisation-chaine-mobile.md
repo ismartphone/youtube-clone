@@ -1,7 +1,7 @@
 # ADR-018 — Personnalisation de sa chaîne par le créateur depuis l'application mobile
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Un créateur publie déjà des vidéos, des Shorts et des posts depuis l'application mobile (ADR-015). En revanche, il ne peut pas modifier l'apparence ni l'identité de sa chaîne une fois qu'elle est créée :
@@ -36,7 +36,7 @@ Le créateur peut modifier depuis l'application mobile, sur sa propre chaîne :
 3. le nom et la description ;
 4. le handle (@nom).
 
-Les autres points ci-dessous ne sont pas encore tranchés par le lead développeur. Ils sont présentés comme options à arbitrer avant le passage de cet ADR en « Accepté ». Ce qui suit les options découle des contraintes déjà acceptées, et non d'un choix nouveau.
+Les règles ci-dessous découlent des ADR déjà acceptés. Les décisions qui suivent ont été prises par le lead développeur le 4 novembre 2026, à l'acceptation de cet ADR : il a validé toutes les recommandations, sans exception.
 
 ### Règles qui découlent des ADR acceptés
 - Fichiers envoyés : validés par ffprobe, jamais par leur extension ni par le type MIME annoncé par le client ; nom de fichier généré par le serveur, jamais repris du client ; refus en 503 avec un message clair si FFmpeg ou ffprobe est absent (ADR-011, ADR-015).
@@ -46,52 +46,43 @@ Les autres points ci-dessous ne sont pas encore tranchés par le lead développe
 - Propriétaire : seul le propriétaire de la chaîne peut la modifier depuis l'application, et c'est vérifié par l'API, jamais seulement dans l'application (même principe qu'ADR-007 et ADR-016).
 - Textes d'interface : aucun texte visible ne mentionne YouTube ni n'annonce ce qui n'est pas développé.
 
-### Points à arbitrer par le lead développeur
+### Décisions du lead développeur (4 novembre 2026)
 
 #### Formats et poids des images
-- Option A : reprendre la règle des images de posts, JPEG ou PNG, 5 Mo au plus, validée par ffprobe, avec le même mécanisme d'envoi commun.
-- Option B : d'autres formats ou un autre poids, à préciser. À noter : le back-office accepte aujourd'hui une bannière locale en `.webp` (`/media/banners/...`), ce que l'envoi des posts n'accepte pas.
+1. La photo et la bannière suivent la règle des images de posts : JPEG ou PNG, 5 Mo au plus, validées par ffprobe, avec le même mécanisme d'envoi commun.
 
 #### Recadrage
-Photo carrée, bannière en bandeau (l'application l'affiche aujourd'hui au rapport 3,6 sur la page de chaîne).
-- Option A : recadrage côté serveur par FFmpeg, comme les miniatures (ADR-011).
-- Option B : recadrage côté client, dans l'application, avant l'envoi.
-- Option C : aucun recadrage, l'image est affichée recadrée à l'écran.
-- Dimensions de sortie à fixer si l'option A ou B est retenue.
+2. Recadrage côté serveur par FFmpeg, comme les miniatures (ADR-011) :
+   - photo de profil : carrée, 512×512 ;
+   - bannière : 2048×569, soit le rapport 3,6 de l'affichage sur la page de chaîne (`BANNER_RATIO`).
 
 #### Suppression de l'ancien fichier
-- Option A : l'ancienne photo ou l'ancienne bannière envoyée est supprimée du stockage au remplacement, comme une miniature régénérée (ADR-011).
-- Option B : l'ancien fichier est conservé.
-- Cas particulier de l'avatar généré : `avatar.ts` dit qu'il n'a pas à disparaître quand une photo le remplace. À confirmer.
+3. L'ancienne photo ou l'ancienne bannière envoyée est supprimée du stockage au remplacement, comme une miniature régénérée (ADR-011). L'avatar généré (initiales sur fond de couleur) est en revanche conservé, pour pouvoir y revenir.
 
-#### Retrait de la photo
-- Le créateur peut-il retirer sa photo ? Si oui, revient-on à l'avatar généré (initiales sur fond de couleur) ?
-- Si le nom change, l'avatar généré (dont les initiales et la couleur viennent du nom) est-il régénéré ?
-- Le créateur peut-il retirer sa bannière (retour à l'absence de bannière) ?
+#### Retrait de la photo et de la bannière
+4. Le créateur peut retirer sa photo : la chaîne revient à l'avatar généré, régénéré si le nom a changé depuis (ses initiales et sa couleur viennent du nom). Le créateur peut aussi retirer sa bannière : la chaîne revient à l'absence de bannière.
 
 #### Règles du handle
-- Conflit : message affiché quand le handle demandé est déjà pris ; vérification de disponibilité pendant la saisie ou seulement à l'enregistrement.
-- Fréquence de changement : aucune limite, ou une limite (à titre de référence, la plateforme dont s'inspire le projet autorise deux changements par 14 jours). Une limite demanderait de conserver la date des derniers changements.
-- Ancien handle : libéré immédiatement pour les autres chaînes, ou réservé pendant une durée à fixer. Une réservation demanderait de conserver les anciens handles.
+5. Handle déjà pris : la disponibilité est vérifiée à l'enregistrement, et un message clair s'affiche sous le champ.
+6. Le changement de handle est illimité : aucune limite de fréquence, donc aucune date de changement à conserver.
+7. L'ancien handle est libéré tout de suite pour les autres chaînes : aucune réservation, donc aucun ancien handle à conserver.
 
 #### Longueur du nom et de la description
-- Option A : reprendre les limites de la création, nom de 1 à 50 caractères, description de 1000 caractères au plus.
-- Option B : d'autres limites, à préciser.
+8. Les limites de la création s'appliquent : nom de 1 à 50 caractères, description de 1000 caractères au plus.
 
 #### Emplacement de l'écran dans l'application
-- Option A : depuis la page de chaîne vue par son propriétaire.
-- Option B : depuis l'écran Vous.
-- Option C : les deux.
-- Organisation : un seul écran pour les quatre éléments, ou des modifications séparées.
+9. Un seul écran « Personnaliser la chaîne » pour les quatre éléments, ouvert depuis la page de chaîne vue par son propriétaire et depuis l'écran Vous.
 
 #### Back-office
-- Le back-office modifie déjà la bannière d'une chaîne (PATCH /admin/channels/:id). Garde-t-il ce droit, et doit-il aussi pouvoir modifier la photo, le nom, la description ou le handle, par exemple pour la modération ?
-- Le back-office continue dans tous les cas de passer par l'API, sans accès direct à PostgreSQL.
+10. Le back-office garde la modification de la bannière (PATCH /admin/channels/:id), rien de plus : il ne modifie ni la photo, ni le nom, ni la description, ni le handle. Il continue de passer par l'API, sans accès direct à PostgreSQL.
+
+#### Liens fondés sur le handle
+11. Vérifié : toute la navigation, dans l'application comme dans le back-office, passe par l'identifiant de la chaîne et non par le handle. Changer de handle ne casse donc aucun lien.
 
 ## Alternatives
 - Laisser la chaîne figée après sa création, avec la bannière réservée au back-office : avantage, aucun travail. Inconvénient, le créateur garde l'avatar généré et ne peut corriger ni son nom ni son handle ; décision du lead développeur du 4 novembre de l'ouvrir dans l'application.
-- Recadrage côté serveur par FFmpeg : avantage, même résultat quel que soit le client, et l'outil est déjà en place (ADR-011). Inconvénient, le créateur ne choisit pas la zone conservée. À arbitrer.
-- Recadrage côté client : avantage, le créateur choisit la zone conservée. Inconvénient, un écran de recadrage à développer dans l'application, et le serveur doit quand même valider l'image reçue. À arbitrer.
+- Recadrage côté serveur par FFmpeg : avantage, même résultat quel que soit le client, et l'outil est déjà en place (ADR-011). Inconvénient, le créateur ne choisit pas la zone conservée. Retenu.
+- Recadrage côté client : avantage, le créateur choisit la zone conservée. Inconvénient, un écran de recadrage à développer dans l'application, et le serveur doit quand même valider l'image reçue. Écarté.
 - Réécrire la photo ou la bannière sous le même nom de fichier : avantage, pas d'ancien fichier à gérer. Inconvénient, les clients gardent l'ancienne image jusqu'à 7 jours à cause du cache de `/media` ; écarté.
 
 ## Conséquences
@@ -104,17 +95,16 @@ Photo carrée, bannière en bandeau (l'application l'affiche aujourd'hui au rapp
 
 ### Négatives
 - Nouvelle surface d'attaque : deux nouveaux types de fichiers envoyés par les utilisateurs (photo, bannière).
-- Les images occupent de l'espace dans le stockage, d'autant plus si les anciens fichiers sont conservés.
-- Un handle modifiable peut changer entre deux visites : tout lien ou affichage qui s'appuierait sur le handle plutôt que sur l'identifiant de la chaîne deviendrait faux.
-- Si une limite de fréquence ou une réservation des anciens handles est retenue, de nouvelles données sont à stocker, avec une migration Prisma.
-- Les modèles de l'application, la page de chaîne et, selon l'arbitrage, l'écran Vous et le back-office sont à modifier.
-- Plusieurs points restent à trancher avant le développement, dans un délai court (rendu le 6 novembre).
+- Les images occupent de l'espace dans le stockage ; les anciens fichiers envoyés sont supprimés au remplacement, mais l'avatar généré est conservé.
+- Un handle modifiable peut changer entre deux visites : tout lien ou affichage futur qui s'appuierait sur le handle plutôt que sur l'identifiant de la chaîne deviendrait faux. Vérifié à l'acceptation, aucune navigation actuelle ne s'appuie sur le handle.
+- Les modèles de l'application, la page de chaîne et l'écran Vous sont à modifier.
+- Incohérence connue : le back-office accepte une bannière en webp, contrairement à l'application (JPEG ou PNG). Laissée en l'état sur décision du lead développeur.
 
 ## Liens
 - [ADR-015](ADR-015-publication-depuis-mobile.md) : publication depuis l'application mobile ; ses règles d'envoi de fichiers (ffprobe, nom généré par le serveur, 503 sans FFmpeg) et celles des images de posts (JPEG ou PNG, 5 Mo) servent de base à l'envoi de la photo et de la bannière. Son amendement du 4 novembre fixe la règle de rédaction des textes d'interface.
-- [ADR-011](ADR-011-ffmpeg-chemins-medias.md) : FFmpeg en dépendance système et chemins relatifs ; la photo et la bannière sont enregistrées en chemin relatif sous `/media`, servies avec un cache de 7 jours, d'où un nouveau nom de fichier à chaque changement. FFmpeg génère déjà l'avatar par défaut, et pourrait recadrer les images selon l'arbitrage.
+- [ADR-011](ADR-011-ffmpeg-chemins-medias.md) : FFmpeg en dépendance système et chemins relatifs ; la photo et la bannière sont enregistrées en chemin relatif sous `/media`, servies avec un cache de 7 jours, d'où un nouveau nom de fichier à chaque changement. FFmpeg génère déjà l'avatar par défaut, et recadre la photo et la bannière.
 - [ADR-002](ADR-002-hebergement-videos.md) : hébergement sur notre propre backend ; les images envoyées sont écrites dans le même stockage, dossier local en développement, Cloudflare R2 avec CDN au déploiement.
-- [ADR-007](ADR-007-offre-premium.md) et [ADR-016](ADR-016-reglages-publication-video.md) : même principe de vérification côté serveur, ici pour réserver la modification au propriétaire de la chaîne. L'ADR-016 réserve aussi au back-office certaines modifications après publication ; la question se pose ici pour la bannière.
+- [ADR-007](ADR-007-offre-premium.md) et [ADR-016](ADR-016-reglages-publication-video.md) : même principe de vérification côté serveur, ici pour réserver la modification au propriétaire de la chaîne. L'ADR-016 réserve aussi au back-office certaines modifications après publication ; ici, le back-office garde la modification de la bannière, rien de plus.
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS, architecture hexagonale ; les règles de modification d'une chaîne appartiennent au domaine du module channels.
 - [ADR-001](ADR-001-android-natif.md) : application native Android ; l'écran de personnalisation fait partie de cette application, sans composant web.
 - [ADR-006](ADR-006-analytics-posthog.md) et [ADR-013](ADR-013-mesures-donnees-personnelles.md) : le handle et le nom affiché ne sont jamais envoyés à PostHog ; leur modification ne touche pas aux mesures.

@@ -21,5 +21,5 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-015](ADR-015-publication-depuis-mobile.md) | Publication de vidéos, de Shorts et de posts depuis l'application mobile | Accepté |
 | [ADR-016](ADR-016-reglages-publication-video.md) | Réglages de publication d'une vidéo : visibilité et commentaires | Accepté |
 | [ADR-017](ADR-017-hls-multi-qualites-sous-titres.md) | Diffusion HLS multi-qualités et sous-titres automatiques, produits hors ligne par FFmpeg | Accepté |
-| [ADR-018](ADR-018-personnalisation-chaine-mobile.md) | Personnalisation de sa chaîne par le créateur depuis l'application mobile | Proposé |
-| [ADR-019](ADR-019-je-naime-pas-telechargements-playlists-aide.md) | Boutons « Je n'aime pas », « Télécharger », « Enregistrer » et « Aide » : avis négatif, téléchargements Premium, playlists et écran d'aide | Proposé |
+| [ADR-018](ADR-018-personnalisation-chaine-mobile.md) | Personnalisation de sa chaîne par le créateur depuis l'application mobile | Accepté |
+| [ADR-019](ADR-019-je-naime-pas-telechargements-playlists-aide.md) | Boutons « Je n'aime pas », « Télécharger », « Enregistrer » et « Aide » : avis négatif, téléchargements Premium, playlists et écran d'aide | Accepté |

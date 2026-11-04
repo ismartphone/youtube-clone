@@ -35,7 +35,7 @@ minSdk 26.
 **Backend** — NestJS (TypeScript), PostgreSQL, Prisma, Redis (cache, sessions, compteurs),
 passerelle WebSocket NestJS. Stockage vidéo : dossier local en développement, Cloudflare R2 + CDN au déploiement.
 Architecture **hexagonale, monolithe modulaire** : `domain/` · `application/` · `infrastructure/` · `interfaces/`.
-Modules : auth, channels (dont les abonnements), videos, comments, premium, realtime.
+Modules : auth, channels (dont les abonnements), videos, comments, premium, realtime, playlists.
 
 **Back-office** — Next.js (TypeScript), Tailwind CSS.
 Architecture **MVC** : `app/` · `controllers/` · `models/` · `views/` · `services/`.
@@ -46,8 +46,9 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 ## Modèle de données
 
-`USER` · `CHANNEL` · `VIDEO` · `CATEGORY` · `COMMENT` · `LIKE` · `FOLLOW` · `PREMIUM_SUBSCRIPTION` · `WATCH_HISTORY` · `POST`
+`USER` · `CHANNEL` · `VIDEO` · `CATEGORY` · `COMMENT` · `LIKE` · `FOLLOW` · `PREMIUM_SUBSCRIPTION` · `WATCH_HISTORY` · `POST` · `PLAYLIST` · `PLAYLIST_ITEM`
 
+- `LIKE.type` vaut `LIKE` ou `DISLIKE` : « J'aime » et « Je n'aime pas » s'excluent (ADR-019).
 - `FOLLOW` = abonnement **gratuit** à une chaîne. `PREMIUM_SUBSCRIPTION` = abonnement **payant**. Ne jamais confondre les deux.
 - `VIDEO.format` vaut `SHORT` ou `LONG` : Shorts et vidéos classiques partagent la même table.
 - `VIDEO.isPremium` marque les vidéos exclusives. L'accès est **toujours vérifié côté serveur**, jamais seulement dans l'application.
@@ -59,7 +60,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 **Ensuite** — « j'aime », commentaires en temps réel, offre payante, mesures et test A/B, recherche, historique.
 
-**Hors périmètre** — version iOS, live, monétisation des créateurs, mot de passe oublié, tendances, mini-lecteur, signalement, notifications, playlists, « à regarder plus tard ».
+**Hors périmètre** — version iOS, live, monétisation des créateurs, mot de passe oublié, tendances, mini-lecteur, signalement, notifications, « à regarder plus tard ».
 
 ## Conventions
 
