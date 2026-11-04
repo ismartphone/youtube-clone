@@ -25,6 +25,11 @@ enum VideoVisibility {
   PRIVATE
 }
 
+enum LikeType {
+  LIKE
+  DISLIKE
+}
+
 enum VideoFormat {
   SHORT
   LONG
@@ -146,9 +151,12 @@ model Comment {
   @@map("comments")
 }
 
+// « J'aime » ou « Je n'aime pas » (ADR-019) : une seule ligne par utilisateur et par vidéo, donc
+// les deux avis s'excluent. Le nombre de « Je n'aime pas » n'est jamais calculé ni affiché.
 model Like {
   userId    String   @db.Uuid
   videoId   String   @db.Uuid
+  type      LikeType @default(LIKE)
   createdAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)

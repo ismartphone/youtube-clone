@@ -1,3 +1,4 @@
+import type { Reaction } from '../../domain/like.repository.js';
 import type { ChannelView } from '../../application/get-channel.use-case.js';
 import type { VideoView } from '../../application/video-view.js';
 
@@ -28,8 +29,12 @@ export function presentVideoSummary(video: VideoView) {
   };
 }
 
-// isLiked n'est présent que sur la route publique : il dépend de l'utilisateur de la requête.
-export function presentVideoDetail(video: VideoView, isLiked?: boolean) {
+// isLiked et isDisliked ne sont présents que sur la route publique : ils dépendent de l'utilisateur
+// de la requête. Le nombre de « Je n'aime pas » n'est jamais renvoyé (ADR-019).
+export function presentVideoDetail(
+  video: VideoView,
+  reaction?: Reaction | null,
+) {
   return {
     ...presentVideoSummary(video),
     description: video.description,
@@ -37,7 +42,7 @@ export function presentVideoDetail(video: VideoView, isLiked?: boolean) {
     hlsUrl: video.hlsUrl,
     subtitleUrl: video.subtitleUrl,
     likeCount: video.likeCount,
-    ...(isLiked === undefined ? {} : { isLiked }),
+    ...(reaction === undefined ? {} : presentReaction(reaction)),
   };
 }
 
@@ -51,4 +56,8 @@ export function presentChannel(channel: ChannelView) {
     createdAt: channel.createdAt,
     videos: channel.videos.map(presentVideoSummary),
   };
+}
+
+export function presentReaction(reaction: Reaction | null) {
+  return { isLiked: reaction === 'LIKE', isDisliked: reaction === 'DISLIKE' };
 }

@@ -1,3 +1,4 @@
+import type { Reaction } from '../../domain/like.repository.js';
 import {
   Controller,
   Delete,
@@ -31,7 +32,11 @@ import { RecordViewUseCase } from '../../application/record-view.use-case.js';
 import { ResolveViewerUseCase } from '../../application/resolve-viewer.use-case.js';
 import { ANONYMOUS_VIEWER } from '../../domain/video.js';
 import { ListVideosQuery } from './list-videos.query.js';
-import { presentVideoDetail, presentVideoSummary } from './video.presenter.js';
+import {
+  presentReaction,
+  presentVideoDetail,
+  presentVideoSummary,
+} from './video.presenter.js';
 
 // Code d'erreur renvoyé quand une vidéo exclusive est demandée sans abonnement Premium en cours.
 export const PREMIUM_REQUIRED = 'PremiumRequired';
@@ -59,7 +64,7 @@ export class VideosController {
     return { ...page, items: page.items.map(presentVideoSummary) };
   }
 
-  // Ouverte aux visiteurs ; isLiked n'est vrai que pour un utilisateur connecté qui a aimé.
+  // Ouverte aux visiteurs ; isLiked et isDisliked ne sont vrais que pour l'utilisateur connecté.
   @Get(':id')
   @UseGuards(OptionalJwtAuthGuard)
   async detail(
@@ -67,7 +72,7 @@ export class VideosController {
     @OptionalCurrentUser() user: AuthenticatedUser | undefined,
   ) {
     const viewer = await this.resolveViewer.execute(user?.id);
-    const [video, isLiked] = await Promise.all([
+    const [video, reaction] = await Promise.all([
       this.getVideo.execute(id, viewer),
       this.getLikeStatus.execute(id, user?.id),
     ]);
@@ -83,7 +88,7 @@ export class VideosController {
         message: 'Cette vidéo est réservée aux membres Premium',
       });
     }
-    return presentVideoDetail(video, isLiked);
+    return presentVideoDetail(video, reaction);
   }
 
   // Ouverte aux visiteurs. Avec une session, la vidéo entre aussi dans l'historique de l'utilisateur.
@@ -106,7 +111,7 @@ export class VideosController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.setLike(user.id, id, true);
+    return this.react(user.id, id, 'LIKE', true);
   }
 
   @Delete(':id/like')
@@ -115,14 +120,39 @@ export class VideosController {
     @CurrentUser() user: AuthenticatedUser,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.setLike(user.id, id, false);
+    return this.react(user.id, id, 'LIKE', false);
   }
 
-  private async setLike(userId: string, videoId: string, like: boolean) {
-    const status = await this.likeVideo.execute(userId, videoId, like);
+  // « Je n'aime pas » (ADR-019) : retire le « j'aime » éventuel ; aucun nombre n'est renvoyé.
+  @Post(':id/dislike')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  dislike(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.react(user.id, id, 'DISLIKE', true);
+  }
+
+  @Delete(':id/dislike')
+  @UseGuards(JwtAuthGuard)
+  undislike(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.react(user.id, id, 'DISLIKE', false);
+  }
+
+  private async react(
+    userId: string,
+    videoId: string,
+    reaction: Reaction,
+    on: boolean,
+  ) {
+    const status = await this.likeVideo.execute(userId, videoId, reaction, on);
     if (!status) {
       throw new NotFoundException('Vidéo introuvable');
     }
-    return { likeCount: status.likeCount, isLiked: status.isLiked };
+    return { likeCount: status.likeCount, ...presentReaction(status.reaction) };
   }
 }

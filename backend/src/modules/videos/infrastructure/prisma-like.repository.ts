@@ -1,6 +1,6 @@
 import type { Prisma } from '../../../generated/prisma/client.js';
 import type { PrismaService } from '../../../shared/infrastructure/prisma.service.js';
-import type { LikeRepository } from '../domain/like.repository.js';
+import type { LikeRepository, Reaction } from '../domain/like.repository.js';
 import type { Video } from '../domain/video.js';
 import type { Page, Pagination } from '../domain/video.repository.js';
 import { VIDEO_SELECT } from './prisma-video.repository.js';
@@ -16,44 +16,57 @@ function visibleTo(userId: string): Prisma.VideoWhereInput {
 export class PrismaLikeRepository implements LikeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async add(userId: string, videoId: string): Promise<boolean> {
-    const { count } = await this.prisma.like.createMany({
-      data: { userId, videoId },
-      skipDuplicates: true,
+  // Lecture et écriture dans une transaction : deux requêtes simultanées ne faussent pas l'avis
+  // précédent, dont dépend le compteur de « j'aime ».
+  react(
+    userId: string,
+    videoId: string,
+    reaction: Reaction | null,
+  ): Promise<Reaction | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const key = { userId_videoId: { userId, videoId } };
+      const previous = await tx.like.findUnique({
+        where: key,
+        select: { type: true },
+      });
+      if (reaction === null) {
+        if (previous) await tx.like.delete({ where: key });
+      } else if (!previous) {
+        await tx.like.create({ data: { userId, videoId, type: reaction } });
+      } else if (previous.type !== reaction) {
+        // Passer d'un avis à l'autre date l'avis du moment où il est donné.
+        await tx.like.update({
+          where: key,
+          data: { type: reaction, createdAt: new Date() },
+        });
+      }
+      return previous?.type ?? null;
     });
-    return count > 0;
   }
 
-  async remove(userId: string, videoId: string): Promise<boolean> {
-    const { count } = await this.prisma.like.deleteMany({
-      where: { userId, videoId },
-    });
-    return count > 0;
-  }
-
-  async isLiked(userId: string, videoId: string): Promise<boolean> {
+  async reactionOf(userId: string, videoId: string): Promise<Reaction | null> {
     const like = await this.prisma.like.findUnique({
       where: { userId_videoId: { userId, videoId } },
-      select: { userId: true },
+      select: { type: true },
     });
-    return like !== null;
+    return like?.type ?? null;
   }
 
   async findLikedPage(
     userId: string,
     { page, pageSize }: Pagination,
   ): Promise<Page<Video>> {
+    // Seuls les « j'aime » : un avis négatif n'ajoute pas la vidéo à la liste.
+    const where = { userId, type: 'LIKE' as const, video: visibleTo(userId) };
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.like.findMany({
-        where: { userId, video: visibleTo(userId) },
+        where,
         select: { video: { select: VIDEO_SELECT } },
         orderBy: [{ createdAt: 'desc' }, { videoId: 'asc' }],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      this.prisma.like.count({
-        where: { userId, video: visibleTo(userId) },
-      }),
+      this.prisma.like.count({ where }),
     ]);
     return { items: rows.map((row) => row.video), page, pageSize, total };
   }
