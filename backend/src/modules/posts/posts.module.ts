@@ -7,7 +7,9 @@ import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
 import { AuthModule } from '../auth/auth.module.js';
 import {
   CreatePostUseCase,
+  GetLatestPostUseCase,
   ListChannelPostsUseCase,
+  ListFollowedPostsUseCase,
 } from './application/post.use-cases.js';
 import {
   POST_CHANNELS,
@@ -27,13 +29,20 @@ import {
 } from './infrastructure/prisma-post.repository.js';
 import {
   ChannelPostsController,
+  FollowedPostsController,
+  LatestPostController,
   MyPostsController,
 } from './interfaces/http/posts.controller.js';
 
 // Posts des chaînes (ADR-015) : texte et image facultative. Module séparé de channels.
 @Module({
   imports: [AuthModule],
-  controllers: [MyPostsController, ChannelPostsController],
+  controllers: [
+    MyPostsController,
+    ChannelPostsController,
+    LatestPostController,
+    FollowedPostsController,
+  ],
   providers: [
     {
       provide: POST_REPOSITORY,
@@ -74,6 +83,17 @@ import {
       useFactory: (posts: PostRepository, channels: PostChannels) =>
         new ListChannelPostsUseCase(posts, channels),
       inject: [POST_REPOSITORY, POST_CHANNELS],
+    },
+    {
+      provide: GetLatestPostUseCase,
+      useFactory: (posts: PostRepository) => new GetLatestPostUseCase(posts),
+      inject: [POST_REPOSITORY],
+    },
+    {
+      provide: ListFollowedPostsUseCase,
+      useFactory: (posts: PostRepository) =>
+        new ListFollowedPostsUseCase(posts),
+      inject: [POST_REPOSITORY],
     },
   ],
 })

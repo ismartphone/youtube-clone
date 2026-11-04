@@ -45,9 +45,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Category
+import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.domain.model.VideoAd
 import com.youtubeclone.app.presentation.ads.SponsoredAdCard
+import com.youtubeclone.app.presentation.channel.PostCard
 import com.youtubeclone.app.presentation.common.AppLogo
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.MessageState
@@ -65,6 +67,9 @@ import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 private val TopBarHeight = 48.dp
 private val ChipHeight = 32.dp
 
+// Le post mis en avant vient après les trois premières vidéos du fil.
+private const val VIDEOS_BEFORE_POST = 3
+
 @Composable
 fun HomeScreen(
     onVideoClick: (videoId: String) -> Unit,
@@ -73,9 +78,11 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onSponsoredAdClick: (VideoAd) -> Unit,
     onRemoveAdsClick: () -> Unit,
+    onPostClick: (channelId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
+    val latestPost by viewModel.latestPost.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sponsoredAd by viewModel.sponsoredAd.collectAsStateWithLifecycle()
     val filters by viewModel.filters.collectAsStateWithLifecycle()
@@ -101,6 +108,8 @@ fun HomeScreen(
             onRemoveAdsClick()
         },
         onSponsoredAdShown = viewModel::onSponsoredAdShown,
+        latestPost = latestPost,
+        onPostClick = onPostClick,
     )
 }
 
@@ -120,6 +129,8 @@ private fun HomeContent(
     onSponsoredAdClick: (VideoAd) -> Unit = {},
     onRemoveAdsClick: (VideoAd) -> Unit = {},
     onSponsoredAdShown: (VideoAd) -> Unit = {},
+    latestPost: Post? = null,
+    onPostClick: (channelId: String) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -151,12 +162,29 @@ private fun HomeContent(
                             )
                         }
                     }
-                    itemsIndexed(uiState.videos, key = { _, video -> video.id }) { index, video ->
+                    // Le post le plus récent s'insère après les premières vidéos.
+                    val firstVideos = uiState.videos.take(VIDEOS_BEFORE_POST)
+                    val otherVideos = uiState.videos.drop(VIDEOS_BEFORE_POST)
+                    itemsIndexed(firstVideos, key = { _, video -> video.id }) { index, video ->
                         VideoCard(
                             video = video,
                             onChannelClick = { onChannelClick(video.channel.id) },
                             modifier = Modifier
                                 .staggeredAppearance(appearance, video.id, index)
+                                .clickable { onVideoClick(video.id) },
+                        )
+                    }
+                    if (latestPost != null) {
+                        item(key = "post-${latestPost.id}") {
+                            PostCard(latestPost, onClick = { onPostClick(latestPost.channel.id) })
+                        }
+                    }
+                    itemsIndexed(otherVideos, key = { _, video -> video.id }) { index, video ->
+                        VideoCard(
+                            video = video,
+                            onChannelClick = { onChannelClick(video.channel.id) },
+                            modifier = Modifier
+                                .staggeredAppearance(appearance, video.id, index + VIDEOS_BEFORE_POST)
                                 .clickable { onVideoClick(video.id) },
                         )
                     }

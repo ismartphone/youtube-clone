@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.model.SubscriptionFeedItem
+import com.youtubeclone.app.presentation.channel.PostCard
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.MessageState
@@ -31,6 +33,7 @@ import com.youtubeclone.app.presentation.home.VideoCardSpacing
 fun SubscriptionsScreen(
     onVideoClick: (videoId: String) -> Unit,
     onChannelClick: (channelId: String) -> Unit,
+    onPostClick: (channelId: String) -> Unit,
     onLoginClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SubscriptionsViewModel = hiltViewModel(),
@@ -46,12 +49,15 @@ fun SubscriptionsScreen(
             modifier = modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(VideoCardSpacing),
         ) {
-            items(state.videos, key = { it.id }) { video ->
-                VideoCard(
-                    video = video,
-                    onChannelClick = { onChannelClick(video.channel.id) },
-                    modifier = Modifier.clickable { onVideoClick(video.id) },
-                )
+            items(state.items, key = { it.id }) { item ->
+                when (item) {
+                    is SubscriptionFeedItem.OfVideo -> VideoCard(
+                        video = item.video,
+                        onChannelClick = { onChannelClick(item.video.channel.id) },
+                        modifier = Modifier.clickable { onVideoClick(item.video.id) },
+                    )
+                    is SubscriptionFeedItem.OfPost -> PostCard(item.post, onClick = { onPostClick(item.post.channel.id) })
+                }
             }
         }
     }

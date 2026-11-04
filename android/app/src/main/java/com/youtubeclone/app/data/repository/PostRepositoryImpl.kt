@@ -54,6 +54,11 @@ class PostRepositoryImpl @Inject constructor(
     override suspend fun getChannelPosts(channelId: String, page: Int, pageSize: Int): PostPage =
         apiCall(json) { api.getChannelPosts(channelId, page, pageSize) }.toDomain()
 
+    override suspend fun getLatestPost(): Post? = apiCall(json) { api.getLatestPost() }.post?.toDomain()
+
+    override suspend fun getFollowedPosts(page: Int, pageSize: Int): PostPage =
+        apiCall(json) { api.getFollowedPosts(page, pageSize) }.toDomain()
+
     private companion object {
         val IMAGE_TYPE = "image/jpeg".toMediaType()
         val TEXT_TYPE = "text/plain".toMediaType()

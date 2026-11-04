@@ -17,6 +17,32 @@ export class PrismaPostRepository implements PostRepository {
     return this.prisma.post.create({ data: post, select: POST_SELECT });
   }
 
+  findLatest(): Promise<Post | null> {
+    return this.prisma.post.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: POST_SELECT,
+    });
+  }
+
+  async findFollowedBy(
+    userId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<PostPage> {
+    const where = { channel: { followers: { some: { userId } } } };
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.post.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: POST_SELECT,
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+    return { items, page, pageSize, total };
+  }
+
   async findByChannel(
     channelId: string,
     page: number,

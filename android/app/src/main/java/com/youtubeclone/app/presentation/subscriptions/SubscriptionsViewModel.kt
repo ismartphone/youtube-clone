@@ -2,8 +2,8 @@ package com.youtubeclone.app.presentation.subscriptions
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.youtubeclone.app.domain.model.Video
-import com.youtubeclone.app.domain.usecase.GetSubscriptionFeedUseCase
+import com.youtubeclone.app.domain.model.SubscriptionFeedItem
+import com.youtubeclone.app.domain.usecase.GetSubscriptionTimelineUseCase
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
@@ -22,14 +22,15 @@ sealed interface SubscriptionsUiState {
     data object LoggedOut : SubscriptionsUiState
     data object Empty : SubscriptionsUiState
     data class Error(val error: UiError) : SubscriptionsUiState
-    data class Success(val videos: List<Video>) : SubscriptionsUiState
+    /** Vidéos et posts des chaînes suivies, mêlés par date. */
+    data class Success(val items: List<SubscriptionFeedItem>) : SubscriptionsUiState
 }
 
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
     observeSession: ObserveSessionUseCase,
     observeFollowChanges: ObserveFollowChangesUseCase,
-    private val getSubscriptionFeed: GetSubscriptionFeedUseCase,
+    private val getSubscriptionTimeline: GetSubscriptionTimelineUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<SubscriptionsUiState>(SubscriptionsUiState.Loading)
@@ -57,8 +58,8 @@ class SubscriptionsViewModel @Inject constructor(
         loadJob = viewModelScope.launch {
             _uiState.value = try {
                 // Première page seulement, comme le fil d'accueil.
-                val page = getSubscriptionFeed()
-                if (page.items.isEmpty()) SubscriptionsUiState.Empty else SubscriptionsUiState.Success(page.items)
+                val items = getSubscriptionTimeline()
+                if (items.isEmpty()) SubscriptionsUiState.Empty else SubscriptionsUiState.Success(items)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

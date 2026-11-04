@@ -77,7 +77,7 @@ import com.youtubeclone.app.presentation.watch.SuggestedVideoCard
 // hiérarchie, avec les conventions Material.
 
 /** Onglets de la page : Vidéos et Shorts montrent chacun un format de vidéo, Posts les posts (ADR-015). */
-private enum class ChannelTab(
+internal enum class ChannelTab(
     @StringRes val label: Int,
     val format: VideoFormat?,
     @DrawableRes val emptyIcon: Int,
@@ -132,6 +132,7 @@ fun ChannelScreen(
                 onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
                 onNotificationLevelSelect = viewModel.follow::selectNotificationLevel,
                 onCustomizeClick = onCustomizeClick,
+                initialTab = viewModel.initialTab,
                 onVideoClick = onVideoClick,
                 onShortClick = onShortClick,
                 modifier = contentModifier,
@@ -391,13 +392,15 @@ private fun ShortTile(video: Video, modifier: Modifier = Modifier) {
 }
 
 // Post : avatar, nom et date, texte, puis l'image éventuelle sur toute la largeur.
+// Aussi dans le fil d'accueil et le fil Abonnements, où un appui ouvre les Posts de la chaîne.
 @Composable
-private fun PostCard(post: Post) {
+internal fun PostCard(post: Post, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(12.dp))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),

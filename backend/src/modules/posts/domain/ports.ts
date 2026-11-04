@@ -9,6 +9,14 @@ export const POST_IMAGE_STORE = Symbol('POST_IMAGE_STORE');
 
 export interface PostRepository {
   create(post: NewPost): Promise<Post>;
+  // Post le plus récent de la plateforme (fil d'accueil), ou null s'il n'y en a aucun.
+  findLatest(): Promise<Post | null>;
+  // Posts des chaînes suivies par l'utilisateur (fil Abonnements), du plus récent au plus ancien.
+  findFollowedBy(
+    userId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<PostPage>;
   // Posts de la chaîne, du plus récent au plus ancien.
   findByChannel(
     channelId: string,

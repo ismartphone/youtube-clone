@@ -93,7 +93,8 @@ import kotlinx.serialization.Serializable
     val isHls: Boolean,
     val durationSeconds: Int,
 )
-@Serializable data class ChannelRoute(val channelId: String)
+// [tab] : onglet ouvert d'emblée, par exemple « Posts » depuis un post du fil ; null : Vidéos.
+@Serializable data class ChannelRoute(val channelId: String, val tab: String? = null)
 // Lecteur Shorts plein écran ouvert sur un Short précis (depuis une page de chaîne).
 // Le nom du paramètre est lu par ShortsViewModel.
 @Serializable data class ShortsPlayerRoute(val startVideoId: String)
@@ -231,6 +232,7 @@ fun AppNavigation(
         ) {
             val openVideo = { videoId: String -> navController.navigate(WatchRoute(videoId)) }
             val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
+            val openChannelPosts = { channelId: String -> navController.navigate(ChannelRoute(channelId, tab = "Posts")) }
             val openLogin = { navController.navigate(LoginRoute) }
             val openPaywall = { navController.navigate(PaywallRoute()) }
 
@@ -244,6 +246,7 @@ fun AppNavigation(
                         navController.navigate(AdPlayerRoute(ad.id, ad.title, ad.streamUrl, ad.isHls, ad.durationSeconds))
                     },
                     onRemoveAdsClick = openPaywall,
+                    onPostClick = openChannelPosts,
                 )
             }
             composable<AdPlayerRoute> {
@@ -276,7 +279,12 @@ fun AppNavigation(
                 )
             }
             composable<SubscriptionsRoute> {
-                SubscriptionsScreen(onVideoClick = openVideo, onChannelClick = openChannel, onLoginClick = openLogin)
+                SubscriptionsScreen(
+                    onVideoClick = openVideo,
+                    onChannelClick = openChannel,
+                    onPostClick = openChannelPosts,
+                    onLoginClick = openLogin,
+                )
             }
             composable<WatchRoute> {
                 WatchScreen(

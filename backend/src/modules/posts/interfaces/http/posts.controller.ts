@@ -29,7 +29,9 @@ import { CurrentUser } from '../../../auth/interfaces/http/current-user.decorato
 import { JwtAuthGuard } from '../../../auth/interfaces/http/jwt-auth.guard.js';
 import {
   CreatePostUseCase,
+  GetLatestPostUseCase,
   ListChannelPostsUseCase,
+  ListFollowedPostsUseCase,
 } from '../../application/post.use-cases.js';
 import {
   ChannelNotFoundError,
@@ -148,5 +150,37 @@ export class ChannelPostsController {
       }
       throw error;
     }
+  }
+}
+
+// Post mis en avant dans le fil d'accueil : le plus récent de la plateforme, ou null.
+@Controller('posts')
+export class LatestPostController {
+  constructor(private readonly latestPost: GetLatestPostUseCase) {}
+
+  @Get('latest')
+  async latest() {
+    const post = await this.latestPost.execute();
+    return { post: post ? presentPost(post) : null };
+  }
+}
+
+// Posts des chaînes suivies, pour le fil Abonnements.
+@Controller('me/feed/posts')
+@UseGuards(JwtAuthGuard)
+export class FollowedPostsController {
+  constructor(private readonly listPosts: ListFollowedPostsUseCase) {}
+
+  @Get()
+  async list(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: ListPostsQuery,
+  ) {
+    const page = await this.listPosts.execute(
+      user.id,
+      query.page,
+      query.pageSize,
+    );
+    return { ...page, items: page.items.map(presentPost) };
   }
 }

@@ -13,4 +13,10 @@ interface PostRepository {
 
     /** Posts d'une chaîne, du plus récent au plus ancien. */
     suspend fun getChannelPosts(channelId: String, page: Int, pageSize: Int): PostPage
+
+    /** Post le plus récent de la plateforme, ou null s'il n'y en a aucun. */
+    suspend fun getLatestPost(): Post?
+
+    /** Posts des chaînes suivies, du plus récent au plus ancien. Exige une session ouverte. */
+    suspend fun getFollowedPosts(page: Int, pageSize: Int): PostPage
 }

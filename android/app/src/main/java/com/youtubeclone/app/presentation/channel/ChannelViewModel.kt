@@ -46,7 +46,11 @@ class ChannelViewModel @Inject constructor(
     private val getChannelPosts: GetChannelPostsUseCase,
 ) : ViewModel() {
 
-    private val channelId = savedStateHandle.toRoute<ChannelRoute>().channelId
+    private val route = savedStateHandle.toRoute<ChannelRoute>()
+    private val channelId = route.channelId
+
+    /** Onglet ouvert d'emblée : Posts depuis un post du fil, Vidéos sinon. */
+    internal val initialTab: ChannelTab = ChannelTab.entries.firstOrNull { it.name == route.tab } ?: ChannelTab.Videos
 
     private val _uiState = MutableStateFlow<ChannelUiState>(ChannelUiState.Loading)
     val uiState: StateFlow<ChannelUiState> = _uiState.asStateFlow()

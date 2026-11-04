@@ -1,5 +1,6 @@
 package com.youtubeclone.app.data.remote
 
+import com.youtubeclone.app.data.remote.dto.LatestPostDto
 import com.youtubeclone.app.data.remote.dto.PostDto
 import com.youtubeclone.app.data.remote.dto.PostPageDto
 import okhttp3.MultipartBody
@@ -24,6 +25,17 @@ interface PostApi {
     @GET("channels/{id}/posts")
     suspend fun getChannelPosts(
         @Path("id") channelId: String,
+        @Query("page") page: Int,
+        @Query("pageSize") pageSize: Int,
+    ): PostPageDto
+
+    // Post le plus récent de la plateforme, mis en avant dans le fil d'accueil. Ouverte aux visiteurs.
+    @GET("posts/latest")
+    suspend fun getLatestPost(): LatestPostDto
+
+    // Posts des chaînes suivies, pour le fil Abonnements. Route protégée.
+    @GET("me/feed/posts")
+    suspend fun getFollowedPosts(
         @Query("page") page: Int,
         @Query("pageSize") pageSize: Int,
     ): PostPageDto

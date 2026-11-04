@@ -23,6 +23,12 @@ data class PostPageDto(
     val total: Int,
 )
 
+/** Réponse de GET /posts/latest : null s'il n'y a aucun post. */
+@Serializable
+data class LatestPostDto(
+    val post: PostDto? = null,
+)
+
 fun PostDto.toDomain() = Post(
     id = id,
     text = text,

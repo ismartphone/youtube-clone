@@ -5,12 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.analytics.AnalyticsEvent
 import com.youtubeclone.app.domain.model.Category
+import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoAd
 import com.youtubeclone.app.domain.usecase.GetCategoriesUseCase
 import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
 import com.youtubeclone.app.domain.usecase.GetHomeFeedUseCase
+import com.youtubeclone.app.domain.usecase.GetLatestPostUseCase
 import com.youtubeclone.app.domain.usecase.GetSponsoredAdUseCase
 import com.youtubeclone.app.domain.usecase.ObserveInterestsUseCase
 import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
@@ -55,6 +57,7 @@ class HomeViewModel @Inject constructor(
     private val getSponsoredAd: GetSponsoredAdUseCase,
     observePremium: ObservePremiumStatusUseCase,
     private val analytics: Analytics,
+    private val getLatestPost: GetLatestPostUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -72,6 +75,10 @@ class HomeViewModel @Inject constructor(
     // Bandeau sponsorisé en haut du fil (ADR-021) ; null pour un compte Premium, décidé par le serveur.
     private val _sponsoredAd = MutableStateFlow<VideoAd?>(null)
     val sponsoredAd: StateFlow<VideoAd?> = _sponsoredAd.asStateFlow()
+
+    // Post le plus récent de la plateforme, inséré après les premières vidéos ; null sans post.
+    private val _latestPost = MutableStateFlow<Post?>(null)
+    val latestPost: StateFlow<Post?> = _latestPost.asStateFlow()
 
     // Publicité dont l'affichage a déjà été mesuré : une fois par chargement, pas à chaque défilement.
     private var shownAdId: String? = null
@@ -134,6 +141,20 @@ class HomeViewModel @Inject constructor(
             }
             // Premier chargement terminé, réussi ou non : l'animation d'ouverture peut s'effacer.
             firstScreenReadiness.markReady()
+        }
+        loadLatestPost()
+    }
+
+    // Un échec laisse le fil sans post.
+    private fun loadLatestPost() {
+        viewModelScope.launch {
+            _latestPost.value = try {
+                getLatestPost()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
         }
     }
 

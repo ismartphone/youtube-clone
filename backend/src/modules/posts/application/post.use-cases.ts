@@ -66,3 +66,21 @@ export class ListChannelPostsUseCase {
     return this.posts.findByChannel(channelId, page, pageSize);
   }
 }
+
+// Post mis en avant dans le fil d'accueil : le plus récent de la plateforme.
+export class GetLatestPostUseCase {
+  constructor(private readonly posts: PostRepository) {}
+
+  execute(): Promise<Post | null> {
+    return this.posts.findLatest();
+  }
+}
+
+// Posts du fil Abonnements, que l'application mêle aux vidéos par date.
+export class ListFollowedPostsUseCase {
+  constructor(private readonly posts: PostRepository) {}
+
+  execute(userId: string, page: number, pageSize: number): Promise<PostPage> {
+    return this.posts.findFollowedBy(userId, page, pageSize);
+  }
+}
