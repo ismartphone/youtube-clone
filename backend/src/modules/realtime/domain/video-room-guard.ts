@@ -17,3 +17,11 @@ export interface VideoRoomGuard {
    */
   revalidate(videoId: string): Promise<void>;
 }
+
+export const CONVERSATION_ROOM_ACCESS = Symbol('CONVERSATION_ROOM_ACCESS');
+
+// Salle d'une conversation (ADR-025) : réservée à ses deux participants.
+export interface ConversationRoomAccess {
+  // Faux pour un visiteur, un tiers, ou une conversation qui n'existe pas.
+  isParticipant(conversationId: string, userId: string): Promise<boolean>;
+}
