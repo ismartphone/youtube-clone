@@ -6,6 +6,7 @@ import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.PickedVideoProblem
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.usecase.CheckPickedVideoUseCase
+import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetOwnChannelUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
@@ -32,6 +33,13 @@ sealed interface CreateUiState {
     data class Ready(val channel: Channel) : CreateUiState
 }
 
+/** Onglet En direct : abonnés réels de la chaîne, comparés au seuil de déblocage (ADR-015). */
+sealed interface LiveUiState {
+    data object Loading : LiveUiState
+    data class Error(val error: UiError) : LiveUiState
+    data class Loaded(val followerCount: Int) : LiveUiState
+}
+
 /** Vidéo choisie et acceptée : l'écran de publication s'ouvre avec elle. */
 data class PickedForPublish(val uri: String, val format: VideoFormat)
 
@@ -47,6 +55,7 @@ class CreateViewModel @Inject constructor(
     private val observeSession: ObserveSessionUseCase,
     private val getOwnChannel: GetOwnChannelUseCase,
     private val checkPickedVideo: CheckPickedVideoUseCase,
+    private val getChannelPage: GetChannelPageUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CreateUiState>(CreateUiState.Loading)
@@ -55,17 +64,23 @@ class CreateViewModel @Inject constructor(
     private val _pick = MutableStateFlow(PickUiState())
     val pick: StateFlow<PickUiState> = _pick.asStateFlow()
 
+    private val _live = MutableStateFlow<LiveUiState>(LiveUiState.Loading)
+    val live: StateFlow<LiveUiState> = _live.asStateFlow()
+
     private val _openPublish = MutableSharedFlow<PickedForPublish>(extraBufferCapacity = 1)
     val openPublish: SharedFlow<PickedForPublish> = _openPublish.asSharedFlow()
 
     private var loadJob: Job? = null
     private var pickJob: Job? = null
+    private var liveJob: Job? = null
 
     /** Relu à chaque ouverture : la session ou la chaîne ont pu changer depuis. */
     fun load() {
         loadJob?.cancel()
         _uiState.value = CreateUiState.Loading
         _pick.value = PickUiState()
+        liveJob?.cancel()
+        _live.value = LiveUiState.Loading
         loadJob = viewModelScope.launch {
             _uiState.value = try {
                 when {
@@ -76,6 +91,26 @@ class CreateViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 CreateUiState.Error(e.toUiError())
+            }
+        }
+    }
+
+    /**
+     * Onglet En direct ouvert : nombre d'abonnés de la chaîne, lu sur sa page. Chargé une fois par
+     * ouverture de la feuille ; [force] le relit après une erreur.
+     */
+    fun loadLive(force: Boolean = false) {
+        val channel = (_uiState.value as? CreateUiState.Ready)?.channel ?: return
+        if (!force && (liveJob?.isActive == true || _live.value is LiveUiState.Loaded)) return
+        liveJob?.cancel()
+        _live.value = LiveUiState.Loading
+        liveJob = viewModelScope.launch {
+            _live.value = try {
+                LiveUiState.Loaded(getChannelPage(channel.id).followStatus.followerCount)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                LiveUiState.Error(e.toUiError())
             }
         }
     }

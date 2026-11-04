@@ -13,7 +13,20 @@
     <string name="create_tab_short">Short</string>
     <string name="create_tab_live">En direct</string>
     <string name="create_tab_post">Post</string>
-    <string name="create_live_soon">Bientôt disponible</string>
+    <string name="create_live_title">Débloquez la diffusion en direct</string>
+    <string name="create_live_message">Atteignez %1$d abonnés pour passer en direct depuis votre mobile.</string>
+    <plurals name="create_live_progress">
+        <item quantity="one">%1$d abonné sur %2$d</item>
+        <item quantity="many">%1$d abonnés sur %2$d</item>
+        <item quantity="other">%1$d abonnés sur %2$d</item>
+    </plurals>
+    <string name="create_live_create_shorts">Créer des Shorts</string>
+    <string name="create_live_learn_more">En savoir plus</string>
+    <string name="create_live_unlocked_title">Le direct arrive bientôt</string>
+    <string name="create_live_unlocked_message">Votre chaîne a atteint le seuil : vous pourrez passer en direct dès que la diffusion sera disponible.</string>
+    <string name="create_live_rule_title">Diffuser en direct</string>
+    <string name="create_live_rule_message">Comme sur YouTube, la diffusion en direct depuis un mobile est réservée aux chaînes qui comptent au moins %1$d abonnés. Publier des Shorts et des vidéos est le meilleur moyen d\'en gagner.\n\nDans cette application, seul ce seuil est en place : la diffusion en direct elle-même n\'est pas encore disponible.</string>
+    <string name="create_live_rule_ok">Compris</string>
     <string name="create_video_title">Publier une vidéo</string>
     <string name="create_video_message">Choisissez une vidéo dans votre galerie.</string>
     <string name="create_short_title">Publier un Short</string>

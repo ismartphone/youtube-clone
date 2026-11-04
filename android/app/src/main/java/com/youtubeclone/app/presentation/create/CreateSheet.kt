@@ -15,13 +15,17 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,15 +35,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.model.LIVE_MIN_FOLLOWERS
 import com.youtubeclone.app.domain.model.MAX_UPLOAD_BYTES
 import com.youtubeclone.app.domain.model.PickedVideoProblem
 import com.youtubeclone.app.domain.model.SHORT_MAX_SECONDS
@@ -48,7 +53,8 @@ import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.LoadingState
 
 /**
- * Onglets de la feuille de création (ADR-015). En direct n'est pas développé.
+ * Onglets de la feuille de création (ADR-015). En direct n'affiche que l'écran de déblocage : la
+ * diffusion elle-même n'est pas développée.
  * [format] : format de la vidéo publiée depuis l'onglet, null s'il ne publie pas de vidéo.
  */
 enum class CreateTab(
@@ -59,7 +65,7 @@ enum class CreateTab(
 ) {
     Video(R.string.create_tab_video, R.string.create_video_title, R.string.create_video_message, VideoFormat.LONG),
     Short(R.string.create_tab_short, R.string.create_short_title, R.string.create_short_message, VideoFormat.SHORT),
-    Live(R.string.create_tab_live, R.string.create_tab_live, R.string.create_live_soon),
+    Live(R.string.create_tab_live, R.string.create_live_title, R.string.create_live_message),
     Post(R.string.create_tab_post, R.string.create_post_title, R.string.create_post_message),
 }
 
@@ -68,7 +74,7 @@ private val CONTENT_HEIGHT = 220.dp
 
 /**
  * Feuille ouverte par le bouton + de la barre d'onglets, avec ses onglets en bas : Vidéo, Short,
- * En direct (grisé) et Post. [onLoginRequired], [onPublishVideo], [onCreateChannel] et [onWritePost] sont appelés après la
+ * En direct et Post. [onLoginRequired], [onPublishVideo], [onCreateChannel] et [onWritePost] sont appelés après la
  * fermeture de la feuille.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,8 +89,24 @@ fun CreateSheet(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pick by viewModel.pick.collectAsStateWithLifecycle()
+    val live by viewModel.live.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf(CreateTab.Video) }
+    var showLiveRule by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { viewModel.load() }
+    // Onglet En direct : les abonnés sont lus quand on l'ouvre, une fois la chaîne connue.
+    LaunchedEffect(selected, state) {
+        if (selected == CreateTab.Live && state is CreateUiState.Ready) viewModel.loadLive()
+    }
+    if (showLiveRule) {
+        AlertDialog(
+            onDismissRequest = { showLiveRule = false },
+            title = { Text(stringResource(R.string.create_live_rule_title)) },
+            text = { Text(stringResource(R.string.create_live_rule_message, LIVE_MIN_FOLLOWERS)) },
+            confirmButton = {
+                TextButton(onClick = { showLiveRule = false }) { Text(stringResource(R.string.create_live_rule_ok)) }
+            },
+        )
+    }
     LaunchedEffect(Unit) {
         viewModel.openPublish.collect { picked ->
             onDismiss()
@@ -128,7 +150,14 @@ fun CreateSheet(
                             onCreateChannel()
                         },
                     )
-                    is CreateUiState.Ready -> SheetMessage(
+                    is CreateUiState.Ready -> if (selected == CreateTab.Live) {
+                        LiveUnlock(
+                            state = live,
+                            onRetry = { viewModel.loadLive(force = true) },
+                            onCreateShorts = { selected = CreateTab.Short },
+                            onLearnMore = { showLiveRule = true },
+                        )
+                    } else SheetMessage(
                         title = stringResource(selected.title),
                         message = stringResource(selected.message),
                         action = when {
@@ -207,6 +236,73 @@ private fun SheetMessage(
     }
 }
 
+/**
+ * Écran de déblocage du direct, comme sur YouTube : la condition (50 abonnés), la progression
+ * réelle de la chaîne, « Créer des Shorts » pour gagner des abonnés et « En savoir plus ». Seuil
+ * atteint : le direct arrive bientôt, la diffusion n'étant pas développée (ADR-015).
+ */
+@Composable
+private fun LiveUnlock(
+    state: LiveUiState,
+    onRetry: () -> Unit,
+    onCreateShorts: () -> Unit,
+    onLearnMore: () -> Unit,
+) {
+    when (state) {
+        LiveUiState.Loading -> LoadingState()
+        is LiveUiState.Error -> ErrorState(state.error, onRetry = onRetry)
+        is LiveUiState.Loaded -> {
+            val unlocked = state.followerCount >= LIVE_MIN_FOLLOWERS
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+            ) {
+                Text(
+                    text = stringResource(if (unlocked) R.string.create_live_unlocked_title else R.string.create_live_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = if (unlocked) {
+                        stringResource(R.string.create_live_unlocked_message)
+                    } else {
+                        stringResource(R.string.create_live_message, LIVE_MIN_FOLLOWERS)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.create_live_progress,
+                        state.followerCount,
+                        state.followerCount,
+                        LIVE_MIN_FOLLOWERS,
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                LinearProgressIndicator(
+                    progress = { (state.followerCount.toFloat() / LIVE_MIN_FOLLOWERS).coerceAtMost(1f) },
+                    modifier = Modifier.fillMaxWidth(),
+                    // Rail visible sur le fond de la feuille, qui a la couleur du rail par défaut.
+                    trackColor = MaterialTheme.colorScheme.outlineVariant,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    if (!unlocked) {
+                        Button(onClick = onCreateShorts) { Text(stringResource(R.string.create_live_create_shorts)) }
+                    }
+                    OutlinedButton(onClick = onLearnMore) { Text(stringResource(R.string.create_live_learn_more)) }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun problemText(problem: PickedVideoProblem): String = when (problem) {
     PickedVideoProblem.Unreadable -> stringResource(R.string.create_problem_unreadable)
@@ -224,18 +320,16 @@ private fun CreateTabs(selected: CreateTab, onSelect: (CreateTab) -> Unit) {
         horizontalArrangement = Arrangement.SpaceEvenly,
     ) {
         CreateTab.entries.forEach { tab ->
-            val enabled = tab != CreateTab.Live
             val isSelected = tab == selected
-            val color = when {
-                !enabled -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = DISABLED_ALPHA)
-                isSelected -> MaterialTheme.colorScheme.onBackground
-                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            val color = if (isSelected) {
+                MaterialTheme.colorScheme.onBackground
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
             }
             Column(
                 modifier = Modifier
                     .selectable(
                         selected = isSelected,
-                        enabled = enabled,
                         role = Role.Tab,
                         onClick = { onSelect(tab) },
                     )
@@ -248,17 +342,7 @@ private fun CreateTabs(selected: CreateTab, onSelect: (CreateTab) -> Unit) {
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     style = MaterialTheme.typography.labelLarge,
                 )
-                // En direct : grisé, avec la mention « Bientôt disponible » sous son nom.
-                if (!enabled) {
-                    Text(
-                        text = stringResource(R.string.create_live_soon),
-                        color = color,
-                        fontSize = 10.sp,
-                    )
-                }
             }
         }
     }
 }
-
-private const val DISABLED_ALPHA = 0.5f

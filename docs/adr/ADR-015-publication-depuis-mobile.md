@@ -26,7 +26,13 @@ Un créateur publie des vidéos, des Shorts et des posts depuis l'application mo
 
 ### Feuille de création
 - Le + ouvre une feuille qui monte du bas, avec quatre onglets en bas : Vidéo, Short, En direct, Post.
-- En direct est grisé, avec la mention « Bientôt disponible ». Il n'est pas développé : le live reste hors périmètre.
+- En direct n'est pas grisé : il affiche l'écran de déblocage du direct, sur le modèle de YouTube. La condition pour débloquer le direct est d'avoir au moins 50 abonnés (FOLLOW, abonnement gratuit).
+  - L'écran montre la progression du créateur avec son vrai nombre d'abonnés (par exemple « 3 abonnés sur 50 ») et une barre de progression.
+  - Deux boutons, comme sur YouTube : « Créer des Shorts », qui bascule sur l'onglet Short de la feuille, et « En savoir plus », qui explique la règle.
+  - Un utilisateur sans chaîne voit l'invitation à en créer une, comme sur les autres onglets ; un visiteur non connecté voit l'invitation à se connecter.
+  - À partir de 50 abonnés, l'écran indique que le direct arrive bientôt.
+  - Le seuil de 50 est une constante du domaine de l'application. Le nombre d'abonnés vient de la page de chaîne existante (GET /channels/{id}), chargée à l'ouverture de l'onglet. Aucune route backend n'est ajoutée.
+  - Limite : le seuil est réel et calculé sur les abonnés, mais la diffusion en direct elle-même reste hors périmètre (CLAUDE.md) : un serveur de streaming est un projet à lui seul.
 - Un utilisateur sans chaîne voit une invitation à en créer une.
 
 ### Vidéo et Short
@@ -74,12 +80,15 @@ Un créateur publie des vidéos, des Shorts et des posts depuis l'application mo
 - La surface d'attaque nouvelle est maîtrisée : validation par ffprobe, taille maximale, nom de fichier généré par le serveur.
 - La génération des miniatures réutilise le service FFmpeg existant, sans nouveau traitement.
 - La publication depuis le back-office est conservée.
+- L'onglet En direct montre au créateur une règle réelle, sa progression vers 50 abonnés, et l'oriente vers les Shorts, sans nouvelle route backend.
 
 ### Négatives
 - Surface d'attaque nouvelle : des utilisateurs envoient des fichiers au serveur.
 - Les vidéos envoyées occupent l'espace disque du stockage local.
 - Une nouvelle table POST, avec sa migration Prisma.
 - Le catalogue n'est plus alimenté par le seul administrateur.
+- Atteindre 50 abonnés ne débloque pas de diffusion en direct : l'écran annonce seulement que le direct arrive bientôt, la diffusion restant hors périmètre.
+- La page de chaîne est chargée à chaque ouverture de l'onglet En direct pour connaître le nombre d'abonnés.
 
 ## Liens
 - [ADR-005](ADR-005-ajout-videos-backoffice.md) : ajout des vidéos uniquement depuis le back-office ; cet ADR le remplace.
