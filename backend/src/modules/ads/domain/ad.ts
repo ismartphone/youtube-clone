@@ -17,24 +17,40 @@ export interface Ad {
   // Site de l'annonceur (« Visiter le site », bandeau sponsorisé). Null seulement pour une
   // publicité enregistrée avant ce champ.
   destinationUrl: string | null;
+  // Carte du bandeau sponsorisé. Nom et description : null seulement pour une publicité
+  // enregistrée avant ces champs ; logo facultatif (sinon l'initiale de l'annonceur).
+  advertiserName: string | null;
+  description: string | null;
+  logoUrl: string | null;
+  // Libellé du bouton principal, repris par la bande pendant l'annonce.
+  ctaLabel: string;
   createdAt: Date;
 }
 
-export interface NewAd {
+// Champs saisis à l'import, et modifiables ensuite depuis le back-office.
+export interface AdFields {
   title: string;
+  destinationUrl: string;
+  advertiserName: string;
+  description: string;
+  // Absent : « Visiter le site ».
+  ctaLabel?: string;
+}
+
+export interface NewAd extends AdFields {
   videoUrl: string;
   thumbnailUrl: string | null;
   durationSeconds: number;
-  destinationUrl: string;
 }
 
 // Champs modifiables depuis le back-office ; un champ absent n'est pas modifié.
-export interface AdChanges {
-  title?: string;
-  destinationUrl?: string;
-}
+export type AdChanges = Partial<AdFields>;
 
 export const AD_URL_MAX_LENGTH = 2048;
+export const AD_ADVERTISER_MAX_LENGTH = 60;
+export const AD_DESCRIPTION_MAX_LENGTH = 150;
+export const AD_CTA_MAX_LENGTH = 25;
+export const DEFAULT_AD_CTA = 'Visiter le site';
 
 export class AdNotFoundError extends Error {
   constructor() {

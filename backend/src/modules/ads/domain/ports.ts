@@ -13,6 +13,8 @@ export interface AdRepository {
   setHlsUrl(id: string, hlsUrl: string): Promise<boolean>;
   // Renvoie la publicité modifiée, ou null si elle n'existe pas.
   update(id: string, changes: AdChanges): Promise<Ad | null>;
+  // Renvoie la publicité avant modification, ou null si elle n'existe pas.
+  setLogoUrl(id: string, logoUrl: string | null): Promise<Ad | null>;
   // Renvoie la publicité supprimée, ou null si elle n'existait pas.
   delete(id: string): Promise<Ad | null>;
   // Une publicité au hasard, ou null s'il n'y en a aucune.
@@ -26,4 +28,12 @@ export interface AdFileStore {
   save(path: string): Promise<string>;
   // Supprime un fichier rangé par save ; sans effet pour toute autre URL.
   remove(videoUrl: string): Promise<void>;
+}
+
+// Logo de l'annonceur : JPEG ou PNG vérifié par ffprobe, recadré carré (ADR-021).
+export interface AdLogoStore {
+  // Lève InvalidChannelImageError ou ChannelImageUnavailableError.
+  save(path: string): Promise<string>;
+  // Supprime un logo rangé par save ; sans effet pour toute autre URL.
+  remove(url: string): Promise<void>;
 }

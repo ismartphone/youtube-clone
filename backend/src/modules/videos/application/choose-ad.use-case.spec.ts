@@ -10,6 +10,10 @@ const AD: Ad = {
   thumbnailUrl: null,
   durationSeconds: 20,
   destinationUrl: 'https://www.exemple.fr',
+  advertiserName: 'Exemple',
+  description: 'Une publicité.',
+  logoUrl: null,
+  ctaLabel: 'Visiter le site',
   createdAt: new Date(0),
 };
 const chooseAd = new ChooseAdUseCase({ pick: () => Promise.resolve(AD) });

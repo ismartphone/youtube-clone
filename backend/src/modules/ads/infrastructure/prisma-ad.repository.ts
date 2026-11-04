@@ -29,6 +29,18 @@ export class PrismaAdRepository implements AdRepository {
     return count > 0 ? this.prisma.ad.findUnique({ where: { id } }) : null;
   }
 
+  async setLogoUrl(id: string, logoUrl: string | null): Promise<Ad | null> {
+    const ad = await this.prisma.ad.findUnique({ where: { id } });
+    if (!ad) {
+      return null;
+    }
+    const { count } = await this.prisma.ad.updateMany({
+      where: { id },
+      data: { logoUrl },
+    });
+    return count > 0 ? ad : null;
+  }
+
   async delete(id: string): Promise<Ad | null> {
     const ad = await this.prisma.ad.findUnique({ where: { id } });
     if (!ad) {

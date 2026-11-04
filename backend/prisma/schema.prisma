@@ -284,6 +284,13 @@ model Ad {
   // Site de l'annonceur, ouvert par « Visiter le site » et par le bandeau sponsorisé. Saisi à
   // l'import ; null seulement pour une ligne antérieure à ce champ.
   destinationUrl  String?
+  // Carte du bandeau sponsorisé : nom de l'annonceur, description courte, logo carré facultatif
+  // (sinon son initiale) et libellé du bouton principal, repris par la bande pendant l'annonce.
+  // Nom et description : null seulement pour une ligne antérieure à ces champs.
+  advertiserName  String?
+  description     String?
+  logoUrl         String?
+  ctaLabel        String   @default("Visiter le site")
   createdAt       DateTime @default(now())
 
   @@map("ads")

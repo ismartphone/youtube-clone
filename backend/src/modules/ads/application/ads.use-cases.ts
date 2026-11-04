@@ -6,9 +6,18 @@ import {
   type ThumbnailGenerator,
 } from '../../videos/domain/thumbnail-generator.js';
 import type { VideoProber } from '../../videos/domain/video-upload.js';
-import { AdNotFoundError, type Ad, type AdChanges } from '../domain/ad.js';
+import {
+  AdNotFoundError,
+  type Ad,
+  type AdChanges,
+  type AdFields,
+} from '../domain/ad.js';
 import type { AdPicker } from '../domain/ad-picker.js';
-import type { AdFileStore, AdRepository } from '../domain/ports.js';
+import type {
+  AdFileStore,
+  AdLogoStore,
+  AdRepository,
+} from '../domain/ports.js';
 
 // Publicités du back-office (ADR-021) : même traitement que les vidéos. Le fichier est vérifié
 // par ffprobe, rangé sous un nom généré, une miniature en est extraite, puis l'échelle HLS est
@@ -22,6 +31,7 @@ export class ManageAdsUseCase {
     private readonly prober: VideoProber,
     private readonly thumbnails: ThumbnailGenerator,
     private readonly hls: HlsGenerator,
+    private readonly logos: AdLogoStore,
   ) {}
 
   list(): Promise<Ad[]> {
@@ -33,8 +43,7 @@ export class ManageAdsUseCase {
   // [waitForHls] : la commande ads:import attend l'encodage, le back-office non.
   async import(
     tempPath: string,
-    title: string,
-    destinationUrl: string,
+    fields: AdFields,
     waitForHls = false,
   ): Promise<Ad> {
     const probed = await this.prober.probe(tempPath);
@@ -48,11 +57,10 @@ export class ManageAdsUseCase {
         thumbnailSize('LONG'),
       );
       const ad = await this.ads.create({
-        title,
+        ...fields,
         videoUrl,
         thumbnailUrl,
         durationSeconds,
-        destinationUrl,
       });
       const hls = this.generateHls(ad);
       if (waitForHls) await hls;
@@ -64,7 +72,8 @@ export class ManageAdsUseCase {
     }
   }
 
-  // Titre (bandeau sponsorisé) et site de l'annonceur, modifiables depuis le back-office.
+  // Champs de la carte (titre, site, annonceur, description, libellé), modifiables depuis le
+  // back-office.
   async update(id: string, changes: AdChanges): Promise<Ad> {
     const ad = await this.ads.update(id, changes);
     if (!ad) {
@@ -73,7 +82,30 @@ export class ManageAdsUseCase {
     return ad;
   }
 
-  // Supprime aussi le fichier, l'échelle HLS et la miniature.
+  // [tempPath] : image reçue, à supprimer par l'appelant. L'ancien logo est supprimé.
+  // Lève InvalidChannelImageError ou ChannelImageUnavailableError.
+  async setLogo(id: string, tempPath: string): Promise<Ad> {
+    const logoUrl = await this.logos.save(tempPath);
+    const previous = await this.ads.setLogoUrl(id, logoUrl);
+    if (!previous) {
+      await this.logos.remove(logoUrl);
+      throw new AdNotFoundError();
+    }
+    if (previous.logoUrl) await this.logos.remove(previous.logoUrl);
+    return { ...previous, logoUrl };
+  }
+
+  // Sans logo, la carte affiche l'initiale de l'annonceur.
+  async removeLogo(id: string): Promise<Ad> {
+    const previous = await this.ads.setLogoUrl(id, null);
+    if (!previous) {
+      throw new AdNotFoundError();
+    }
+    if (previous.logoUrl) await this.logos.remove(previous.logoUrl);
+    return { ...previous, logoUrl: null };
+  }
+
+  // Supprime aussi le fichier, l'échelle HLS, la miniature et le logo.
   async remove(id: string): Promise<void> {
     const ad = await this.ads.delete(id);
     if (!ad) {
@@ -82,6 +114,7 @@ export class ManageAdsUseCase {
     await this.files.remove(ad.videoUrl);
     if (ad.hlsUrl) await this.hls.remove(ad.hlsUrl);
     if (ad.thumbnailUrl) await this.thumbnails.remove(ad.thumbnailUrl);
+    if (ad.logoUrl) await this.logos.remove(ad.logoUrl);
   }
 
   // Ne lève jamais : un échec est journalisé et laisse la lecture en MP4.

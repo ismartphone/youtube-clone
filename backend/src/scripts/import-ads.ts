@@ -1,10 +1,10 @@
 // Enregistre une publicité déposée à la main dans storage/media/ads/ (ADR-021), sur le modèle de
 // seed:cc-videos : le fichier est vérifié par ffprobe, rangé sous un nom généré, sa miniature
-// extraite et son échelle HLS générée. Le titre, affiché sur le bandeau sponsorisé, et le site
-// de l'annonceur sont saisis : le titre n'est jamais déduit du nom du fichier. Les deux se
-// modifient ensuite dans la page Publicités.
+// extraite et son échelle HLS générée. Les champs de la carte du bandeau sponsorisé sont saisis
+// (titre, site, annonceur, description) : le titre n'est jamais déduit du nom du fichier. Ils se
+// modifient ensuite dans la page Publicités, qui ajoute aussi le logo et le libellé du bouton.
 // L'original n'est retiré qu'une fois sa copie enregistrée : un fichier refusé reste en place.
-// Lancement : npm run ads:import -- "<fichier dans storage/media/ads>" "<titre>" "<URL du site>" "<URL du site>"
+// Lancement : npm run ads:import -- "<fichier dans storage/media/ads>" "<titre>" "<URL du site>" "<annonceur>" "<description>" "<URL du site>"
 // Sans argument : liste les fichiers du dossier pas encore enregistrés.
 import { copyFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -18,6 +18,8 @@ import {
   LocalAdFileStore,
 } from '../modules/ads/infrastructure/local-ad-file-store.js';
 import { PrismaAdRepository } from '../modules/ads/infrastructure/prisma-ad.repository.js';
+import { ChannelImageAdLogoStore } from '../modules/ads/infrastructure/channel-image-ad-logo-store.js';
+import { LocalChannelImageStore } from '../modules/channels/infrastructure/local-channel-image-store.js';
 import { FfmpegHlsGenerator } from '../modules/videos/infrastructure/ffmpeg-hls-generator.js';
 import { FfmpegThumbnailGenerator } from '../modules/videos/infrastructure/ffmpeg-thumbnail-generator.js';
 import { FfprobeVideoProber } from '../modules/videos/infrastructure/ffprobe-video-prober.js';
@@ -48,10 +50,18 @@ async function main() {
       ffprobe: ffprobeCommand(),
       mediaDir,
     }),
+    new ChannelImageAdLogoStore(
+      new LocalChannelImageStore({
+        ffmpeg: ffmpegCommand(),
+        ffprobe: ffprobeCommand(),
+        mediaDir,
+      }),
+    ),
   );
   try {
     const folder = join(mediaDir, ADS_FOLDER);
-    const [fileArg, titleArg, urlArg] = process.argv.slice(2);
+    const [fileArg, titleArg, urlArg, advertiserArg, descriptionArg] =
+      process.argv.slice(2);
     if (!fileArg) {
       const known = new Set(await repository.findVideoUrls());
       const files = (await readdir(folder, { withFileTypes: true }))
@@ -64,7 +74,7 @@ async function main() {
         console.log('À enregistrer, un fichier à la fois :');
         for (const name of files) {
           console.log(
-            `  npm run ads:import -- "${name}" "<titre>" "<URL du site>"`,
+            `  npm run ads:import -- "${name}" "<titre>" "<URL du site>" "<annonceur>" "<description>"`,
           );
         }
       }
@@ -74,7 +84,7 @@ async function main() {
     const title = titleArg?.trim() ?? '';
     if (title.length === 0 || title.length > AD_TITLE_MAX_LENGTH) {
       console.error(
-        `Donnez un titre de 1 à ${AD_TITLE_MAX_LENGTH} caractères : npm run ads:import -- "${name}" "<titre>" "<URL du site>"`,
+        `Donnez un titre de 1 à ${AD_TITLE_MAX_LENGTH} caractères : npm run ads:import -- "${name}" "<titre>" "<URL du site>" "<annonceur>" "<description>"`,
       );
       process.exitCode = 1;
       return;
@@ -87,11 +97,24 @@ async function main() {
       process.exitCode = 1;
       return;
     }
+    const advertiserName = advertiserArg?.trim() ?? '';
+    const description = descriptionArg?.trim() ?? '';
+    if (!advertiserName || !description) {
+      console.error(
+        `Donnez aussi le nom de l'annonceur et une description courte : npm run ads:import -- "${name}" "${title}" "${destinationUrl}" "<annonceur>" "<description>"`,
+      );
+      process.exitCode = 1;
+      return;
+    }
     // Une copie est importée : l'original reste intact si elle est refusée.
     const copy = join(tmpdir(), `ad-${randomUUID()}`);
     await copyFile(join(folder, name), copy);
     try {
-      const ad = await ads.import(copy, title, destinationUrl, true);
+      const ad = await ads.import(
+        copy,
+        { title, destinationUrl, advertiserName, description },
+        true,
+      );
       await rm(join(folder, name), { force: true });
       console.log(
         `  ✓ ${name} → « ${ad.title} », ${ad.videoUrl} (${ad.durationSeconds} s)`,

@@ -30,10 +30,12 @@ const FORMATS: Record<
 > = {
   photo: { folder: 'channel-photos', width: 512, height: 512 },
   banner: { folder: 'channel-banners', width: 2048, height: 569 },
+  // Logo d'annonceur du bandeau sponsorisé (ADR-021) : même traitement que la photo de chaîne.
+  adLogo: { folder: 'ad-logos', width: 512, height: 512 },
 };
 // Nom généré par le serveur ; les avatars générés et les bannières du seed n'y ressemblent pas.
 const UPLOADED_URL =
-  /^\/media\/(channel-photos|channel-banners)\/[0-9a-f-]{36}\.jpg$/;
+  /^\/media\/(channel-photos|channel-banners|ad-logos)\/[0-9a-f-]{36}\.jpg$/;
 
 export interface ChannelImageConfig {
   ffmpeg: string;

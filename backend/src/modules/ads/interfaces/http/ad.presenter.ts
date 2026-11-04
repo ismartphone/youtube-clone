@@ -12,6 +12,10 @@ export function presentAd(ad: Ad) {
     thumbnailUrl: ad.thumbnailUrl,
     durationSeconds: ad.durationSeconds,
     destinationUrl: ad.destinationUrl,
+    advertiserName: ad.advertiserName,
+    description: ad.description,
+    logoUrl: ad.logoUrl,
+    ctaLabel: ad.ctaLabel,
   };
 }
 

@@ -13,6 +13,7 @@ export default function AdsPage() {
       onDraftChange={ads.changeDraft}
       fileInputKey={ads.fileInputKey}
       onFileChange={ads.changeFile}
+      onLogoChange={ads.changeLogo}
       formError={ads.formError}
       importing={ads.importing}
       onImport={ads.submit}
@@ -25,6 +26,8 @@ export default function AdsPage() {
       rowErrors={ads.rowErrors}
       savingId={ads.savingId}
       onSaveRow={ads.saveRow}
+      onRowLogoChange={ads.changeRowLogo}
+      onRemoveRowLogo={ads.removeRowLogo}
     />
   );
 }

@@ -6,6 +6,7 @@ import {
 } from '../../shared/infrastructure/media.config.js';
 import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
 import { AuthModule } from '../auth/auth.module.js';
+import { LocalChannelImageStore } from '../channels/infrastructure/local-channel-image-store.js';
 import { FfmpegHlsGenerator } from '../videos/infrastructure/ffmpeg-hls-generator.js';
 import { FfmpegThumbnailGenerator } from '../videos/infrastructure/ffmpeg-thumbnail-generator.js';
 import { FfprobeVideoProber } from '../videos/infrastructure/ffprobe-video-prober.js';
@@ -20,6 +21,7 @@ import {
   type AdFileStore,
   type AdRepository,
 } from './domain/ports.js';
+import { ChannelImageAdLogoStore } from './infrastructure/channel-image-ad-logo-store.js';
 import { LocalAdFileStore } from './infrastructure/local-ad-file-store.js';
 import { PrismaAdRepository } from './infrastructure/prisma-ad.repository.js';
 import { AdminAdsController } from './interfaces/http/admin-ads.controller.js';
@@ -54,6 +56,13 @@ import { AdminAdsController } from './interfaces/http/admin-ads.controller.js';
             ffprobe: ffprobeCommand(),
             mediaDir,
           }),
+          new ChannelImageAdLogoStore(
+            new LocalChannelImageStore({
+              ffmpeg: ffmpegCommand(),
+              ffprobe: ffprobeCommand(),
+              mediaDir,
+            }),
+          ),
         );
       },
       inject: [AD_REPOSITORY, AD_FILE_STORE],
