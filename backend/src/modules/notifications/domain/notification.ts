@@ -42,3 +42,12 @@ export function toMessage(publication: Publication): PublicationMessage {
     thumbnailUrl: publication.thumbnailUrl,
   };
 }
+
+// Message reçu dans la messagerie (ADR-025, étape 3). Message de données seulement, comme pour
+// les publications : l'application écrit la notification. [text] null : une vidéo partagée,
+// annoncée « a partagé une vidéo ».
+export interface MessagePush {
+  conversationId: string;
+  senderName: string;
+  text: string | null;
+}

@@ -1,3 +1,4 @@
+import type { MessageNotifier } from '../../notifications/domain/message-notifier.js';
 import type { MessagingPublisher } from '../../realtime/domain/messaging-publisher.js';
 import {
   orderedPair,
@@ -18,6 +19,7 @@ export class MessagingUseCases {
   constructor(
     private readonly repository: MessagingRepository,
     private readonly publisher: MessagingPublisher,
+    private readonly notifier: MessageNotifier,
   ) {}
 
   listConversations(
@@ -53,15 +55,20 @@ export class MessagingUseCases {
     if (!(await this.repository.otherParticipant(conversationId, userId))) {
       return null;
     }
-    return this.repository.listMessages(conversationId, pagination);
+    return this.repository.listMessages(conversationId, pagination, userId);
   }
 
-  // Enregistre le message, puis le diffuse dans la salle de la conversation (écran ouvert) et
-  // dans la salle personnelle du destinataire (liste des conversations ouverte).
+  /**
+   * Enregistre le message, texte ou vidéo partagée (ADR-025, étape 2), puis le diffuse dans la
+   * salle de la conversation (écran ouvert) et dans la salle personnelle du destinataire (liste
+   * des conversations ouverte), et le notifie (étape 3). Renvoie null si la conversation, ou la
+   * vidéo pour l'expéditeur, n'existe pas.
+   */
   async send(
     conversationId: string,
     senderId: string,
     content: string,
+    videoId: string | null = null,
   ): Promise<Message | null> {
     const recipientId = await this.repository.otherParticipant(
       conversationId,
@@ -70,18 +77,30 @@ export class MessagingUseCases {
     if (!recipientId) {
       return null;
     }
+    if (videoId && !(await this.repository.canShareVideo(videoId, senderId))) {
+      return null;
+    }
     const message = await this.repository.addMessage(
       conversationId,
       senderId,
       content.trim(),
+      videoId,
+      senderId,
     );
     // L'expéditeur a forcément lu jusqu'à son propre message.
     await this.repository.markRead(conversationId, senderId, message.createdAt);
     const sender = await this.repository.findPerson(senderId);
-    if (sender) {
-      const delivered: DeliveredMessage = { ...message, sender };
+    // La vidéo est vue par le destinataire : privée, elle lui est indisponible.
+    const received = await this.repository.findMessage(message.id, recipientId);
+    if (sender && received) {
+      const delivered: DeliveredMessage = { ...received, sender };
       this.publisher.toConversation(conversationId, 'message:new', delivered);
       this.publisher.toUser(recipientId, 'message:new', delivered);
+      this.notifier.notify(recipientId, {
+        conversationId,
+        senderName: sender.displayName,
+        text: message.content || null,
+      });
     }
     return message;
   }

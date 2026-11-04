@@ -3,6 +3,7 @@ import type { PrismaService } from '../../../shared/infrastructure/prisma.servic
 import type { Publication } from '../domain/notification.js';
 import type {
   DeviceTokenRepository,
+  MessageRecipientRepository,
   PublicationRepository,
 } from '../domain/ports.js';
 
@@ -80,5 +81,32 @@ export class PrismaPublicationRepository implements PublicationRepository {
       select: { token: true },
     });
     return devices.map((device) => device.token);
+  }
+}
+
+export class PrismaMessageRecipientRepository implements MessageRecipientRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findTokens(userId: string): Promise<string[]> {
+    const tokens = await this.prisma.deviceToken.findMany({
+      where: { userId, user: { messageNotificationsEnabled: true } },
+      select: { token: true },
+    });
+    return tokens.map(({ token }) => token);
+  }
+
+  async isEnabled(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { messageNotificationsEnabled: true },
+    });
+    return user?.messageNotificationsEnabled ?? true;
+  }
+
+  async setEnabled(userId: string, enabled: boolean): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { messageNotificationsEnabled: enabled },
+    });
   }
 }

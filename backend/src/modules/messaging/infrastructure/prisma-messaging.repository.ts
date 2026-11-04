@@ -1,10 +1,12 @@
 import type { Prisma } from '../../../generated/prisma/client.js';
 import type { PrismaService } from '../../../shared/infrastructure/prisma.service.js';
+import { canAccessVideo } from '../../videos/domain/visibility.js';
 import type {
   ConversationSummary,
   Message,
   Page,
   Person,
+  SharedVideo,
 } from '../domain/conversation.js';
 import type { MessagingRepository } from '../domain/ports.js';
 
@@ -34,8 +36,21 @@ const MESSAGE_SELECT = {
   conversationId: true,
   senderId: true,
   content: true,
+  videoId: true,
   createdAt: true,
 } satisfies Prisma.MessageSelect;
+
+type MessageRow = Prisma.MessageGetPayload<{ select: typeof MESSAGE_SELECT }>;
+
+const SHARED_VIDEO_SELECT = {
+  id: true,
+  title: true,
+  thumbnailUrl: true,
+  format: true,
+  isPremium: true,
+  visibility: true,
+  channel: { select: { name: true, ownerId: true } },
+} satisfies Prisma.VideoSelect;
 
 const CONVERSATION_SELECT = {
   id: true,
@@ -130,8 +145,9 @@ export class PrismaMessagingRepository implements MessagingRepository {
   async listMessages(
     conversationId: string,
     { page, pageSize }: { page: number; pageSize: number },
+    viewerId: string,
   ): Promise<Page<Message>> {
-    const [items, total] = await this.prisma.$transaction([
+    const [rows, total] = await this.prisma.$transaction([
       this.prisma.message.findMany({
         where: { conversationId },
         select: MESSAGE_SELECT,
@@ -141,25 +157,56 @@ export class PrismaMessagingRepository implements MessagingRepository {
       }),
       this.prisma.message.count({ where: { conversationId } }),
     ]);
-    return { items, page, pageSize, total };
+    return {
+      items: await this.withVideos(rows, viewerId),
+      page,
+      pageSize,
+      total,
+    };
   }
 
   async addMessage(
     conversationId: string,
     senderId: string,
     content: string,
+    videoId: string | null,
+    viewerId: string,
   ): Promise<Message> {
-    return this.prisma.$transaction(async (tx) => {
-      const created = await tx.message.create({
-        data: { conversationId, senderId, content },
+    const created = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.message.create({
+        data: { conversationId, senderId, content, videoId },
         select: MESSAGE_SELECT,
       });
       await tx.conversation.update({
         where: { id: conversationId },
-        data: { lastMessageAt: created.createdAt },
+        data: { lastMessageAt: row.createdAt },
       });
-      return created;
+      return row;
     });
+    const [message] = await this.withVideos([created], viewerId);
+    return message;
+  }
+
+  async findMessage(
+    messageId: string,
+    viewerId: string,
+  ): Promise<Message | null> {
+    const row = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: MESSAGE_SELECT,
+    });
+    return row && (await this.withVideos([row], viewerId))[0];
+  }
+
+  async canShareVideo(videoId: string, userId: string): Promise<boolean> {
+    const video = await this.prisma.video.findUnique({
+      where: { id: videoId },
+      select: { visibility: true, channel: { select: { ownerId: true } } },
+    });
+    return (
+      video !== null &&
+      canAccessVideo(video.visibility, video.channel.ownerId, userId)
+    );
   }
 
   async markRead(conversationId: string, userId: string, at: Date) {
@@ -213,15 +260,37 @@ export class PrismaMessagingRepository implements MessagingRepository {
     return rows.map(toPerson);
   }
 
+  // Vidéos partagées des messages, en une requête, vues par [viewerId] (ADR-025, étape 2).
+  private async withVideos(
+    rows: MessageRow[],
+    viewerId: string,
+  ): Promise<Message[]> {
+    const ids = [
+      ...new Set(rows.flatMap((row) => (row.videoId ? [row.videoId] : []))),
+    ];
+    const videos = ids.length
+      ? await this.prisma.video.findMany({
+          where: { id: { in: ids } },
+          select: SHARED_VIDEO_SELECT,
+        })
+      : [];
+    const byId = new Map(videos.map((video) => [video.id, video]));
+    return rows.map(({ videoId, ...message }) => ({
+      ...message,
+      video: videoId ? toSharedVideo(byId.get(videoId), viewerId) : null,
+    }));
+  }
+
   private async toSummary(
     row: ConversationRow,
     userId: string,
   ): Promise<ConversationSummary> {
     const isA = row.userAId === userId;
+    const [lastMessage] = await this.withVideos(row.messages, userId);
     return {
       id: row.id,
       other: toPerson(isA ? row.userB : row.userA),
-      lastMessage: row.messages[0] ?? null,
+      lastMessage: lastMessage ?? null,
       unreadCount: await this.countUnread(row, userId),
     };
   }
@@ -245,4 +314,27 @@ export class PrismaMessagingRepository implements MessagingRepository {
       },
     });
   }
+}
+
+// Supprimée, ou privée pour celui qui lit : indisponible, sans rien révéler (ADR-016).
+function toSharedVideo(
+  video:
+    Prisma.VideoGetPayload<{ select: typeof SHARED_VIDEO_SELECT }> | undefined,
+  viewerId: string,
+): SharedVideo {
+  if (
+    !video ||
+    !canAccessVideo(video.visibility, video.channel.ownerId, viewerId)
+  ) {
+    return { available: false };
+  }
+  return {
+    available: true,
+    id: video.id,
+    title: video.title,
+    thumbnailUrl: video.thumbnailUrl,
+    channelName: video.channel.name,
+    format: video.format,
+    isPremium: video.isPremium,
+  };
 }

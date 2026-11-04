@@ -25,17 +25,25 @@ export interface MessagingRepository {
     conversationId: string,
     userId: string,
   ): Promise<string | null>;
-  // Du plus récent au plus ancien.
+  // Du plus récent au plus ancien, vidéos partagées vues par [viewerId].
   listMessages(
     conversationId: string,
     pagination: { page: number; pageSize: number },
+    viewerId: string,
   ): Promise<Page<Message>>;
-  // Enregistre le message et avance la date du dernier message de la conversation.
+  // Enregistre le message et avance la date du dernier message de la conversation. Renvoie le
+  // message vu par [viewerId].
   addMessage(
     conversationId: string,
     senderId: string,
     content: string,
+    videoId: string | null,
+    viewerId: string,
   ): Promise<Message>;
+  // Le message vu par [viewerId] : sa vidéo peut lui être indisponible et pas à l'expéditeur.
+  findMessage(messageId: string, viewerId: string): Promise<Message | null>;
+  // Vrai si la vidéo existe et que [userId] peut la voir : on ne partage que ce qu'on voit.
+  canShareVideo(videoId: string, userId: string): Promise<boolean>;
   markRead(conversationId: string, userId: string, at: Date): Promise<void>;
   unreadCount(userId: string): Promise<number>;
   findPerson(userId: string): Promise<Person | null>;

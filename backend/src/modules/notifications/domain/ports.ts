@@ -1,11 +1,19 @@
 import type { NotificationLevel } from '../../channels/domain/channel.js';
-import type { Publication, PublicationMessage } from './notification.js';
+import type {
+  MessagePush,
+  Publication,
+  PublicationMessage,
+} from './notification.js';
 
 // Ports du module notifications (ADR-020).
 
 export const DEVICE_TOKEN_REPOSITORY = Symbol('DEVICE_TOKEN_REPOSITORY');
 export const PUBLICATION_REPOSITORY = Symbol('PUBLICATION_REPOSITORY');
 export const PUSH_SENDER = Symbol('PUSH_SENDER');
+export const MESSAGE_PUSH_SENDER = Symbol('MESSAGE_PUSH_SENDER');
+export const MESSAGE_RECIPIENT_REPOSITORY = Symbol(
+  'MESSAGE_RECIPIENT_REPOSITORY',
+);
 
 export interface DeviceTokenRepository {
   // Rattache le jeton à l'utilisateur, même s'il appartenait à un autre compte sur cet appareil.
@@ -36,4 +44,19 @@ export interface PushSender {
   readonly enabled: boolean;
   // Renvoie les jetons refusés définitivement par Firebase, à supprimer.
   send(tokens: string[], message: PublicationMessage): Promise<string[]>;
+}
+
+// Envoi d'un message reçu (ADR-025, étape 3), par le même compte de service Firebase.
+export interface MessagePushSender {
+  readonly enabled: boolean;
+  // Renvoie les jetons refusés définitivement par Firebase, à supprimer.
+  sendMessage(tokens: string[], message: MessagePush): Promise<string[]>;
+}
+
+// Destinataire d'un message et son réglage « Notifications de messages », stocké côté serveur.
+export interface MessageRecipientRepository {
+  // Jetons de ses appareils, ou aucun s'il a coupé les notifications de messages.
+  findTokens(userId: string): Promise<string[]>;
+  isEnabled(userId: string): Promise<boolean>;
+  setEnabled(userId: string, enabled: boolean): Promise<void>;
 }

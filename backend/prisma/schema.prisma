@@ -51,18 +51,20 @@ model User {
   role         Role     @default(USER)
   createdAt    DateTime @default(now())
 
-  channel              Channel?
-  comments             Comment[]
-  commentLikes         CommentLike[]
-  conversationsAsA     Conversation[]        @relation("ConversationUserA")
-  conversationsAsB     Conversation[]        @relation("ConversationUserB")
-  messages             Message[]
-  likes                Like[]
-  follows              Follow[]
-  premiumSubscriptions PremiumSubscription[]
-  watchHistory         WatchHistory[]
-  playlists            Playlist[]
-  deviceTokens         DeviceToken[]
+  channel                     Channel?
+  comments                    Comment[]
+  commentLikes                CommentLike[]
+  conversationsAsA            Conversation[]        @relation("ConversationUserA")
+  conversationsAsB            Conversation[]        @relation("ConversationUserB")
+  messages                    Message[]
+  // Notifications des messages reçus (ADR-025, étape 3), réglées dans Paramètres.
+  messageNotificationsEnabled Boolean               @default(true)
+  likes                       Like[]
+  follows                     Follow[]
+  premiumSubscriptions        PremiumSubscription[]
+  watchHistory                WatchHistory[]
+  playlists                   Playlist[]
+  deviceTokens                DeviceToken[]
 
   @@map("users")
 }
@@ -353,12 +355,17 @@ model Message {
   id             String   @id @default(uuid()) @db.Uuid
   conversationId String   @db.Uuid
   senderId       String   @db.Uuid
+  // Vide quand une vidéo est partagée sans texte.
   content        String
+  // Vidéo partagée (ADR-025, étape 2). Sans clé étrangère : une vidéo supprimée depuis garde son
+  // identifiant ici, et le message s'affiche « Vidéo indisponible » au lieu de passer pour un texte.
+  videoId        String?  @db.Uuid
   createdAt      DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt(sort: Desc)])
+  @@index([videoId])
   @@map("messages")
 }

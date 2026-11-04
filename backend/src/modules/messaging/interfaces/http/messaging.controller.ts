@@ -13,7 +13,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { IsString, IsUUID, Length } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  MaxLength,
+} from 'class-validator';
 import type { AuthenticatedUser } from '../../../auth/domain/user.js';
 import { CurrentUser } from '../../../auth/interfaces/http/current-user.decorator.js';
 import { JwtAuthGuard } from '../../../auth/interfaces/http/jwt-auth.guard.js';
@@ -33,11 +39,18 @@ export class StartConversationBody {
   userId: string;
 }
 
+// Texte, vidéo partagée (ADR-025, étape 2), ou les deux : le texte est facultatif avec une vidéo.
+// Un message sans l'un ni l'autre est refusé par le contrôleur.
 export class SendMessageBody {
   @Transform(trim)
+  @IsOptional()
   @IsString()
-  @Length(1, MESSAGE_MAX_LENGTH)
-  content: string;
+  @MaxLength(MESSAGE_MAX_LENGTH)
+  content: string = '';
+
+  @IsOptional()
+  @IsUUID()
+  videoId?: string;
 }
 
 export class SearchPeopleQuery {
@@ -122,7 +135,17 @@ export class ConversationController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: SendMessageBody,
   ) {
-    return found(await this.messaging.send(id, user.id, body.content));
+    if (!body.content && !body.videoId) {
+      throw new BadRequestException('Le message est vide.');
+    }
+    return found(
+      await this.messaging.send(
+        id,
+        user.id,
+        body.content,
+        body.videoId ?? null,
+      ),
+    );
   }
 
   // Marquage comme lu, à l'ouverture et à chaque message reçu écran ouvert.

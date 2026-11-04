@@ -2,6 +2,11 @@ import { Module } from '@nestjs/common';
 import { PrismaService } from '../../shared/infrastructure/prisma.service.js';
 import { AuthModule } from '../auth/auth.module.js';
 import {
+  MESSAGE_NOTIFIER,
+  type MessageNotifier,
+} from '../notifications/domain/message-notifier.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import {
   MESSAGING_PUBLISHER,
   type MessagingPublisher,
 } from '../realtime/domain/messaging-publisher.js';
@@ -21,7 +26,7 @@ import {
 // Messagerie entre utilisateurs (ADR-025) : conversations à deux, diffusées par la passerelle
 // temps réel existante.
 @Module({
-  imports: [AuthModule, RealtimeModule],
+  imports: [AuthModule, RealtimeModule, NotificationsModule],
   controllers: [
     MyConversationsController,
     ConversationController,
@@ -39,8 +44,9 @@ import {
       useFactory: (
         repository: MessagingRepository,
         publisher: MessagingPublisher,
-      ) => new MessagingUseCases(repository, publisher),
-      inject: [MESSAGING_REPOSITORY, MESSAGING_PUBLISHER],
+        notifier: MessageNotifier,
+      ) => new MessagingUseCases(repository, publisher, notifier),
+      inject: [MESSAGING_REPOSITORY, MESSAGING_PUBLISHER, MESSAGE_NOTIFIER],
     },
   ],
 })
