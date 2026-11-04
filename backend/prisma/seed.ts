@@ -24,10 +24,6 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env['DATABASE_URL'] }),
 });
 
-// Fichiers MP4 de test publics (test-videos.co.uk, Blender), à remplacer à terme par des vidéos
-// du stockage local.
-const TEST_VIDEOS = 'https://test-videos.co.uk/vids';
-
 // Mot de passe commun aux comptes de démonstration, haché comme à l'inscription (argon2id).
 const SEED_PASSWORD = 'Youtube2026!';
 
@@ -147,8 +143,7 @@ async function main() {
       categoryId: animation.id,
       title: 'Sintel, la bande-annonce',
       description: 'Une jeune femme part à la recherche de son dragon.',
-      videoUrl:
-        'https://download.blender.org/durian/trailer/sintel_trailer-480p.mp4',
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.sintelTrailer),
       durationSeconds: 52,
       publishedAt: daysAgo(13),
       format: VideoFormat.LONG,
@@ -158,7 +153,7 @@ async function main() {
       categoryId: animation.id,
       title: 'Big Buck Bunny, extrait',
       description: 'Un lapin géant contre trois rongeurs farceurs.',
-      videoUrl: `${TEST_VIDEOS}/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_5MB.mp4`,
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.bigBuckBunny),
       durationSeconds: 10,
       publishedAt: daysAgo(12),
       format: VideoFormat.LONG,
@@ -167,7 +162,7 @@ async function main() {
       channelId: studioChannelId,
       categoryId: animation.id,
       title: 'Sintel en haute définition',
-      videoUrl: `${TEST_VIDEOS}/sintel/mp4/h264/1080/Sintel_1080_10s_1MB.mp4`,
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.sintelHd),
       durationSeconds: 10,
       publishedAt: daysAgo(10),
       format: VideoFormat.LONG,
@@ -176,7 +171,7 @@ async function main() {
       channelId: studioChannelId,
       categoryId: nature.id,
       title: 'Méduses en 10 secondes',
-      videoUrl: `${TEST_VIDEOS}/jellyfish/mp4/h264/720/Jellyfish_720_10s_1MB.mp4`,
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.jellyfishShort),
       durationSeconds: 10,
       publishedAt: daysAgo(9),
       format: VideoFormat.SHORT,
@@ -186,7 +181,7 @@ async function main() {
       categoryId: nature.id,
       title: 'Le ballet des méduses',
       description: 'Plongée au milieu des méduses.',
-      videoUrl: `${TEST_VIDEOS}/jellyfish/mp4/h264/720/Jellyfish_720_10s_5MB.mp4`,
+      videoUrl: localVideoUrl(LOCAL_SEED_VIDEOS.jellyfish),
       durationSeconds: 10,
       publishedAt: daysAgo(7),
       format: VideoFormat.LONG,

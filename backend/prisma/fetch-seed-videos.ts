@@ -2,18 +2,20 @@
 // Lancement, après un clone : npm run seed:videos   (--force pour tout retélécharger)
 //
 // Pour chaque vidéo :
-// 1. téléchargement depuis Pexels, dans un dossier temporaire vide ;
+// 1. téléchargement depuis Pexels ou l'adresse de la source, dans un dossier temporaire vide ;
 // 2. vérification de l'original avec ffprobe (flux vidéo, durée, orientation) et décodage complet,
 //    pour écarter un fichier tronqué ;
 // 3. réencodage en 720p H.264, 30 images/s au plus, coupé à la durée prévue, sans piste de données,
 //    avec +faststart pour la lecture progressive (ADR-002) ;
 // 4. vérification finale (durée, flux, décodage, extraction d'une image) avant de l'installer.
 // Une vidéo déjà présente et valide est gardée. Nécessite FFmpeg et ffprobe (FFMPEG_PATH, FFPROBE_PATH).
+// fetchVideoFile est aussi utilisée par videos:localize (localize-external-videos.ts).
 import { execFile } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import { copyFile, mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream } from 'node:stream/web';
@@ -26,12 +28,12 @@ import {
 import {
   LOCAL_SEED_VIDEOS,
   localVideoFileName,
+  sourceUrl,
   type SeedVideoFile,
 } from './seed-videos.js';
 
 const run = promisify(execFile);
 
-const PEXELS_DOWNLOAD = 'https://www.pexels.com/download/video';
 const TARGET_SHORT_SIDE = 720;
 // Écart toléré entre la durée prévue et la durée réelle (arrondis du conteneur).
 const DURATION_TOLERANCE_SECONDS = 0.5;
@@ -121,7 +123,7 @@ async function checkSource(file: string, video: SeedVideoFile): Promise<Probe> {
   const info = await probe(file);
   const stream = info.videoStreams[0];
   if (!stream) throw new Error("aucun flux vidéo dans l'original");
-  if (!hasOrientation(stream, video.orientation)) {
+  if (!video.cropToOrientation && !hasOrientation(stream, video.orientation)) {
     throw new Error(
       `orientation inattendue (${stream.width}x${stream.height}, attendu : ${video.orientation})`,
     );
@@ -187,13 +189,21 @@ async function checkFinal(
   }
 }
 
-async function download(id: number, target: string): Promise<void> {
-  const response = await fetch(`${PEXELS_DOWNLOAD}/${id}/`, {
-    redirect: 'follow',
-  });
+// La source n'a pas pu être téléchargée : distincte d'un échec de traitement chez nous.
+export class SourceUnavailableError extends Error {}
+
+async function download(url: string, target: string): Promise<void> {
+  let response;
+  try {
+    response = await fetch(url, { redirect: 'follow' });
+  } catch (error) {
+    throw new SourceUnavailableError(
+      `source injoignable (${(error as Error).message})`,
+    );
+  }
   const type = response.headers.get('content-type') ?? '';
   if (!response.ok || !response.body || !type.startsWith('video/')) {
-    throw new Error(
+    throw new SourceUnavailableError(
       `téléchargement refusé (HTTP ${response.status}, ${type || 'type inconnu'})`,
     );
   }
@@ -212,6 +222,12 @@ async function transcode(
     video.orientation === 'portrait'
       ? `scale=${TARGET_SHORT_SIDE}:-2`
       : `scale=-2:${TARGET_SHORT_SIDE}`;
+  // Recadrage au centre au format 9:16 (ou 16:9) avant la mise à l'échelle.
+  const crop = video.cropToOrientation
+    ? video.orientation === 'portrait'
+      ? 'crop=trunc(ih*9/16/2)*2:ih,'
+      : 'crop=iw:trunc(iw*9/16/2)*2,'
+    : '';
   await run(
     ffmpeg,
     [
@@ -227,8 +243,11 @@ async function transcode(
       '-map',
       '0:a:0?',
       '-dn',
+      // Les chapitres de la source deviendraient une piste de données dans le MP4.
+      '-map_chapters',
+      '-1',
       '-vf',
-      scale,
+      crop + scale,
       '-fpsmax',
       '30',
       '-c:v',
@@ -255,6 +274,49 @@ async function transcode(
   );
 }
 
+/**
+ * Télécharge [video] dans [work], la vérifie, la réencode en 720p et la vérifie de nouveau, puis
+ * l'installe en [target]. Renvoie sa durée réelle en secondes. Lève une erreur claire à la
+ * première étape qui échoue ; rien n'est alors installé.
+ */
+export async function fetchVideoFile(
+  video: SeedVideoFile,
+  target: string,
+  work: string,
+): Promise<number> {
+  const name = localVideoFileName(video);
+  const original = join(work, `original-${name}`);
+  const converted = join(work, name);
+  try {
+    await download(sourceUrl(video), original);
+    const source = await checkSource(original, video);
+    await transcode(original, converted, video);
+    // La vidéo d'origine peut être plus courte que la durée prévue : elle est alors gardée entière.
+    const duration = Math.min(video.clipSeconds, source.duration);
+    await checkFinal(converted, video, duration);
+    await copyFile(converted, target);
+    return duration;
+  } finally {
+    await rm(original, { force: true });
+    await rm(converted, { force: true });
+  }
+}
+
+export async function checkTools(): Promise<boolean> {
+  for (const command of [ffmpeg, ffprobe]) {
+    try {
+      await run(command, ['-version']);
+    } catch {
+      console.error(
+        `« ${command} » est introuvable. Installez FFmpeg (par exemple « winget install Gyan.FFmpeg »), ` +
+          'ou indiquez les chemins dans FFMPEG_PATH et FFPROBE_PATH.',
+      );
+      return false;
+    }
+  }
+  return true;
+}
+
 async function exists(file: string): Promise<boolean> {
   return stat(file).then(
     () => true,
@@ -264,17 +326,9 @@ async function exists(file: string): Promise<boolean> {
 
 async function main() {
   const force = process.argv.includes('--force');
-  for (const command of [ffmpeg, ffprobe]) {
-    try {
-      await run(command, ['-version']);
-    } catch {
-      console.error(
-        `« ${command} » est introuvable. Installez FFmpeg (par exemple « winget install Gyan.FFmpeg »), ` +
-          'ou indiquez les chemins dans FFMPEG_PATH et FFPROBE_PATH.',
-      );
-      process.exitCode = 1;
-      return;
-    }
+  if (!(await checkTools())) {
+    process.exitCode = 1;
+    return;
   }
 
   const folder = join(mediaDirectory(), 'videos');
@@ -300,18 +354,7 @@ async function main() {
             );
           }
         }
-        const original = join(work, `original-${video.pexelsId}.mp4`);
-        const converted = join(work, name);
-        await download(video.pexelsId, original);
-        const source = await checkSource(original, video);
-        await transcode(original, converted, video);
-        // La vidéo d'origine peut être plus courte que la durée prévue : elle est alors gardée entière.
-        await checkFinal(
-          converted,
-          video,
-          Math.min(video.clipSeconds, source.duration),
-        );
-        await copyFile(converted, target);
+        await fetchVideoFile(video, target, work);
         const size = (await stat(target)).size / 1024 / 1024;
         console.log(`${label} : récupérée et vérifiée (${size.toFixed(1)} Mo)`);
       } catch (error) {
@@ -328,4 +371,7 @@ async function main() {
   process.exitCode = failures > 0 ? 1 : 0;
 }
 
-await main();
+// Lancé directement (npm run seed:videos), et non importé par videos:localize.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+  await main();
+}
