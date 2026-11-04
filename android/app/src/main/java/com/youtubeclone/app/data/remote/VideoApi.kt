@@ -1,6 +1,7 @@
 package com.youtubeclone.app.data.remote
 
 import com.youtubeclone.app.data.remote.dto.LikeStatusDto
+import com.youtubeclone.app.data.remote.dto.SponsoredAdDto
 import com.youtubeclone.app.data.remote.dto.VideoDetailDto
 import com.youtubeclone.app.data.remote.dto.VideoPageDto
 import retrofit2.http.DELETE
@@ -20,6 +21,10 @@ interface VideoApi {
 
     @GET("videos/{id}")
     suspend fun getVideo(@Path("id") id: String): VideoDetailDto
+
+    // Bandeau sponsorisé du fil (ADR-021), décidé par le serveur selon le statut Premium.
+    @GET("ads/sponsored")
+    suspend fun getSponsoredAd(): SponsoredAdDto
 
     // Réponse 204 sans contenu.
     @POST("videos/{id}/view")

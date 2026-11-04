@@ -2,13 +2,18 @@ package com.youtubeclone.app.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.youtubeclone.app.domain.analytics.Analytics
+import com.youtubeclone.app.domain.analytics.AnalyticsEvent
 import com.youtubeclone.app.domain.model.Category
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.domain.model.Video
+import com.youtubeclone.app.domain.model.VideoAd
 import com.youtubeclone.app.domain.usecase.GetCategoriesUseCase
 import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
 import com.youtubeclone.app.domain.usecase.GetHomeFeedUseCase
+import com.youtubeclone.app.domain.usecase.GetSponsoredAdUseCase
 import com.youtubeclone.app.domain.usecase.ObserveInterestsUseCase
+import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
@@ -21,6 +26,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 sealed interface HomeUiState {
@@ -45,6 +52,9 @@ class HomeViewModel @Inject constructor(
     observeSession: ObserveSessionUseCase,
     observePublications: ObservePublicationsUseCase,
     private val firstScreenReadiness: FirstScreenReadiness,
+    private val getSponsoredAd: GetSponsoredAdUseCase,
+    observePremium: ObservePremiumStatusUseCase,
+    private val analytics: Analytics,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -59,6 +69,13 @@ class HomeViewModel @Inject constructor(
 
     private var loadJob: Job? = null
 
+    // Bandeau sponsorisé en haut du fil (ADR-021) ; null pour un compte Premium, décidé par le serveur.
+    private val _sponsoredAd = MutableStateFlow<VideoAd?>(null)
+    val sponsoredAd: StateFlow<VideoAd?> = _sponsoredAd.asStateFlow()
+
+    // Publicité dont l'affichage a déjà été mesuré : une fois par chargement, pas à chaque défilement.
+    private var shownAdId: String? = null
+
     init {
         // Premier chargement, puis à chaque changement des centres d'intérêt (onglet « Vous »),
         // pour remonter les bonnes vidéos en tête du fil.
@@ -72,8 +89,36 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             observePublications().collect { load() }
         }
+        // Abonnement Premium pris ou terminé : le bandeau disparaît ou revient.
+        viewModelScope.launch {
+            observePremium().map { it?.isPremium }.distinctUntilChanged().collect { loadSponsoredAd() }
+        }
         loadCategories()
     }
+
+    // Un échec laisse le fil sans bandeau.
+    private fun loadSponsoredAd() {
+        viewModelScope.launch {
+            _sponsoredAd.value = try {
+                getSponsoredAd()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+            shownAdId = null
+        }
+    }
+
+    fun onSponsoredAdShown(ad: VideoAd) {
+        if (shownAdId == ad.id) return
+        shownAdId = ad.id
+        analytics.track(AnalyticsEvent.SponsoredAdShown(ad.id))
+    }
+
+    fun onSponsoredAdClicked(ad: VideoAd) = analytics.track(AnalyticsEvent.SponsoredAdClicked(ad.id))
+
+    fun onRemoveAdsClicked(ad: VideoAd) = analytics.track(AnalyticsEvent.RemoveAdsClicked(ad.id))
 
     fun load() {
         loadJob?.cancel()

@@ -5,6 +5,7 @@ import com.youtubeclone.app.data.remote.dto.toDomain
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.LikeStatus
 import com.youtubeclone.app.domain.model.VideoDetail
+import com.youtubeclone.app.domain.model.VideoAd
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.model.VideoPage
 import com.youtubeclone.app.domain.repository.VideoRepository
@@ -28,6 +29,10 @@ class VideoRepositoryImpl @Inject constructor(
 
     override suspend fun getVideoDetail(id: String): VideoDetail = call {
         api.getVideo(id).toDomain()
+    }
+
+    override suspend fun getSponsoredAd(): VideoAd? = call {
+        api.getSponsoredAd().ad?.toDomain()
     }
 
     override suspend fun recordView(id: String) = call {

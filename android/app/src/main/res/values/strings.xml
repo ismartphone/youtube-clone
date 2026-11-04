@@ -152,6 +152,7 @@
     <string name="ad_skip_in">L\'annonce peut être ignorée dans %1$d s</string>
     <string name="ad_skip">Ignorer</string>
     <string name="ad_remove">Supprimer les publicités</string>
+    <string name="ad_sponsored">Sponsorisé</string>
     <string name="playback_channel_name">Lecture</string>
 
     <string name="you_logged_out_title">Profitez de vos vidéos préférées</string>

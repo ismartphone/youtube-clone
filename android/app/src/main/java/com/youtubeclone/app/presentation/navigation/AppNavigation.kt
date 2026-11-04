@@ -45,6 +45,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.ads.AdPlayerScreen
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
 import com.youtubeclone.app.presentation.channel.ChannelScreen
@@ -84,6 +85,14 @@ import kotlinx.serialization.Serializable
 @Serializable data object SettingsRoute
 @Serializable data object SearchRoute
 @Serializable data class WatchRoute(val videoId: String)
+// Publicité du bandeau sponsorisé, lue en plein lecteur (ADR-021).
+@Serializable data class AdPlayerRoute(
+    val adId: String,
+    val title: String,
+    val streamUrl: String,
+    val isHls: Boolean,
+    val durationSeconds: Int,
+)
 @Serializable data class ChannelRoute(val channelId: String)
 // Lecteur Shorts plein écran ouvert sur un Short précis (depuis une page de chaîne).
 // Le nom du paramètre est lu par ShortsViewModel.
@@ -110,6 +119,7 @@ import kotlinx.serialization.Serializable
 
 private val FULL_SCREEN_ROUTES = listOf(
     WatchRoute::class,
+    AdPlayerRoute::class,
     ShortsPlayerRoute::class,
     PaywallRoute::class,
     SearchRoute::class,
@@ -230,7 +240,14 @@ fun AppNavigation(
                     onChannelClick = openChannel,
                     onAccountClick = { openTab(YouRoute) },
                     onSearchClick = { navController.navigate(SearchRoute) },
+                    onSponsoredAdClick = { ad ->
+                        navController.navigate(AdPlayerRoute(ad.id, ad.title, ad.streamUrl, ad.isHls, ad.durationSeconds))
+                    },
+                    onRemoveAdsClick = openPaywall,
                 )
+            }
+            composable<AdPlayerRoute> {
+                AdPlayerScreen(onClose = { navController.popBackStack() })
             }
             composable<ShortsRoute> {
                 ShortsScreen(onChannelClick = openChannel, onLoginRequired = openLogin, onPremiumClick = openPaywall)

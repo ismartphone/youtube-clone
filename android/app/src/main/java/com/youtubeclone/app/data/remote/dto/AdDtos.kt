@@ -17,6 +17,12 @@ data class AdDto(
     val durationSeconds: Int,
 )
 
+/** Réponse de GET /ads/sponsored : null pour un compte Premium ou sans publicité. */
+@Serializable
+data class SponsoredAdDto(
+    val ad: AdDto? = null,
+)
+
 fun AdDto.toDomain() = VideoAd(
     id = id,
     title = title,

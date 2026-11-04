@@ -82,6 +82,9 @@ sealed class AnalyticsEvent(val name: String, val properties: Map<String, Any> =
     class AdCompleted(adId: String) : AnalyticsEvent("ad_completed", mapOf("ad_id" to adId))
     class RemoveAdsClickedPreroll(adId: String) :
         AnalyticsEvent("remove_ads_clicked_preroll", mapOf("ad_id" to adId))
+    class SponsoredAdShown(adId: String) : AnalyticsEvent("sponsored_ad_shown", mapOf("ad_id" to adId))
+    class SponsoredAdClicked(adId: String) : AnalyticsEvent("sponsored_ad_clicked", mapOf("ad_id" to adId))
+    class RemoveAdsClicked(adId: String) : AnalyticsEvent("remove_ads_clicked", mapOf("ad_id" to adId))
 }
 
 private fun PaywallVariant.toProperties(): Map<String, Any> = mapOf("paywall_variant" to key)

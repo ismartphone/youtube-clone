@@ -2,6 +2,7 @@ package com.youtubeclone.app.domain.repository
 
 import com.youtubeclone.app.domain.model.LikeStatus
 import com.youtubeclone.app.domain.model.VideoDetail
+import com.youtubeclone.app.domain.model.VideoAd
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.model.VideoPage
 
@@ -15,6 +16,9 @@ interface VideoRepository {
     ): VideoPage
 
     suspend fun getVideoDetail(id: String): VideoDetail
+
+    /** Publicité du bandeau sponsorisé (ADR-021) ; null pour un compte Premium. */
+    suspend fun getSponsoredAd(): VideoAd?
 
     suspend fun recordView(id: String)
 

@@ -46,6 +46,8 @@ import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Category
 import com.youtubeclone.app.domain.model.User
+import com.youtubeclone.app.domain.model.VideoAd
+import com.youtubeclone.app.presentation.ads.SponsoredAdCard
 import com.youtubeclone.app.presentation.common.AppLogo
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.MessageState
@@ -69,10 +71,13 @@ fun HomeScreen(
     onChannelClick: (channelId: String) -> Unit,
     onAccountClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onSponsoredAdClick: (VideoAd) -> Unit,
+    onRemoveAdsClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val sponsoredAd by viewModel.sponsoredAd.collectAsStateWithLifecycle()
     val filters by viewModel.filters.collectAsStateWithLifecycle()
     val account by viewModel.account.collectAsStateWithLifecycle()
     HomeContent(
@@ -86,6 +91,16 @@ fun HomeScreen(
         onAccountClick = onAccountClick,
         onSearchClick = onSearchClick,
         modifier = modifier,
+        sponsoredAd = sponsoredAd,
+        onSponsoredAdClick = {
+            viewModel.onSponsoredAdClicked(it)
+            onSponsoredAdClick(it)
+        },
+        onRemoveAdsClick = {
+            viewModel.onRemoveAdsClicked(it)
+            onRemoveAdsClick()
+        },
+        onSponsoredAdShown = viewModel::onSponsoredAdShown,
     )
 }
 
@@ -101,6 +116,10 @@ private fun HomeContent(
     onAccountClick: () -> Unit,
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier,
+    sponsoredAd: VideoAd? = null,
+    onSponsoredAdClick: (VideoAd) -> Unit = {},
+    onRemoveAdsClick: (VideoAd) -> Unit = {},
+    onSponsoredAdShown: (VideoAd) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -121,6 +140,17 @@ private fun HomeContent(
                     verticalArrangement = Arrangement.spacedBy(VideoCardSpacing),
                     contentPadding = PaddingValues(top = 4.dp, bottom = VideoCardSpacing),
                 ) {
+                    // Bandeau sponsorisé (ADR-021), tout en haut ; jamais pour un compte Premium.
+                    if (sponsoredAd != null) {
+                        item(key = "sponsored") {
+                            SponsoredAdCard(
+                                ad = sponsoredAd,
+                                onClick = { onSponsoredAdClick(sponsoredAd) },
+                                onRemoveAdsClick = { onRemoveAdsClick(sponsoredAd) },
+                                onShown = { onSponsoredAdShown(sponsoredAd) },
+                            )
+                        }
+                    }
                     itemsIndexed(uiState.videos, key = { _, video -> video.id }) { index, video ->
                         VideoCard(
                             video = video,
