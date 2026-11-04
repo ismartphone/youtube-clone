@@ -44,6 +44,8 @@ Envoyer les notifications de publication par Firebase Cloud Messaging (FCM), le 
 - **Destinataires** : les abonnés de la chaîne dont la cloche est sur Toutes, quel que soit le format, plus ceux dont la cloche est sur Personnalisées si la vidéo est au format LONG. Le créateur est exclu.
 - **Vidéo Premium** (isPremium) : tous les abonnés sont notifiés, Premium ou non. La vidéo est visible dans le fil avec son badge Premium ; l'accès à la lecture reste vérifié côté serveur (ADR-007).
 - **Contenu** : titre = nom de la chaîne, texte = titre de la vidéo, données = identifiant de la vidéo, image = miniature.
+- **Type de message FCM** : le serveur envoie un message de données seulement (`data` : `type=video_published`, `videoId`, `channelName`, `title`, `thumbnailUrl` ; `android.priority=high`), et c'est l'application (FirebaseMessagingService) qui construit la notification. Raison : la miniature est stockée en chemin relatif (`/media/...`) et seule l'application connaît l'adresse du serveur pour la compléter (`resolveMediaUrl`). Le contenu reste celui décidé ci-dessus.
+- En production, on enverrait un message de notification avec une URL absolue de la miniature, ce qui suppose que le serveur connaisse sa propre adresse publique.
 - **Envoi en arrière-plan**, après la réponse de la publication : la publication ne peut jamais échouer à cause de lui. En cas d'échec, on journalise.
 - **Clé** : lue via la variable d'environnement `FIREBASE_SERVICE_ACCOUNT`, qui donne le chemin du fichier (`backend/firebase-service-account.json`, jamais versionné). Variable ou fichier absents : démarrage normal, envoi désactivé et journalisé, comme le repli Stripe (ADR-014).
 
@@ -86,6 +88,7 @@ Envoyer les notifications de publication par Firebase Cloud Messaging (FCM), le 
 - Trois chemins doivent déclencher l'envoi : POST /me/videos, POST /admin/videos et PATCH /admin/videos/:id.
 - « Personnalisées » s'écarte du sens qu'il a sur YouTube ; à expliquer à l'oral et dans l'aide (ADR-019).
 - Un abonné non Premium peut être notifié d'une vidéo qu'il ne peut pas lire.
+- Un message de données est moins bien garanti qu'un message de notification : il peut être retardé ou perdu sous les économiseurs de batterie agressifs de certains constructeurs.
 - La permission POST_NOTIFICATIONS sert désormais deux usages (téléchargements, cloche).
 - CLAUDE.md est mis à jour par un humain à l'acceptation : notifications retirées du hors-périmètre, champ de FOLLOW, table des jetons et date d'envoi sur VIDEO ajoutés au modèle de données, Firebase Messaging ajouté à la stack.
 
@@ -98,3 +101,5 @@ Envoyer les notifications de publication par Firebase Cloud Messaging (FCM), le 
 - [ADR-004](ADR-004-temps-reel-websocket.md), [ADR-010](ADR-010-websocket-salles-compteurs.md) : WebSocket, écarté pour les notifications car limité à l'application ouverte.
 - [ADR-014](ADR-014-paiement-stripe-mode-test.md) : repli quand la clé est absente, repris pour `FIREBASE_SERVICE_ACCOUNT`.
 - [ADR-001](ADR-001-android-natif.md), [ADR-003](ADR-003-backend-nestjs.md) : application native, backend hexagonal (module channels pour la cloche).
+
+Amendé le 4 novembre : précision sur le type de message FCM retenu à l'implémentation (commit 07efd87). Le serveur envoie un message de données seulement, et l'application construit la notification, car la miniature est stockée en chemin relatif et seule l'application connaît l'adresse du serveur pour la compléter. Limite : un message de données peut être retardé ou perdu sous les économiseurs de batterie agressifs de certains constructeurs ; en production, on enverrait un message de notification avec une URL absolue de la miniature. Raison : précision demandée par le lead développeur sur le type de message FCM retenu à l'implémentation et sa limite.
