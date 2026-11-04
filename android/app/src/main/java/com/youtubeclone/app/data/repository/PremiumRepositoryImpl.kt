@@ -39,8 +39,9 @@ class PremiumRepositoryImpl @Inject constructor(
 
     init {
         scope.launch {
-            auth.isLoggedIn.distinctUntilChanged().collect { loggedIn ->
-                if (loggedIn) {
+            // Relu à chaque compte actif, bascule comprise (ADR-022) : le statut suit le compte choisi.
+            auth.currentUserId.distinctUntilChanged().collect { userId ->
+                if (userId != null) {
                     _status.value = null
                     try {
                         refresh()

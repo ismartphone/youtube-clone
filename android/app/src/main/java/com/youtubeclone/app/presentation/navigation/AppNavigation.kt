@@ -20,6 +20,8 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +48,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.DEFAULT_AD_CTA
+import com.youtubeclone.app.presentation.account.AccountSheet
+import com.youtubeclone.app.presentation.account.AccountsEvent
+import com.youtubeclone.app.presentation.account.AccountsViewModel
 import com.youtubeclone.app.presentation.ads.AdPlayerScreen
 import com.youtubeclone.app.presentation.auth.LoginScreen
 import com.youtubeclone.app.presentation.auth.RegisterScreen
@@ -79,7 +84,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object HomeRoute
 @Serializable data object ShortsRoute
 @Serializable data object YouRoute
-@Serializable data object LoginRoute
+// [email] : connexion préremplie, pour un compte enregistré dont la session a expiré (ADR-022).
+@Serializable data class LoginRoute(val email: String? = null)
 @Serializable data object RegisterRoute
 @Serializable data object InterestsRoute
 @Serializable data object SubscriptionsRoute
@@ -161,7 +167,7 @@ fun AppNavigation(
     TrackScreens(navController)
     LaunchedEffect(openLoginAtStart) {
         if (openLoginAtStart) {
-            navController.navigate(LoginRoute)
+            navController.navigate(LoginRoute())
             onLoginOpened()
         }
     }
@@ -179,6 +185,26 @@ fun AppNavigation(
     val reduceMotion = LocalReduceMotion.current
     val transitions = remember(reduceMotion) {
         NavTransitions(tabRoutes = Tab.entries.map { it.routeClass }, reduceMotion = reduceMotion)
+    }
+    // Comptes enregistrés sur l'appareil (ADR-022) : une feuille partagée par le fil et Vous.
+    val accountsViewModel: AccountsViewModel = hiltViewModel()
+    val accounts by accountsViewModel.accounts.collectAsStateWithLifecycle()
+    var showAccountSheet by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(accountsViewModel) {
+        accountsViewModel.events.collect { event ->
+            when (event) {
+                is AccountsEvent.OpenLogin -> navController.navigate(LoginRoute(event.email))
+            }
+        }
+    }
+    // Changement de compte : la lecture s'arrête et l'application revient au fil, pile vidée,
+    // onglets compris (leurs écrans gardés montraient les données de l'ancien compte).
+    LaunchedEffect(accountsViewModel) {
+        accountsViewModel.accountChanged.collect {
+            showAccountSheet = false
+            navController.navigate(HomeRoute) { popUpTo(navController.graph.id) { inclusive = true } }
+            listOf(ShortsRoute, SubscriptionsRoute, YouRoute).forEach { navController.clearBackStack(it) }
+        }
     }
     // Feuille de création du bouton + (ADR-015), ouverte par-dessus l'onglet courant.
     var showCreateSheet by rememberSaveable { mutableStateOf(false) }
@@ -216,10 +242,21 @@ fun AppNavigation(
             }
         },
     ) { innerPadding ->
+        if (showAccountSheet) {
+            AccountSheet(
+                accounts = accounts,
+                onSelect = accountsViewModel::select,
+                onAddAccount = { navController.navigate(LoginRoute()) },
+                onRemove = accountsViewModel::remove,
+                onDismiss = { showAccountSheet = false },
+            )
+        }
+        // Avatar du fil ou de Vous : la feuille des comptes, s'il y en a d'enregistrés sur l'appareil.
+        val openAccounts: () -> Unit = { if (accounts.isEmpty()) openTab(YouRoute) else showAccountSheet = true }
         if (showCreateSheet) {
             CreateSheet(
                 onDismiss = { showCreateSheet = false },
-                onLoginRequired = { navController.navigate(LoginRoute) },
+                onLoginRequired = { navController.navigate(LoginRoute()) },
                 onPublishVideo = { uri, format -> navController.navigate(PublishVideoRoute(uri, format.name)) },
                 onCreateChannel = { navController.navigate(CreateChannelRoute) },
                 onWritePost = { navController.navigate(ComposePostRoute) },
@@ -237,14 +274,14 @@ fun AppNavigation(
             val openVideo = { videoId: String -> navController.navigate(WatchRoute(videoId)) }
             val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
             val openChannelPosts = { channelId: String -> navController.navigate(ChannelRoute(channelId, tab = "Posts")) }
-            val openLogin = { navController.navigate(LoginRoute) }
+            val openLogin = { navController.navigate(LoginRoute()) }
             val openPaywall = { navController.navigate(PaywallRoute()) }
 
             composable<HomeRoute> {
                 HomeScreen(
                     onVideoClick = openVideo,
                     onChannelClick = openChannel,
-                    onAccountClick = { openTab(YouRoute) },
+                    onAccountClick = openAccounts,
                     onSearchClick = { navController.navigate(SearchRoute) },
                     onSponsoredAdPlay = { ad ->
                         navController.navigate(
@@ -326,7 +363,7 @@ fun AppNavigation(
             }
             composable<YouRoute> {
                 YouScreen(
-                    onLoginClick = { navController.navigate(LoginRoute) },
+                    onLoginClick = { navController.navigate(LoginRoute()) },
                     onRegisterClick = { navController.navigate(RegisterRoute) },
                     onEditInterests = { navController.navigate(InterestsRoute) },
                     onChannelClick = openChannel,
@@ -340,6 +377,7 @@ fun AppNavigation(
                     onPremiumClick = openPaywall,
                     onSettingsClick = { navController.navigate(SettingsRoute) },
                     onCreateChannel = { navController.navigate(CreateChannelRoute) },
+                    onAccountClick = openAccounts,
                 )
             }
             composable<SettingsRoute> { SettingsScreen(onBack = { navController.popBackStack() }) }
@@ -354,7 +392,7 @@ fun AppNavigation(
                 YouListScreen(onBack = { navController.popBackStack() }, onVideoClick = openVideo)
             }
             // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
-            // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute).
+            // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute()).
             composable<LoginRoute> {
                 LoginScreen(
                     onLoggedIn = { navController.popBackStack() },
@@ -369,7 +407,7 @@ fun AppNavigation(
                 RegisterScreen(
                     onRegistered = { navController.popBackStack() },
                     onLoginClick = {
-                        navController.navigate(LoginRoute) { popUpTo<RegisterRoute> { inclusive = true } }
+                        navController.navigate(LoginRoute()) { popUpTo<RegisterRoute> { inclusive = true } }
                     },
                     onContinueAsVisitor = { navController.popBackStack() },
                 )

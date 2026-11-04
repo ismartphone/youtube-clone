@@ -63,7 +63,8 @@ class TokenAuthenticator @Inject constructor(
         val body = result.body()
         if (result.isSuccessful && body != null) {
             val renewed = AuthTokens(body.accessToken, body.refreshToken)
-            runBlocking { tokenStore.save(renewed) }
+            // Enregistré pour son compte, sans le rendre actif : l'utilisateur a pu basculer entre-temps.
+            runBlocking { tokenStore.save(renewed, activate = false) }
             return renewed
         }
         if (result.code() == 400 || result.code() == 401) {

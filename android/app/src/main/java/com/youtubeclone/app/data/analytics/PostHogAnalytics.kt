@@ -71,7 +71,10 @@ class PostHogAnalytics @Inject constructor(
         scope.launch {
             var previous: String? = null
             auth.currentUserId.collect { userId ->
-                if (userId != null) identify(userId) else if (previous != null) reset()
+                // Bascule d'un compte à l'autre (ADR-022) : reset d'abord, sinon les événements
+                // suivants risquent de rester rattachés à l'ancien identifiant.
+                if (previous != null && userId != previous) reset()
+                if (userId != null) identify(userId)
                 previous = userId
             }
         }

@@ -12,7 +12,10 @@ class LoginUseCase @Inject constructor(
     private val analytics: Analytics,
 ) {
     suspend operator fun invoke(email: String, password: String) {
+        val previous = repository.currentUserId.first()
         repository.login(email, password)
+        // Compte ajouté alors qu'un autre était actif (ADR-022) : les mesures repartent de zéro.
+        if (previous != null && previous != repository.currentUserId.first()) analytics.reset()
         identifySession(repository, analytics)
         analytics.track(AnalyticsEvent.LoggedIn)
     }

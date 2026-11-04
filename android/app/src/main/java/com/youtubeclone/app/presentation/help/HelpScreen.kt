@@ -66,6 +66,14 @@ private val TOPICS = listOf(
             Faq(R.string.help_notifications_q, R.string.help_notifications_a),
         ),
     ),
+    // Comptes enregistrés sur l'appareil (ADR-022).
+    HelpTopic(
+        R.string.help_topic_accounts,
+        listOf(
+            Faq(R.string.help_accounts_switch_q, R.string.help_accounts_switch_a),
+            Faq(R.string.help_accounts_logout_q, R.string.help_accounts_logout_a),
+        ),
+    ),
     HelpTopic(
         R.string.help_topic_subtitles,
         listOf(

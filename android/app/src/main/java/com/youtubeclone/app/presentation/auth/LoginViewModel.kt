@@ -1,11 +1,14 @@
 package com.youtubeclone.app.presentation.auth
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.usecase.LoginUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
+import com.youtubeclone.app.presentation.navigation.LoginRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -30,9 +33,11 @@ data class LoginUiState(
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val login: LoginUseCase,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LoginUiState())
+    // Compte enregistré dont la session a expiré : son email est prérempli (ADR-022, décision 2).
+    private val _uiState = MutableStateFlow(LoginUiState(email = savedStateHandle.toRoute<LoginRoute>().email.orEmpty()))
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     // Erreurs sans champ concerné (réseau, serveur indisponible), affichées en message bref.

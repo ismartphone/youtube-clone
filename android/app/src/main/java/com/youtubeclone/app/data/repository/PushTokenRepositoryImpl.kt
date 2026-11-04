@@ -41,6 +41,10 @@ class PushTokenRepositoryImpl @Inject constructor(
         runCatching { messaging.deleteToken().await() }
     }
 
+    override suspend fun forgetLocally() {
+        runCatching { FirebaseMessaging.getInstance().deleteToken().await() }
+    }
+
     private companion object {
         const val UNREGISTER_TIMEOUT_MS = 5_000L
     }

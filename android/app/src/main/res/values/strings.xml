@@ -238,7 +238,7 @@
     <string name="help_premium_what_q">Que comprend Premium ?</string>
     <string name="help_premium_what_a">Premium supprime la publicité, donne accès aux vidéos exclusives, garde le son quand vous quittez l\'écran et permet de télécharger des vidéos pour les regarder hors connexion. L\'offre coûte 4,99 € pour un mois.</string>
     <string name="help_downloads_q">Comment regarder une vidéo hors connexion ?</string>
-    <string name="help_downloads_a">Avec Premium, appuyez sur Télécharger sous la vidéo. Elle se retrouve dans Vous, puis Téléchargements, et se lit sans réseau. Jusqu\'à 20 vidéos. Reconnectez-vous au moins une fois tous les 30 jours pour qu\'elles restent lisibles ; elles le restent jusqu\'à la fin de votre abonnement.</string>
+    <string name="help_downloads_a">Avec Premium, appuyez sur Télécharger sous la vidéo. Elle se retrouve dans Vous, puis Téléchargements, et se lit sans réseau. Jusqu\'à 20 vidéos par compte. Reconnectez-vous au moins une fois tous les 30 jours pour qu\'elles restent lisibles ; elles le restent jusqu\'à la fin de votre abonnement.</string>
     <string name="help_premium_renewal_q">L\'abonnement se renouvelle-t-il ?</string>
     <string name="help_premium_renewal_a">Non. Premium dure un mois, sans renouvellement automatique. Vous pouvez l\'annuler à tout moment depuis l\'écran Vous : il prend alors fin tout de suite.</string>
     <string name="help_topic_subscriptions">Abonnements</string>
@@ -248,6 +248,11 @@
     <string name="help_follow_where_a">Dans l\'onglet Abonnements, en bas de l\'écran. Pour vous désabonner, ouvrez la chaîne, appuyez sur Abonné, puis sur Se désabonner.</string>
     <string name="help_notifications_q">Quand suis-je prévenu des nouvelles vidéos d\'une chaîne ?</string>
     <string name="help_notifications_a">Quand vous êtes abonné, appuyez sur Abonné pour choisir avec la cloche. Toutes : vous êtes prévenu de chaque nouvelle vidéo et de chaque Short. Personnalisées, le réglage par défaut : vous êtes prévenu des nouvelles vidéos, mais pas des Shorts. Ce n\'est pas un tri automatique : seuls les Shorts sont écartés. Aucune : vous n\'êtes jamais prévenu. Les notifications doivent aussi être autorisées dans les réglages du téléphone.</string>
+    <string name="help_topic_accounts">Comptes</string>
+    <string name="help_accounts_switch_q">Comment passer d\'un compte à l\'autre ?</string>
+    <string name="help_accounts_switch_a">Appuyez sur votre photo de profil, en haut du fil ou dans Vous. La liste des comptes enregistrés sur ce téléphone s\'ouvre : choisissez-en un, sans retaper de mot de passe. Ajouter un compte ouvre la connexion ; 5 comptes au plus. Un compte inutilisé pendant 7 jours affiche Reconnexion requise : son mot de passe est alors redemandé.</string>
+    <string name="help_accounts_logout_q">Que deviennent mes téléchargements quand je change de compte ?</string>
+    <string name="help_accounts_logout_a">Chaque compte garde ses propres téléchargements, ses abonnements, son historique et son statut Premium. Changer de compte ne supprime rien. Se déconnecter, ou retirer un compte dans Gérer les comptes, supprime ses téléchargements de ce téléphone, et seulement les siens.</string>
     <string name="help_topic_subtitles">Sous-titres</string>
     <string name="help_subtitles_how_q">Comment afficher les sous-titres ?</string>
     <string name="help_subtitles_how_a">Pendant la lecture d\'une vidéo, appuyez sur le bouton CC en haut du lecteur, ou ouvrez le menu du lecteur. Les sous-titres sont générés automatiquement à partir de la parole.</string>
@@ -364,4 +369,16 @@
     <string name="player_menu_subtitles_auto">Générés automatiquement</string>
     <string name="player_subtitles_enable">Activer les sous-titres</string>
     <string name="player_subtitles_disable">Désactiver les sous-titres</string>
+    <!-- Comptes enregistrés sur l'appareil (ADR-022) -->
+    <string name="accounts_title">Comptes</string>
+    <string name="accounts_add">Ajouter un compte</string>
+    <string name="accounts_manage">Gérer les comptes</string>
+    <string name="accounts_manage_done">Terminé</string>
+    <string name="accounts_active">Compte actif</string>
+    <string name="accounts_reconnect">Reconnexion requise</string>
+    <string name="accounts_remove">Retirer</string>
+    <string name="accounts_remove_title">Retirer ce compte de l\'appareil ?</string>
+    <string name="accounts_remove_text">%1$s sera retiré de cet appareil, avec ses téléchargements. Vous pourrez l\'ajouter de nouveau en vous connectant.</string>
+    <string name="accounts_cancel">Annuler</string>
+    <string name="accounts_limit">%1$d comptes au plus sur cet appareil</string>
 </resources>

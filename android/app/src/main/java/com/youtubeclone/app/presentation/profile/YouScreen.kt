@@ -88,6 +88,8 @@ class YouActions(
     val onCancelPremium: () -> Unit = {},
     val onSettingsClick: () -> Unit = {},
     val onCreateChannel: () -> Unit = {},
+    /** Appui sur l'avatar : feuille des comptes (ADR-022). */
+    val onAccountClick: () -> Unit = {},
 )
 
 @Composable
@@ -106,6 +108,7 @@ fun YouScreen(
     onPremiumClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onCreateChannel: () -> Unit,
+    onAccountClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: YouViewModel = hiltViewModel(),
 ) {
@@ -131,6 +134,7 @@ fun YouScreen(
         onCancelPremium = viewModel::onCancelPremium,
         onSettingsClick = onSettingsClick,
         onCreateChannel = onCreateChannel,
+        onAccountClick = onAccountClick,
     )
 
     when (val current = state) {
@@ -177,6 +181,7 @@ private fun YouContent(
                     onViewChannel = { channel?.let { actions.onChannelClick(it.id) } },
                     onCreateChannel = actions.onCreateChannel,
                     onCustomizeChannel = actions.onCustomizeChannel,
+                    onAvatarClick = actions.onAccountClick,
                 )
             } else {
                 SignInPrompt(actions.onLoginClick, actions.onRegisterClick)
@@ -379,6 +384,7 @@ private fun AccountHeader(
     onViewChannel: () -> Unit,
     onCreateChannel: () -> Unit,
     onCustomizeChannel: () -> Unit,
+    onAvatarClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier.padding(horizontal = 16.dp),
@@ -386,10 +392,17 @@ private fun AccountHeader(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Avec une chaîne, son avatar (photo ou initiales générées) ; sinon celui du compte.
-        if (channel?.avatarUrl != null) {
-            ChannelAvatar(channel = channel, modifier = Modifier.size(72.dp).clip(CircleShape))
-        } else {
-            Avatar(user)
+        // Appui sur l'avatar : feuille des comptes enregistrés sur l'appareil (ADR-022).
+        Box(
+            modifier = Modifier
+                .clip(CircleShape)
+                .clickable(onClick = onAvatarClick, role = Role.Button, onClickLabel = stringResource(R.string.accounts_title)),
+        ) {
+            if (channel?.avatarUrl != null) {
+                ChannelAvatar(channel = channel, modifier = Modifier.size(72.dp).clip(CircleShape))
+            } else {
+                Avatar(user)
+            }
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(

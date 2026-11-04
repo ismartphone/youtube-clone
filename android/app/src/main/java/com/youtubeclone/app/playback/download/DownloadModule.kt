@@ -12,6 +12,7 @@ import androidx.media3.exoplayer.scheduler.Requirements
 import androidx.room.Room
 import com.youtubeclone.app.data.local.DownloadDao
 import com.youtubeclone.app.data.local.DownloadsDatabase
+import com.youtubeclone.app.data.local.MIGRATION_DOWNLOADS_1_2
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -66,7 +67,9 @@ object DownloadModule {
     @Provides
     @Singleton
     fun provideDownloadsDatabase(@ApplicationContext context: Context): DownloadsDatabase =
-        Room.databaseBuilder(context, DownloadsDatabase::class.java, "downloads.db").build()
+        Room.databaseBuilder(context, DownloadsDatabase::class.java, "downloads.db")
+            .addMigrations(MIGRATION_DOWNLOADS_1_2)
+            .build()
 
     @Provides
     fun provideDownloadDao(database: DownloadsDatabase): DownloadDao = database.downloadDao()

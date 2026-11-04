@@ -12,4 +12,10 @@ interface PushTokenRepository {
      * le permet, puis le supprime de l'appareil, ce qui coupe les notifications même hors ligne.
      */
     suspend fun unregister()
+
+    /**
+     * Supprime le jeton de l'appareil seulement, sans appel au serveur : après une bascule hors
+     * réseau (ADR-022), l'ancien compte ne reçoit plus rien ; Firebase en fournira un nouveau.
+     */
+    suspend fun forgetLocally()
 }

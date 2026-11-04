@@ -10,6 +10,7 @@ import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
 import com.youtubeclone.app.data.local.DownloadDao
 import com.youtubeclone.app.data.local.DownloadedVideoEntity
+import com.youtubeclone.app.data.local.TokenStore
 import com.youtubeclone.app.data.remote.DownloadApi
 import com.youtubeclone.app.data.remote.dto.CheckDownloadsRequestDto
 import com.youtubeclone.app.data.remote.resolveMediaUrl
@@ -32,8 +33,12 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -44,15 +49,22 @@ import retrofit2.HttpException
  * DownloadManager de Media3 écrit la vidéo dans le cache privé ; Room garde ce que l'écran
  * « Téléchargements » affiche sans réseau. Miniature et sous-titres sont enregistrés à côté, dans
  * le stockage privé, jamais dans la galerie.
+ *
+ * Chaque ligne appartient à un compte (ADR-022) ; tout ce qui suit ne voit que le compte actif.
+ * Le fichier d'une vidéo est partagé entre les comptes qui l'ont téléchargée.
  */
-@OptIn(UnstableApi::class)
+@OptIn(UnstableApi::class, ExperimentalCoroutinesApi::class)
 class DownloadsRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val api: DownloadApi,
     private val dao: DownloadDao,
     private val manager: DownloadManager,
     private val client: OkHttpClient,
+    private val tokenStore: TokenStore,
 ) : DownloadsRepository {
+
+    // Sans session, aucun téléchargement : la lecture hors ligne est réservée au compte Premium.
+    private suspend fun activeUserId(): String? = tokenStore.userId.first()
 
     // État des téléchargements du DownloadManager, relu chaque seconde : la progression avance.
     private val states: Flow<Map<String, Download>> = flow {
@@ -72,11 +84,15 @@ class DownloadsRepositoryImpl @Inject constructor(
     }
 
     override val downloads: Flow<List<DownloadedVideo>> =
-        combine(dao.observeAll(), states) { rows, downloads -> rows.map { it.toDomain(downloads[it.videoId]) } }
+        tokenStore.userId.flatMapLatest { userId ->
+            if (userId == null) flowOf(emptyList()) else dao.observeAll(userId)
+        }.let { rows -> combine(rows, states) { list, downloads -> list.map { it.toDomain(downloads[it.videoId]) } } }
 
     override suspend fun download(video: Video) {
-        if (dao.get(video.id) != null) return
-        if (dao.count() >= MAX_DOWNLOADS) throw DownloadProblem.TooMany
+        val userId = activeUserId() ?: throw DataError.PremiumRequired
+        if (dao.get(userId, video.id) != null) return
+        // Limite de 20 par compte, pas pour l'appareil (ADR-022, décision 8).
+        if (dao.count(userId) >= MAX_DOWNLOADS) throw DownloadProblem.TooMany
         val grant = try {
             api.authorize(video.id)
         } catch (e: CancellationException) {
@@ -99,6 +115,7 @@ class DownloadsRepositoryImpl @Inject constructor(
         val subtitles = grant.subtitleUrl?.let { saveFile(resolveMediaUrl(it), SUBTITLES_FOLDER, "${video.id}.vtt") }
         dao.insert(
             DownloadedVideoEntity(
+                userId = userId,
                 videoId = video.id,
                 title = video.title,
                 channelName = video.channel.name,
@@ -111,26 +128,41 @@ class DownloadsRepositoryImpl @Inject constructor(
                 createdAt = now,
             ),
         )
+        // Déjà téléchargée par un autre compte de l'appareil : le fichier est partagé.
+        val existing = withContext(Dispatchers.IO) { readStates()[video.id] }
+        if (existing != null && existing.state != Download.STATE_FAILED) return
         val request = DownloadRequest.Builder(video.id, resolveMediaUrl(grant.fileUrl).toUri()).build()
         DownloadService.sendAddDownload(context, AppDownloadService::class.java, request, false)
     }
 
     override suspend fun remove(videoId: String) {
+        val userId = activeUserId() ?: return
+        remove(userId, videoId)
+    }
+
+    override suspend fun removeAccount(userId: String) {
+        dao.getAll(userId).forEach { remove(userId, it.videoId) }
+    }
+
+    override suspend fun adoptUnowned(userId: String?) {
+        if (userId != null) dao.claimUnowned(userId) else removeAccount(UNOWNED)
+    }
+
+    // La ligne du compte disparaît ; le fichier, la miniature et les sous-titres seulement si
+    // aucun autre compte de l'appareil n'a téléchargé cette vidéo.
+    private suspend fun remove(userId: String, videoId: String) {
+        dao.delete(userId, videoId)
+        if (dao.countOwners(videoId) > 0) return
         DownloadService.sendRemoveDownload(context, AppDownloadService::class.java, videoId, false)
         withContext(Dispatchers.IO) {
             File(context.filesDir, "$THUMBNAILS_FOLDER/$videoId.jpg").delete()
             File(context.filesDir, "$SUBTITLES_FOLDER/$videoId.vtt").delete()
         }
-        dao.delete(videoId)
-    }
-
-    override suspend fun removeAll() {
-        dao.getAll().forEach { remove(it.videoId) }
-        DownloadService.sendRemoveAllDownloads(context, AppDownloadService::class.java, false)
     }
 
     override suspend fun revalidate() {
-        val rows = dao.getAll()
+        val userId = activeUserId() ?: return
+        val rows = dao.getAll(userId)
         if (rows.isEmpty()) return
         val check = try {
             api.check(CheckDownloadsRequestDto(rows.map { it.videoId }))
@@ -142,15 +174,15 @@ class DownloadsRepositoryImpl @Inject constructor(
         }
         val expiresAt = check.expiresAt?.let { Instant.parse(it).toEpochMilli() }
         if (expiresAt == null) {
-            removeAll()
+            removeAccount(userId)
             return
         }
-        rows.filterNot { it.videoId in check.accessible }.forEach { remove(it.videoId) }
-        if (check.accessible.isNotEmpty()) dao.revalidate(check.accessible, expiresAt, System.currentTimeMillis())
+        rows.filterNot { it.videoId in check.accessible }.forEach { remove(userId, it.videoId) }
+        if (check.accessible.isNotEmpty()) dao.revalidate(userId, check.accessible, expiresAt, System.currentTimeMillis())
     }
 
     override suspend fun get(videoId: String): DownloadedVideo? =
-        dao.get(videoId)?.toDomain(withContext(Dispatchers.IO) { readStates()[videoId] })
+        activeUserId()?.let { dao.get(it, videoId) }?.toDomain(withContext(Dispatchers.IO) { readStates()[videoId] })
 
     private fun readStates(): Map<String, Download> {
         val result = mutableMapOf<String, Download>()
@@ -206,5 +238,7 @@ class DownloadsRepositoryImpl @Inject constructor(
         const val SPACE_MARGIN_BYTES = 50L * 1024 * 1024
         const val THUMBNAILS_FOLDER = "download-thumbnails"
         const val SUBTITLES_FOLDER = "download-subtitles"
+        // Compte des lignes d'avant l'ADR-022 (voir MIGRATION_DOWNLOADS_1_2).
+        const val UNOWNED = ""
     }
 }
