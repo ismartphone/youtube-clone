@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">YouTube Clone</string>
+    <string name="app_name">Clone</string>
     <string name="opening_wordmark">Clone</string>
 
     <string name="tab_home">Accueil</string>
@@ -22,10 +22,10 @@
     </plurals>
     <string name="create_live_create_shorts">Créer des Shorts</string>
     <string name="create_live_learn_more">En savoir plus</string>
-    <string name="create_live_unlocked_title">Le direct arrive bientôt</string>
-    <string name="create_live_unlocked_message">Votre chaîne a atteint le seuil : vous pourrez passer en direct dès que la diffusion sera disponible.</string>
+    <string name="create_live_unlocked_title">Votre chaîne a atteint %1$d abonnés</string>
+    <string name="create_live_unlocked_message">Continuez à publier des Shorts et des vidéos pour faire grandir votre audience.</string>
     <string name="create_live_rule_title">Diffuser en direct</string>
-    <string name="create_live_rule_message">Comme sur YouTube, la diffusion en direct depuis un mobile est réservée aux chaînes qui comptent au moins %1$d abonnés. Publier des Shorts et des vidéos est le meilleur moyen d\'en gagner.\n\nDans cette application, seul ce seuil est en place : la diffusion en direct elle-même n\'est pas encore disponible.</string>
+    <string name="create_live_rule_message">La diffusion en direct depuis un mobile est réservée aux chaînes qui comptent au moins %1$d abonnés. Publier des Shorts et des vidéos reste le meilleur moyen de faire grandir votre audience.</string>
     <string name="create_live_rule_ok">Compris</string>
     <string name="create_video_title">Publier une vidéo</string>
     <string name="create_video_message">Choisissez une vidéo dans votre galerie.</string>
@@ -102,7 +102,7 @@
     <string name="register_to_login">Déjà un compte ? Se connecter</string>
     <string name="auth_continue_as_visitor">Continuer sans compte</string>
 
-    <string name="premium_name">YouTube Clone Premium</string>
+    <string name="premium_name">Clone Premium</string>
     <string name="premium_badge">Premium</string>
     <string name="premium_price">4,99 € par mois</string>
     <string name="premium_paywall_title">Passez à Premium</string>
@@ -124,7 +124,7 @@
     <string name="premium_close">Fermer</string>
     <string name="premium_screen_title">Premium</string>
     <string name="premium_sheet_title">Paiement simulé, aucun débit</string>
-    <string name="premium_sheet_offer">YouTube Clone Premium, un mois</string>
+    <string name="premium_sheet_offer">Clone Premium, un mois</string>
     <string name="premium_sheet_confirm">Confirmer</string>
     <string name="premium_sheet_cancel">Annuler</string>
     <string name="premium_welcome">Bienvenue dans Premium</string>

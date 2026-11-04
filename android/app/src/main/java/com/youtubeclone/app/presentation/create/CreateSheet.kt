@@ -239,7 +239,7 @@ private fun SheetMessage(
 /**
  * Écran de déblocage du direct, comme sur YouTube : la condition (50 abonnés), la progression
  * réelle de la chaîne, « Créer des Shorts » pour gagner des abonnés et « En savoir plus ». Seuil
- * atteint : le direct arrive bientôt, la diffusion n'étant pas développée (ADR-015).
+ * atteint : l'écran le constate, sans rien promettre, la diffusion n'étant pas développée (ADR-015).
  */
 @Composable
 private fun LiveUnlock(
@@ -261,7 +261,11 @@ private fun LiveUnlock(
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
             ) {
                 Text(
-                    text = stringResource(if (unlocked) R.string.create_live_unlocked_title else R.string.create_live_title),
+                    text = if (unlocked) {
+                        stringResource(R.string.create_live_unlocked_title, LIVE_MIN_FOLLOWERS)
+                    } else {
+                        stringResource(R.string.create_live_title)
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -276,16 +280,19 @@ private fun LiveUnlock(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.create_live_progress,
-                        state.followerCount,
-                        state.followerCount,
-                        LIVE_MIN_FOLLOWERS,
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                )
+                // Seuil atteint : la barre pleine suffit, « 73 abonnés sur 50 » n'aurait pas de sens.
+                if (!unlocked) {
+                    Text(
+                        text = pluralStringResource(
+                            R.plurals.create_live_progress,
+                            state.followerCount,
+                            state.followerCount,
+                            LIVE_MIN_FOLLOWERS,
+                        ),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
                 LinearProgressIndicator(
                     progress = { (state.followerCount.toFloat() / LIVE_MIN_FOLLOWERS).coerceAtMost(1f) },
                     modifier = Modifier.fillMaxWidth(),

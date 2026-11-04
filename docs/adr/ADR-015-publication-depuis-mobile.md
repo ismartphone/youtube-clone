@@ -27,10 +27,11 @@ Un créateur publie des vidéos, des Shorts et des posts depuis l'application mo
 ### Feuille de création
 - Le + ouvre une feuille qui monte du bas, avec quatre onglets en bas : Vidéo, Short, En direct, Post.
 - En direct n'est pas grisé : il affiche l'écran de déblocage du direct, sur le modèle de YouTube. La condition pour débloquer le direct est d'avoir au moins 50 abonnés (FOLLOW, abonnement gratuit).
-  - L'écran montre la progression du créateur avec son vrai nombre d'abonnés (par exemple « 3 abonnés sur 50 ») et une barre de progression.
-  - Deux boutons, comme sur YouTube : « Créer des Shorts », qui bascule sur l'onglet Short de la feuille, et « En savoir plus », qui explique la règle.
+  - Sous 50 abonnés, l'écran montre la progression du créateur avec son vrai nombre d'abonnés (par exemple « 3 abonnés sur 50 ») et une barre de progression.
+  - Sous 50 abonnés, deux boutons, comme sur YouTube : « Créer des Shorts », qui bascule sur l'onglet Short de la feuille, et « En savoir plus », qui explique la règle.
+  - La fenêtre « En savoir plus » dit seulement : « La diffusion en direct depuis un mobile est réservée aux chaînes qui comptent au moins 50 abonnés. Publier des Shorts et des vidéos reste le meilleur moyen de faire grandir votre audience. »
   - Un utilisateur sans chaîne voit l'invitation à en créer une, comme sur les autres onglets ; un visiteur non connecté voit l'invitation à se connecter.
-  - À partir de 50 abonnés, l'écran indique que le direct arrive bientôt.
+  - À partir de 50 abonnés, l'écran affiche « Votre chaîne a atteint 50 abonnés », la barre de progression pleine (sans la ligne « N abonnés sur 50 ») et « Continuez à publier des Shorts et des vidéos pour faire grandir votre audience. », avec le seul bouton « En savoir plus ». Il n'annonce pas que le direct arrive bientôt.
   - Le seuil de 50 est une constante du domaine de l'application. Le nombre d'abonnés vient de la page de chaîne existante (GET /channels/{id}), chargée à l'ouverture de l'onglet. Aucune route backend n'est ajoutée.
   - Limite : le seuil est réel et calculé sur les abonnés, mais la diffusion en direct elle-même reste hors périmètre (CLAUDE.md) : un serveur de streaming est un projet à lui seul.
 - Un utilisateur sans chaîne voit une invitation à en créer une.
@@ -87,7 +88,7 @@ Un créateur publie des vidéos, des Shorts et des posts depuis l'application mo
 - Les vidéos envoyées occupent l'espace disque du stockage local.
 - Une nouvelle table POST, avec sa migration Prisma.
 - Le catalogue n'est plus alimenté par le seul administrateur.
-- Atteindre 50 abonnés ne débloque pas de diffusion en direct : l'écran annonce seulement que le direct arrive bientôt, la diffusion restant hors périmètre.
+- Atteindre 50 abonnés ne débloque pas de diffusion en direct : l'écran indique seulement que la chaîne a atteint 50 abonnés et invite à continuer de publier, la diffusion restant hors périmètre.
 - La page de chaîne est chargée à chaque ouverture de l'onglet En direct pour connaître le nombre d'abonnés.
 
 ## Liens
@@ -99,3 +100,5 @@ Un créateur publie des vidéos, des Shorts et des posts depuis l'application mo
 - [ADR-007](ADR-007-offre-premium.md) : offre Premium ; les champs de l'écran de publication mobile sont l'aperçu, le titre, la description, la catégorie, la visibilité et les commentaires (ADR-016), le marquage isPremium n'en fait pas partie.
 - [ADR-016](ADR-016-reglages-publication-video.md) : réglages de publication d'une vidéo ; il ajoute la visibilité et l'activation des commentaires à l'écran de publication, et restreint l'apparition dans le fil et sur la page de la chaîne aux vidéos publiques.
 - [ADR-017](ADR-017-hls-multi-qualites-sous-titres.md) : diffusion HLS multi-qualités et sous-titres automatiques ; l'envoi depuis l'application déclenche leur génération en tâche de fond, après la publication en MP4.
+
+Amendé le 4 novembre : l'onglet « En direct » de la feuille de création n'est plus grisé avec « Bientôt disponible » ; il affiche l'écran de déblocage du direct (seuil réel de 50 abonnés, progression, « Créer des Shorts », « En savoir plus »), décrit dans la section « Feuille de création ». Raison : ajustement de périmètre demandé par le lead développeur ; seul le seuil est développé, la diffusion en direct reste hors périmètre. Règle de rédaction décidée le même jour : aucun texte visible par l'utilisateur ne mentionne YouTube, ne dit « dans cette application » ni n'annonce ce qui n'est pas développé ; à partir de 50 abonnés, l'écran n'annonce donc plus que le direct arrive bientôt, et la fenêtre « En savoir plus » se limite à la règle des 50 abonnés et au conseil de publier. Raison : l'application parle comme un produit, pas comme une maquette.
