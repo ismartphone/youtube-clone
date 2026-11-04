@@ -1,7 +1,7 @@
 # ADR-022 — Plusieurs comptes sur l'appareil et changement de compte
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 L'application ne connaît aujourd'hui qu'un compte à la fois. L'ADR-008 conserve un seul jeu de jetons sur l'appareil : `TokenStore` (une entrée `tokens` dans le DataStore `session`), chiffrée en AES-GCM par `TokenCipher` avec une seule clé Keystore (`session_tokens`). Pour changer de compte, il faut se déconnecter puis se reconnecter avec le mot de passe.

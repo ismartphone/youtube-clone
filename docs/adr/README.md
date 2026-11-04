@@ -11,7 +11,7 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-005](ADR-005-ajout-videos-backoffice.md) | Ajout des vidéos uniquement depuis le back-office | Remplacé par l'ADR-015 |
 | [ADR-006](ADR-006-analytics-posthog.md) | Mesures d'audience et test A/B avec PostHog | Accepté, remplacé en partie par l'ADR-013 (données personnelles) |
 | [ADR-007](ADR-007-offre-premium.md) | Offre Premium | Accepté, remplacé en partie par l'ADR-014 (paiement) et l'ADR-021 (publicité) |
-| [ADR-008](ADR-008-authentification-jwt.md) | Authentification par JWT avec access token court et refresh token | Accepté |
+| [ADR-008](ADR-008-authentification-jwt.md) | Authentification par JWT avec access token court et refresh token | Accepté, remplacé en partie par l'ADR-022 (plusieurs comptes) |
 | [ADR-009](ADR-009-stockage-tokens-backoffice.md) | Stockage des tokens du back-office en localStorage | Accepté |
 | [ADR-010](ADR-010-websocket-salles-compteurs.md) | Authentification, salles par vidéo et diffusion des compteurs sur la connexion WebSocket | Accepté |
 | [ADR-011](ADR-011-ffmpeg-chemins-medias.md) | FFmpeg en dépendance système et chemins relatifs pour les fichiers hébergés | Accepté |
@@ -25,6 +25,7 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-019](ADR-019-je-naime-pas-telechargements-playlists-aide.md) | Boutons « Je n'aime pas », « Télécharger », « Enregistrer » et « Aide » : avis négatif, téléchargements Premium, playlists et écran d'aide | Accepté |
 | [ADR-020](ADR-020-notifications-fcm.md) | Notifications de publication par Firebase Cloud Messaging | Accepté |
 | [ADR-021](ADR-021-publicites-preroll-bandeau.md) | Publicités vidéo : pré-roll réel, bandeau sponsorisé | Accepté |
-| [ADR-022](ADR-022-plusieurs-comptes-appareil.md) | Plusieurs comptes sur l'appareil et changement de compte | Proposé |
+| [ADR-022](ADR-022-plusieurs-comptes-appareil.md) | Plusieurs comptes sur l'appareil et changement de compte | Accepté |
 | [ADR-023](ADR-023-reponses-jaime-commentaires.md) | Réponses et « j'aime » sur les commentaires | Proposé |
 | [ADR-024](ADR-024-mini-lecteur.md) | Mini-lecteur : lecteur unique remonté au niveau de l'ossature de l'application | Proposé |
+| [ADR-025](ADR-025-messagerie-utilisateurs.md) | Messagerie entre utilisateurs : conversations à deux, partage de vidéos, notifications | Proposé |
