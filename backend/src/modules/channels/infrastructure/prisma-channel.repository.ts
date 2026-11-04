@@ -4,7 +4,12 @@ import {
   ChannelAlreadyOwnedError,
   HandleAlreadyUsedError,
 } from '../domain/channel.errors.js';
-import type { ChannelSummary, NewChannel } from '../domain/channel.js';
+import type {
+  ChannelChanges,
+  ChannelSummary,
+  NewChannel,
+  OwnChannel,
+} from '../domain/channel.js';
 import type { ChannelRepository } from '../domain/ports.js';
 
 // Sélection explicite : aucune donnée du propriétaire (email, rôle) ne sort par ce dépôt.
@@ -14,6 +19,11 @@ const CHANNEL_SUMMARY_SELECT = {
   handle: true,
   avatarUrl: true,
   bannerUrl: true,
+} satisfies Prisma.ChannelSelect;
+
+const OWN_CHANNEL_SELECT = {
+  ...CHANNEL_SUMMARY_SELECT,
+  description: true,
 } satisfies Prisma.ChannelSelect;
 
 // Code Prisma d'une violation de contrainte d'unicité.
@@ -101,6 +111,38 @@ export class PrismaChannelRepository implements ChannelRepository {
       select: { channel: { select: CHANNEL_SUMMARY_SELECT } },
     });
     return follows.map((follow) => follow.channel);
+  }
+
+  findOwnedDetails(userId: string): Promise<OwnChannel | null> {
+    return this.prisma.channel.findUnique({
+      where: { ownerId: userId },
+      select: OWN_CHANNEL_SELECT,
+    });
+  }
+
+  async update(
+    channelId: string,
+    changes: ChannelChanges & {
+      avatarUrl?: string | null;
+      bannerUrl?: string | null;
+    },
+  ): Promise<OwnChannel | null> {
+    try {
+      const [channel] = await this.prisma.channel.updateManyAndReturn({
+        where: { id: channelId },
+        data: changes,
+        select: OWN_CHANNEL_SELECT,
+      });
+      return channel ?? null;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === UNIQUE_CONSTRAINT_VIOLATION
+      ) {
+        throw new HandleAlreadyUsedError();
+      }
+      throw error;
+    }
   }
 
   async updateBanner(

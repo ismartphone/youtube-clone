@@ -31,11 +31,24 @@ export function avatarInitials(name: string): string {
 // du nom, saturation et luminosité fixes pour que les initiales blanches restent lisibles.
 // Renvoie la couleur en hexadécimal, sans « # ».
 export function avatarColor(name: string): string {
+  return hslToHex(nameHash(name) % 360, 0.55, 0.42);
+}
+
+/**
+ * Nom de fichier de l'avatar généré d'une chaîne : il dépend du nom, dont viennent les initiales
+ * et la couleur. Un nouveau nom donne un nouveau fichier, que les clients ne peuvent pas confondre
+ * avec l'ancien gardé en cache ; le même nom redonne le même fichier (ADR-018).
+ */
+export function generatedAvatarKey(channelId: string, name: string): string {
+  return `${channelId}-${nameHash(name).toString(16).padStart(8, '0')}`;
+}
+
+function nameHash(name: string): number {
   let hash = 0;
   for (const char of name) {
     hash = (hash * 31 + char.codePointAt(0)!) >>> 0;
   }
-  return hslToHex(hash % 360, 0.55, 0.42);
+  return hash;
 }
 
 function hslToHex(hue: number, saturation: number, lightness: number): string {

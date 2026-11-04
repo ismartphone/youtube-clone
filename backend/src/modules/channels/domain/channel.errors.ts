@@ -12,6 +12,21 @@ export class HandleAlreadyUsedError extends Error {
   }
 }
 
+// Image refusée : ni JPEG ni PNG, ou illisible.
+export class InvalidChannelImageError extends Error {
+  constructor() {
+    super('Choisissez une image JPEG ou PNG.');
+  }
+}
+
+export class ChannelImageUnavailableError extends Error {
+  constructor() {
+    super(
+      "L'envoi d'images est momentanément indisponible. Réessayez plus tard.",
+    );
+  }
+}
+
 export class ChannelNotFoundError extends Error {
   constructor() {
     super('Chaîne introuvable');
