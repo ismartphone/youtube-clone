@@ -160,7 +160,7 @@ Playlists complètes : créer, nommer, renommer, supprimer une playlist ; ajoute
 - Suppression d'une playlist : ses lignes PLAYLIST_ITEM sont supprimées avec elle (suppression en cascade).
 
 #### Routes
-- GET /me/playlists : mes playlists (titre, nombre de vidéos, miniature de la première vidéo).
+- GET /me/playlists : mes playlists (titre, nombre de vidéos, miniature de la première vidéo). Paramètre de requête facultatif `videoId` (UUID) : quand il est fourni, chaque playlist de la réponse porte un booléen `containsVideo` qui dit si elle contient déjà cette vidéo.
 - POST /me/playlists : créer.
 - GET /me/playlists/:id : contenu d'une playlist.
 - PATCH /me/playlists/:id : renommer.
@@ -302,4 +302,4 @@ Précision du lead développeur : les fichiers téléchargés vont dans le stock
 - [ADR-003](ADR-003-backend-nestjs.md) : backend en NestJS, architecture hexagonale ; les nouvelles routes et l'éventuel module `playlists` en suivent l'organisation.
 - [ADR-001](ADR-001-android-natif.md) : application native Android ; téléchargement et lecture hors ligne par Media3, écrans en Jetpack Compose.
 
-Amendé le 4 novembre : délai maximal hors ligne fixé à 30 jours, comme YouTube. Une vidéo téléchargée doit être revalidée par une connexion au serveur au moins tous les 30 jours ; au-delà, la lecture est refusée tant que l'application n'a pas pu revérifier l'accès. Le blocage à `expiresAt` reste valable en plus. Raison : sans ce délai, une résiliation ne serait jamais prise en compte pour quelqu'un qui reste hors ligne.
+Amendé le 4 novembre : délai maximal hors ligne fixé à 30 jours, comme YouTube. Une vidéo téléchargée doit être revalidée par une connexion au serveur au moins tous les 30 jours ; au-delà, la lecture est refusée tant que l'application n'a pas pu revérifier l'accès. Le blocage à `expiresAt` reste valable en plus. Raison : sans ce délai, une résiliation ne serait jamais prise en compte pour quelqu'un qui reste hors ligne. Précision sur les playlists : GET /me/playlists accepte un paramètre de requête facultatif `videoId` (UUID) ; quand il est fourni, chaque playlist de la réponse porte un booléen `containsVideo` qui dit si elle contient déjà cette vidéo. Raison : la feuille « Enregistrer dans… » de l'écran de lecture coche les playlists qui contiennent la vidéo regardée ; sans ce paramètre, l'application devrait lire le contenu de chaque playlist.
