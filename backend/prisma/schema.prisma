@@ -281,6 +281,9 @@ model Ad {
   hlsUrl          String?
   thumbnailUrl    String?
   durationSeconds Int
+  // Site de l'annonceur, ouvert par « Visiter le site » et par le bandeau sponsorisé. Saisi à
+  // l'import ; null seulement pour une ligne antérieure à ce champ.
+  destinationUrl  String?
   createdAt       DateTime @default(now())
 
   @@map("ads")

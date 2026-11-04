@@ -9,6 +9,7 @@ const AD: Ad = {
   hlsUrl: null,
   thumbnailUrl: null,
   durationSeconds: 20,
+  destinationUrl: 'https://www.exemple.fr',
   createdAt: new Date(0),
 };
 const chooseAd = new ChooseAdUseCase({ pick: () => Promise.resolve(AD) });

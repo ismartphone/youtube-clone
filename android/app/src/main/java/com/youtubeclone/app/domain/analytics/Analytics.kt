@@ -83,8 +83,20 @@ sealed class AnalyticsEvent(val name: String, val properties: Map<String, Any> =
     class RemoveAdsClickedPreroll(adId: String) :
         AnalyticsEvent("remove_ads_clicked_preroll", mapOf("ad_id" to adId))
     class SponsoredAdShown(adId: String) : AnalyticsEvent("sponsored_ad_shown", mapOf("ad_id" to adId))
-    class SponsoredAdClicked(adId: String) : AnalyticsEvent("sponsored_ad_clicked", mapOf("ad_id" to adId))
+    // Site de l'annonceur ouvert, avec l'emplacement : annonce avant une vidéo, annonce lancée
+    // depuis le bandeau, ou bandeau du fil.
+    class AdClicked(adId: String, placement: AdPlacement) :
+        AnalyticsEvent("ad_clicked", mapOf("ad_id" to adId, "placement" to placement.key))
+    class SponsoredAdClicked(adId: String, placement: AdPlacement) :
+        AnalyticsEvent("sponsored_ad_clicked", mapOf("ad_id" to adId, "placement" to placement.key))
     class RemoveAdsClicked(adId: String) : AnalyticsEvent("remove_ads_clicked", mapOf("ad_id" to adId))
+}
+
+/** Emplacement d'une publicité, pour comparer les clics vers le site de l'annonceur. */
+enum class AdPlacement(val key: String) {
+    Preroll("preroll"),
+    SponsoredPlayer("sponsored_player"),
+    HomeBanner("home_banner"),
 }
 
 private fun PaywallVariant.toProperties(): Map<String, Any> = mapOf("paywall_variant" to key)

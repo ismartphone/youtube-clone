@@ -1,5 +1,5 @@
 import type { PrismaService } from '../../../shared/infrastructure/prisma.service.js';
-import type { Ad, NewAd } from '../domain/ad.js';
+import type { Ad, AdChanges, NewAd } from '../domain/ad.js';
 import type { AdRepository } from '../domain/ports.js';
 
 export class PrismaAdRepository implements AdRepository {
@@ -19,6 +19,14 @@ export class PrismaAdRepository implements AdRepository {
       data: { hlsUrl },
     });
     return count > 0;
+  }
+
+  async update(id: string, changes: AdChanges): Promise<Ad | null> {
+    const { count } = await this.prisma.ad.updateMany({
+      where: { id },
+      data: changes,
+    });
+    return count > 0 ? this.prisma.ad.findUnique({ where: { id } }) : null;
   }
 
   async delete(id: string): Promise<Ad | null> {

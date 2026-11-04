@@ -9,8 +9,8 @@ export default function AdsPage() {
     <AdsView
       state={ads.state}
       onRetry={ads.reload}
-      title={ads.title}
-      onTitleChange={ads.changeTitle}
+      draft={ads.draft}
+      onDraftChange={ads.changeDraft}
       fileInputKey={ads.fileInputKey}
       onFileChange={ads.changeFile}
       formError={ads.formError}
@@ -19,6 +19,12 @@ export default function AdsPage() {
       deletingId={ads.deletingId}
       actionError={ads.actionError}
       onDelete={ads.remove}
+      rowDraft={ads.rowDraft}
+      onRowChange={ads.changeRow}
+      isRowChanged={ads.isRowChanged}
+      rowErrors={ads.rowErrors}
+      savingId={ads.savingId}
+      onSaveRow={ads.saveRow}
     />
   );
 }

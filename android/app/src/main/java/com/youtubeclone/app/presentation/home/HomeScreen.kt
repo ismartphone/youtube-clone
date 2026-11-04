@@ -76,7 +76,7 @@ fun HomeScreen(
     onChannelClick: (channelId: String) -> Unit,
     onAccountClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onSponsoredAdClick: (VideoAd) -> Unit,
+    onSponsoredAdPlay: (VideoAd) -> Unit,
     onRemoveAdsClick: () -> Unit,
     onPostClick: (channelId: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -99,10 +99,8 @@ fun HomeScreen(
         onSearchClick = onSearchClick,
         modifier = modifier,
         sponsoredAd = sponsoredAd,
-        onSponsoredAdClick = {
-            viewModel.onSponsoredAdClicked(it)
-            onSponsoredAdClick(it)
-        },
+        onSponsoredAdClick = viewModel::onSponsoredAdClicked,
+        onSponsoredAdPlay = onSponsoredAdPlay,
         onRemoveAdsClick = {
             viewModel.onRemoveAdsClicked(it)
             onRemoveAdsClick()
@@ -127,6 +125,7 @@ private fun HomeContent(
     modifier: Modifier = Modifier,
     sponsoredAd: VideoAd? = null,
     onSponsoredAdClick: (VideoAd) -> Unit = {},
+    onSponsoredAdPlay: (VideoAd) -> Unit = {},
     onRemoveAdsClick: (VideoAd) -> Unit = {},
     onSponsoredAdShown: (VideoAd) -> Unit = {},
     latestPost: Post? = null,
@@ -157,6 +156,7 @@ private fun HomeContent(
                             SponsoredAdCard(
                                 ad = sponsoredAd,
                                 onClick = { onSponsoredAdClick(sponsoredAd) },
+                                onPlay = { onSponsoredAdPlay(sponsoredAd) },
                                 onRemoveAdsClick = { onRemoveAdsClick(sponsoredAd) },
                                 onShown = { onSponsoredAdShown(sponsoredAd) },
                             )

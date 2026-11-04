@@ -234,6 +234,7 @@ fun WatchScreen(
                         adState = adState,
                         adPlayer = viewModel.ads.player,
                         onSkipAd = viewModel.ads::skip,
+                        onVisitAdSite = viewModel.ads::onVisitSite,
                         onRemoveAdsClick = {
                             viewModel.ads.onRemoveAdsClicked()
                             onRemoveAdsClick()
@@ -346,6 +347,7 @@ private fun PlayerArea(
     adState: AdPlaybackState?,
     adPlayer: Player,
     onSkipAd: () -> Unit,
+    onVisitAdSite: () -> Unit,
     onRemoveAdsClick: () -> Unit,
     autoplay: AutoplayCountdown?,
     onCancelAutoplay: () -> Unit,
@@ -365,7 +367,7 @@ private fun PlayerArea(
             VideoPlayer(player = player, modifier = Modifier.fillMaxSize())
             // Publicité avant la vidéo (ADR-021), en plein lecteur et sans contrôle de lecture.
             if (adState != null) {
-                AdPlaybackOverlay(adState, adPlayer, onSkipAd, onRemoveAdsClick, Modifier.fillMaxSize())
+                AdPlaybackOverlay(adState, adPlayer, onSkipAd, onRemoveAdsClick, onVisitAdSite, Modifier.fillMaxSize())
             }
             if (autoplay != null) {
                 AutoplayOverlay(autoplay, onCancelAutoplay, Modifier.fillMaxSize())

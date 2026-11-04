@@ -15,6 +15,7 @@ data class AdDto(
     val hlsUrl: String? = null,
     val thumbnailUrl: String? = null,
     val durationSeconds: Int,
+    val destinationUrl: String? = null,
 )
 
 /** Réponse de GET /ads/sponsored : null pour un compte Premium ou sans publicité. */
@@ -30,4 +31,5 @@ fun AdDto.toDomain() = VideoAd(
     isHls = hlsUrl != null,
     thumbnailUrl = thumbnailUrl?.let(::resolveMediaUrl),
     durationSeconds = durationSeconds,
+    destinationUrl = destinationUrl,
 )

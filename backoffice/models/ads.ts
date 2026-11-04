@@ -7,6 +7,8 @@ export interface Ad {
   hlsUrl: string | null;
   thumbnailUrl: string | null;
   durationSeconds: number;
+  // Site de l'annonceur ; null seulement pour une publicité enregistrée avant ce champ.
+  destinationUrl: string | null;
   createdAt: string;
 }
 

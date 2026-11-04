@@ -6,7 +6,7 @@ import {
   type ThumbnailGenerator,
 } from '../../videos/domain/thumbnail-generator.js';
 import type { VideoProber } from '../../videos/domain/video-upload.js';
-import { AdNotFoundError, type Ad } from '../domain/ad.js';
+import { AdNotFoundError, type Ad, type AdChanges } from '../domain/ad.js';
 import type { AdPicker } from '../domain/ad-picker.js';
 import type { AdFileStore, AdRepository } from '../domain/ports.js';
 
@@ -34,6 +34,7 @@ export class ManageAdsUseCase {
   async import(
     tempPath: string,
     title: string,
+    destinationUrl: string,
     waitForHls = false,
   ): Promise<Ad> {
     const probed = await this.prober.probe(tempPath);
@@ -51,6 +52,7 @@ export class ManageAdsUseCase {
         videoUrl,
         thumbnailUrl,
         durationSeconds,
+        destinationUrl,
       });
       const hls = this.generateHls(ad);
       if (waitForHls) await hls;
@@ -60,6 +62,15 @@ export class ManageAdsUseCase {
       await this.files.remove(videoUrl);
       throw error;
     }
+  }
+
+  // Titre (bandeau sponsorisé) et site de l'annonceur, modifiables depuis le back-office.
+  async update(id: string, changes: AdChanges): Promise<Ad> {
+    const ad = await this.ads.update(id, changes);
+    if (!ad) {
+      throw new AdNotFoundError();
+    }
+    return ad;
   }
 
   // Supprime aussi le fichier, l'échelle HLS et la miniature.

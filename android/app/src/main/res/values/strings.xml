@@ -153,6 +153,8 @@
     <string name="ad_skip">Ignorer</string>
     <string name="ad_remove">Supprimer les publicités</string>
     <string name="ad_sponsored">Sponsorisé</string>
+    <string name="ad_visit_site">Visiter le site</string>
+    <string name="ad_play">Lecture</string>
     <string name="playback_channel_name">Lecture</string>
 
     <string name="you_logged_out_title">Profitez de vos vidéos préférées</string>

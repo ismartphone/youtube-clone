@@ -92,6 +92,7 @@ import kotlinx.serialization.Serializable
     val streamUrl: String,
     val isHls: Boolean,
     val durationSeconds: Int,
+    val destinationUrl: String? = null,
 )
 // [tab] : onglet ouvert d'emblée, par exemple « Posts » depuis un post du fil ; null : Vidéos.
 @Serializable data class ChannelRoute(val channelId: String, val tab: String? = null)
@@ -242,8 +243,10 @@ fun AppNavigation(
                     onChannelClick = openChannel,
                     onAccountClick = { openTab(YouRoute) },
                     onSearchClick = { navController.navigate(SearchRoute) },
-                    onSponsoredAdClick = { ad ->
-                        navController.navigate(AdPlayerRoute(ad.id, ad.title, ad.streamUrl, ad.isHls, ad.durationSeconds))
+                    onSponsoredAdPlay = { ad ->
+                        navController.navigate(
+                            AdPlayerRoute(ad.id, ad.title, ad.streamUrl, ad.isHls, ad.durationSeconds, ad.destinationUrl),
+                        )
                     },
                     onRemoveAdsClick = openPaywall,
                     onPostClick = openChannelPosts,

@@ -2,6 +2,7 @@ package com.youtubeclone.app.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.youtubeclone.app.domain.analytics.AdPlacement
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.analytics.AnalyticsEvent
 import com.youtubeclone.app.domain.model.Category
@@ -123,7 +124,7 @@ class HomeViewModel @Inject constructor(
         analytics.track(AnalyticsEvent.SponsoredAdShown(ad.id))
     }
 
-    fun onSponsoredAdClicked(ad: VideoAd) = analytics.track(AnalyticsEvent.SponsoredAdClicked(ad.id))
+    fun onSponsoredAdClicked(ad: VideoAd) = analytics.track(AnalyticsEvent.SponsoredAdClicked(ad.id, AdPlacement.HomeBanner))
 
     fun onRemoveAdsClicked(ad: VideoAd) = analytics.track(AnalyticsEvent.RemoveAdsClicked(ad.id))
 

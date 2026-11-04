@@ -15,6 +15,7 @@ import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.analytics.AdPlacement
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.DownloadProblem
@@ -41,8 +42,8 @@ import com.youtubeclone.app.domain.usecase.RecordViewUseCase
 import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.SetDislikedUseCase
 import com.youtubeclone.app.domain.usecase.SetFollowingUseCase
-import com.youtubeclone.app.domain.usecase.SetNotificationLevelUseCase
 import com.youtubeclone.app.domain.usecase.SetLikedUseCase
+import com.youtubeclone.app.domain.usecase.SetNotificationLevelUseCase
 import com.youtubeclone.app.playback.BackgroundPlayback
 import com.youtubeclone.app.presentation.ads.AdPlaybackController
 import com.youtubeclone.app.presentation.channel.FollowController
@@ -127,7 +128,7 @@ class WatchViewModel @Inject constructor(
     val videoId = savedStateHandle.toRoute<WatchRoute>().videoId
 
     // Publicité avant la vidéo (ADR-021), choisie par le serveur ; la vidéo démarre à sa fin.
-    val ads = AdPlaybackController(context, viewModelScope, analytics)
+    val ads = AdPlaybackController(context, viewModelScope, analytics, AdPlacement.Preroll)
 
     // La vidéo elle-même a démarré (après l'éventuelle publicité).
     private var videoStarted = false

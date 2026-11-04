@@ -14,6 +14,9 @@ export interface Ad {
   hlsUrl: string | null;
   thumbnailUrl: string | null;
   durationSeconds: number;
+  // Site de l'annonceur (« Visiter le site », bandeau sponsorisé). Null seulement pour une
+  // publicité enregistrée avant ce champ.
+  destinationUrl: string | null;
   createdAt: Date;
 }
 
@@ -22,7 +25,16 @@ export interface NewAd {
   videoUrl: string;
   thumbnailUrl: string | null;
   durationSeconds: number;
+  destinationUrl: string;
 }
+
+// Champs modifiables depuis le back-office ; un champ absent n'est pas modifié.
+export interface AdChanges {
+  title?: string;
+  destinationUrl?: string;
+}
+
+export const AD_URL_MAX_LENGTH = 2048;
 
 export class AdNotFoundError extends Error {
   constructor() {

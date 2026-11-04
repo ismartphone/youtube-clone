@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.youtubeclone.app.domain.analytics.AdPlacement
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.model.VideoAd
 import com.youtubeclone.app.presentation.common.BackTopBar
@@ -40,7 +41,7 @@ class AdPlayerViewModel @Inject constructor(
     @ApplicationContext context: Context,
     analytics: Analytics,
 ) : ViewModel() {
-    val ads = AdPlaybackController(context, viewModelScope, analytics)
+    val ads = AdPlaybackController(context, viewModelScope, analytics, AdPlacement.SponsoredPlayer)
 
     private val _finished = Channel<Unit>(Channel.CONFLATED)
     val finished = _finished.receiveAsFlow()
@@ -55,6 +56,7 @@ class AdPlayerViewModel @Inject constructor(
                 isHls = route.isHls,
                 thumbnailUrl = null,
                 durationSeconds = route.durationSeconds,
+                destinationUrl = route.destinationUrl,
             ),
             onFinished = { _finished.trySend(Unit) },
         )
@@ -81,6 +83,7 @@ fun AdPlayerScreen(onClose: () -> Unit, viewModel: AdPlayerViewModel = hiltViewM
                 player = viewModel.ads.player,
                 onSkip = viewModel.ads::skip,
                 onRemoveAds = null,
+                onVisitSite = viewModel.ads::onVisitSite,
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)

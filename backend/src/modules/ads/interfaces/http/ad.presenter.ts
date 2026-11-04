@@ -11,6 +11,7 @@ export function presentAd(ad: Ad) {
     hlsUrl: ad.hlsUrl,
     thumbnailUrl: ad.thumbnailUrl,
     durationSeconds: ad.durationSeconds,
+    destinationUrl: ad.destinationUrl,
   };
 }
 

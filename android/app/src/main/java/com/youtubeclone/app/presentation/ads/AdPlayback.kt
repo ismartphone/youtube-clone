@@ -6,6 +6,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.youtubeclone.app.domain.analytics.AdPlacement
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.analytics.AnalyticsEvent
 import com.youtubeclone.app.domain.model.VideoAd
@@ -50,6 +51,7 @@ class AdPlaybackController(
     context: Context,
     private val scope: CoroutineScope,
     private val analytics: Analytics,
+    private val placement: AdPlacement,
 ) {
     val player: ExoPlayer = ExoPlayer.Builder(context).build()
 
@@ -60,6 +62,9 @@ class AdPlaybackController(
 
     private var onFinished: (() -> Unit)? = null
     private var ticker: Job? = null
+
+    // Position de l'annonce quand l'écran a été masqué, pour la reprendre au même endroit.
+    private var stoppedAt = 0L
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -91,6 +96,11 @@ class AdPlaybackController(
         ticker?.cancel()
         ticker = scope.launch {
             while (isActive) {
+                // Écran masqué : la position est celle d'avant l'arrêt, jusqu'à la reprise.
+                if (player.playbackState == Player.STATE_IDLE) {
+                    delay(PROGRESS_TICK_MS)
+                    continue
+                }
                 val duration = player.duration.takeIf { it > 0 }
                 _state.value = _state.value?.let {
                     it.copy(positionMs = player.currentPosition, durationMs = duration ?: it.durationMs)
@@ -108,6 +118,16 @@ class AdPlaybackController(
         finish()
     }
 
+    /**
+     * Bande « Visiter le site » : l'annonce se met en pause pendant que le navigateur s'ouvre ;
+     * elle reprend au retour dans l'application ([resume], au retour de l'écran).
+     */
+    fun onVisitSite() {
+        val current = _state.value ?: return
+        analytics.track(AnalyticsEvent.AdClicked(current.ad.id, placement))
+        player.pause()
+    }
+
     /** Lien « Supprimer les publicités » affiché pendant l'annonce avant une vidéo. */
     fun onRemoveAdsClicked() {
         _state.value?.let { analytics.track(AnalyticsEvent.RemoveAdsClickedPreroll(it.ad.id)) }
@@ -118,11 +138,26 @@ class AdPlaybackController(
         if (_state.value != null) finish()
     }
 
-    /** Écran masqué : l'annonce attend, elle ne se joue jamais en arrière-plan. */
-    fun pause() = player.pause()
+    /**
+     * Écran masqué (navigateur ouvert, application en arrière-plan) : l'annonce attend, elle ne se
+     * joue jamais en arrière-plan. Ses décodeurs sont libérés : un décodeur gardé pendant que la
+     * surface d'affichage est détruite puis recréée affiche une image corrompue au retour
+     * (constaté sur l'émulateur).
+     */
+    fun pause() {
+        if (_state.value == null) return
+        stoppedAt = player.currentPosition
+        player.stop()
+    }
 
+    /** Retour sur l'écran : l'annonce reprend où elle en était. */
     fun resume() {
-        if (_state.value != null) player.play()
+        if (_state.value == null) return
+        if (player.playbackState == Player.STATE_IDLE) {
+            player.prepare()
+            player.seekTo(stoppedAt)
+        }
+        player.play()
     }
 
     fun release() {
