@@ -133,6 +133,12 @@ class WatchViewModel @Inject constructor(
     // La vidéo elle-même a démarré (après l'éventuelle publicité).
     private var videoStarted = false
 
+    // Position de la vidéo quand l'écran a été masqué ; ses décodeurs sont alors libérés, et elle
+    // est repréparée à cette position au retour. [restoring] : reprise en cours, une fin de vidéo
+    // retrouvée ne relance pas la lecture automatique.
+    private var stoppedAt: Long? = null
+    private var restoring = false
+
     private val _uiState = MutableStateFlow<WatchUiState>(WatchUiState.Loading)
     val uiState: StateFlow<WatchUiState> = _uiState.asStateFlow()
 
@@ -200,7 +206,10 @@ class WatchViewModel @Inject constructor(
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            if (playbackState == Player.STATE_ENDED) startAutoplay()
+            when (playbackState) {
+                Player.STATE_ENDED -> if (restoring) restoring = false else startAutoplay()
+                Player.STATE_READY -> restoring = false
+            }
         }
 
         // Pistes connues (manifeste HLS lu, ou MP4 ouvert) : la liste des qualités suit.
@@ -371,13 +380,24 @@ class WatchViewModel @Inject constructor(
 
     /**
      * Écran masqué. Application en arrière-plan : un compte Premium garde le son (lecture en
-     * arrière-plan, via [BackgroundPlayback]). Dans tous les autres cas, notamment une autre
-     * vidéo ouverte par-dessus, la lecture se met en pause, sans libérer le lecteur.
+     * arrière-plan, via [BackgroundPlayback]) ; seule la piste vidéo est coupée. Dans tous les
+     * autres cas, notamment une autre vidéo ouverte par-dessus, la lecture se met en pause.
+     * Dans les deux cas, le décodeur vidéo est libéré : gardé pendant que la surface d'affichage
+     * est détruite puis recréée, il affiche une image corrompue au retour (constaté sur
+     * l'émulateur, en basculant vers le navigateur ou une autre application).
      */
     fun onScreenStopped(appInBackground: Boolean) {
         isScreenVisible = false
         cancelAutoplay()
-        if (!appInBackground || observePremium().value?.isPremium != true) player.pause()
+        if (appInBackground && observePremium().value?.isPremium == true) {
+            setVideoTrackDisabled(true)
+        } else if (videoStarted && player.playbackState != Player.STATE_IDLE) {
+            stoppedAt = player.currentPosition
+            player.pause()
+            player.stop()
+        } else {
+            player.pause()
+        }
         ads.pause()
     }
 
@@ -388,6 +408,14 @@ class WatchViewModel @Inject constructor(
     fun onScreenStarted() {
         isScreenVisible = true
         ads.resume()
+        setVideoTrackDisabled(false)
+        // Reprise en pause, à la position quittée : l'utilisateur relance la lecture lui-même.
+        stoppedAt?.let { position ->
+            stoppedAt = null
+            restoring = true
+            player.prepare()
+            player.seekTo(position)
+        }
         if (videoStarted && observePremium().value?.isPremium == true) {
             backgroundPlayback.start(player)
         }
@@ -567,5 +595,11 @@ class WatchViewModel @Inject constructor(
         backgroundPlayback.stop(player)
         player.release()
         ads.release()
+    }
+
+    private fun setVideoTrackDisabled(disabled: Boolean) {
+        player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, disabled)
+            .build()
     }
 }
