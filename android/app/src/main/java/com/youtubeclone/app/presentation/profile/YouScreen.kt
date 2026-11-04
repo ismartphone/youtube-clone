@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -38,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
+import com.youtubeclone.app.domain.model.PlaylistSummary
 import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.presentation.common.ErrorState
@@ -73,6 +77,7 @@ class YouActions(
     val onSubscriptionsClick: () -> Unit = {},
     val onEditInterests: () -> Unit = {},
     val onHelpClick: () -> Unit = {},
+    val onPlaylistClick: (playlistId: String) -> Unit = {},
     val onLogoutClick: () -> Unit = {},
     val onPremiumClick: () -> Unit = {},
     val onCancelPremium: () -> Unit = {},
@@ -88,6 +93,7 @@ fun YouScreen(
     onChannelClick: (channelId: String) -> Unit,
     onCustomizeChannel: () -> Unit,
     onHelpClick: () -> Unit,
+    onPlaylistClick: (playlistId: String) -> Unit,
     onListClick: (YouList) -> Unit,
     onSubscriptionsClick: () -> Unit,
     onPremiumClick: () -> Unit,
@@ -98,6 +104,7 @@ fun YouScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val premium by viewModel.premium.collectAsStateWithLifecycle()
+    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     ErrorToast(viewModel.premiumMessages)
     val actions = YouActions(
         onLoginClick = onLoginClick,
@@ -108,6 +115,7 @@ fun YouScreen(
         onSubscriptionsClick = onSubscriptionsClick,
         onEditInterests = onEditInterests,
         onHelpClick = onHelpClick,
+        onPlaylistClick = onPlaylistClick,
         onLogoutClick = viewModel::onLogoutClick,
         onPremiumClick = onPremiumClick,
         onCancelPremium = viewModel::onCancelPremium,
@@ -119,7 +127,7 @@ fun YouScreen(
         YouUiState.Loading -> LoadingState(modifier)
         is YouUiState.Error -> ErrorState(current.error, onRetry = viewModel::load, modifier = modifier)
         YouUiState.LoggedOut -> YouContent(user = null, channel = null, premium = null, actions = actions, modifier = modifier)
-        is YouUiState.LoggedIn -> YouContent(current.user, current.channel, premium, actions, modifier)
+        is YouUiState.LoggedIn -> YouContent(current.user, current.channel, premium, actions, modifier, playlists)
     }
 }
 
@@ -131,6 +139,7 @@ private fun YouContent(
     premium: PremiumStatus?,
     actions: YouActions,
     modifier: Modifier = Modifier,
+    playlists: List<PlaylistSummary>? = null,
 ) {
     // Sans compte, les listes personnelles mènent à la connexion.
     fun openList(list: YouList) = if (user != null) actions.onListClick(list) else actions.onLoginClick()
@@ -169,8 +178,85 @@ private fun YouContent(
                 onSubscriptions = actions.onSubscriptionsClick,
             )
         }
+        if (user != null && playlists != null) {
+            item(key = "playlists") { PlaylistsSection(playlists, actions.onPlaylistClick) }
+        }
         item(key = "premium") { PremiumCard(premium, actions.onPremiumClick, actions.onCancelPremium) }
         item(key = "settings") { SettingsList(isLoggedIn = user != null, actions = actions) }
+    }
+}
+
+// Section « Playlists » (ADR-019) : une carte par playlist, dans un ruban horizontal. Une
+// playlist se crée depuis le bouton Enregistrer d'une vidéo.
+@Composable
+private fun PlaylistsSection(playlists: List<PlaylistSummary>, onPlaylistClick: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = stringResource(R.string.you_playlists),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+        if (playlists.isEmpty()) {
+            Text(
+                text = stringResource(R.string.you_playlists_empty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        } else {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(playlists, key = { it.id }) { playlist ->
+                    Column(
+                        modifier = Modifier
+                            .width(160.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(role = Role.Button) { onPlaylistClick(playlist.id) },
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (playlist.thumbnailUrl != null) {
+                                AsyncImage(
+                                    model = playlist.thumbnailUrl,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize(),
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_save),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        Text(
+                            text = playlist.title,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = pluralStringResource(R.plurals.playlist_video_count, playlist.videoCount, playlist.videoCount),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

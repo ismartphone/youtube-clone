@@ -37,8 +37,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -99,6 +99,7 @@ import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
 import com.youtubeclone.app.presentation.common.shareVideo
 import com.youtubeclone.app.presentation.home.previewVideo
+import com.youtubeclone.app.presentation.playlist.SaveToPlaylistSheet
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
@@ -135,6 +136,10 @@ fun WatchScreen(
     val autoplayEnabled by viewModel.autoplayEnabled.collectAsStateWithLifecycle()
     val subtitlesEnabled by viewModel.subtitlesEnabled.collectAsStateWithLifecycle()
     var showPlayerMenu by rememberSaveable { mutableStateOf(false) }
+    var showSaveSheet by rememberSaveable { mutableStateOf(false) }
+    if (showSaveSheet) {
+        SaveToPlaylistSheet(videoId = viewModel.videoId, onDismiss = { showSaveSheet = false })
+    }
     if (showPlayerMenu) {
         PlayerMenuSheet(
             qualities = qualities.map { it.size },
@@ -218,6 +223,7 @@ fun WatchScreen(
                 onFollowClick = { requireLogin(viewModel.follow::toggle) },
                 onLikeClick = { requireLogin(viewModel::toggleLike) },
                 onDislikeClick = { requireLogin(viewModel::toggleDislike) },
+                onSaveClick = { requireLogin { showSaveSheet = true } },
                 onShareClick = { shareVideo(context, video) },
                 // Je n'aime pas, Télécharger et Enregistrer : pas encore de fonctionnalité derrière
                 // (pas d'API ; playlists hors périmètre). Les boutons suivent la maquette.
@@ -253,6 +259,7 @@ private fun WatchContent(
     onFollowClick: () -> Unit,
     onLikeClick: () -> Unit,
     onDislikeClick: () -> Unit,
+    onSaveClick: () -> Unit,
     onShareClick: () -> Unit,
     onUnavailableClick: () -> Unit,
     onCommentsClick: () -> Unit,
@@ -269,7 +276,7 @@ private fun WatchContent(
         ) {
             item(key = "title") { TitleBlock(detail, viewCount = stats?.viewCount ?: detail.video.viewCount) }
             item(key = "channel") { ChannelRow(detail.video.channel, followState, onChannelClick, onFollowClick) }
-            item(key = "actions") { ActionsRow(stats, onLikeClick, onDislikeClick, onShareClick, onUnavailableClick) }
+            item(key = "actions") { ActionsRow(stats, onLikeClick, onDislikeClick, onShareClick, onSaveClick, onUnavailableClick) }
             // Commentaires désactivés (ADR-016) : le bloc n'apparaît pas.
             if (detail.video.commentsEnabled) {
                 item(key = "comments") { CommentsTeaser(comments, onCommentsClick) }
@@ -550,6 +557,7 @@ private fun ActionsRow(
     onLikeClick: () -> Unit,
     onDislikeClick: () -> Unit,
     onShareClick: () -> Unit,
+    onSaveClick: () -> Unit,
     onUnavailableClick: () -> Unit,
 ) {
     LazyRow(
@@ -561,7 +569,7 @@ private fun ActionsRow(
         }
         item(key = "share") { ActionChip(R.drawable.ic_share, stringResource(R.string.watch_share), onShareClick) }
         item(key = "download") { ActionChip(R.drawable.ic_download, stringResource(R.string.watch_download), onUnavailableClick) }
-        item(key = "save") { ActionChip(R.drawable.ic_save, stringResource(R.string.watch_save), onUnavailableClick) }
+        item(key = "save") { ActionChip(R.drawable.ic_save, stringResource(R.string.watch_save), onSaveClick) }
     }
 }
 
@@ -774,6 +782,7 @@ private fun WatchContentPreview() {
             onFollowClick = {},
             onLikeClick = {},
             onDislikeClick = {},
+            onSaveClick = {},
             onShareClick = {},
             onUnavailableClick = {},
             onCommentsClick = {},
