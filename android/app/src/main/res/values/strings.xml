@@ -264,6 +264,8 @@
     <string name="notifications_personalized_caption">Vidéos, sans les Shorts</string>
     <string name="notifications_none">Aucune</string>
     <string name="notifications_none_caption">Aucune notification</string>
+    <string name="notification_new_video">%1$s a publié une nouvelle vidéo</string>
+    <string name="notification_new_short">%1$s a publié un nouveau Short</string>
     <string name="notifications_channel_publications">Nouvelles vidéos de vos abonnements</string>
     <string name="notifications_denied_title">Notifications désactivées</string>
     <string name="notifications_denied_message">Autorisez les notifications pour être prévenu des nouvelles vidéos de vos abonnements. Votre choix de cloche est enregistré.</string>

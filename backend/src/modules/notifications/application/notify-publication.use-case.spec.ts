@@ -88,6 +88,7 @@ describe('NotifyPublicationUseCase', () => {
           videoId: 'video-1',
           channelName: 'Studio Libre',
           title: 'Nouvelle vidéo',
+          format: 'LONG',
           thumbnailUrl: '/media/thumbnails/a.jpg',
         },
       },

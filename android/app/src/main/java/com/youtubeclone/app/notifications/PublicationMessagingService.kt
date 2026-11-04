@@ -41,6 +41,7 @@ class PublicationMessagingService : FirebaseMessagingService() {
             videoId = videoId,
             channelName = data["channelName"].orEmpty(),
             title = data["title"].orEmpty(),
+            isShort = data["format"] == FORMAT_SHORT,
             thumbnailUrl = data["thumbnailUrl"]?.takeIf { it.isNotEmpty() },
         )
         runBlocking { PublicationNotifications.show(applicationContext, alert) }
@@ -53,5 +54,6 @@ class PublicationMessagingService : FirebaseMessagingService() {
 
     private companion object {
         const val TYPE_VIDEO_PUBLISHED = "video_published"
+        const val FORMAT_SHORT = "SHORT"
     }
 }

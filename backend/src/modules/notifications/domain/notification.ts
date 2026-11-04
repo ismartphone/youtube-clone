@@ -16,10 +16,12 @@ export interface Publication {
 
 // Ce que reçoit l'appareil. Message de données seulement : l'application construit elle-même la
 // notification, avec la miniature résolue sur l'adresse du serveur qu'elle connaît.
+// Le format permet à l'application d'écrire « a publié une nouvelle vidéo » ou « un nouveau Short ».
 export interface PublicationMessage {
   videoId: string;
   channelName: string;
   title: string;
+  format: VideoFormat;
   thumbnailUrl: string | null;
 }
 
@@ -36,6 +38,7 @@ export function toMessage(publication: Publication): PublicationMessage {
     videoId: publication.videoId,
     channelName: publication.channelName,
     title: publication.title,
+    format: publication.format,
     thumbnailUrl: publication.thumbnailUrl,
   };
 }

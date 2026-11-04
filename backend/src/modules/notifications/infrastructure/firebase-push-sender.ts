@@ -40,6 +40,7 @@ export class FirebasePushSender implements PushSender {
         videoId: message.videoId,
         channelName: message.channelName,
         title: message.title,
+        format: message.format,
         thumbnailUrl: message.thumbnailUrl ?? '',
       },
       android: { priority: 'high' },

@@ -23,12 +23,14 @@ data class PublicationAlert(
     val videoId: String,
     val channelName: String,
     val title: String,
+    val isShort: Boolean,
     val thumbnailUrl: String?,
 )
 
 /**
- * Notification « nouvelle vidéo » (ADR-020) : titre = nom de la chaîne, texte = titre de la vidéo,
- * image = miniature. Un appui ouvre directement la vidéo.
+ * Notification « nouvelle vidéo » (ADR-020) : titre « <chaîne> a publié une nouvelle vidéo » (ou
+ * « un nouveau Short »), texte = titre de la vidéo, miniature en grande image une fois dépliée.
+ * Un appui ouvre directement la vidéo.
  */
 object PublicationNotifications {
     const val CHANNEL_ID = "publications"
@@ -51,7 +53,12 @@ object PublicationNotifications {
         val thumbnail = alert.thumbnailUrl?.let { loadBitmap(context, resolveMediaUrl(it)) }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notifications)
-            .setContentTitle(alert.channelName)
+            .setContentTitle(
+                context.getString(
+                    if (alert.isShort) R.string.notification_new_short else R.string.notification_new_video,
+                    alert.channelName,
+                ),
+            )
             .setContentText(alert.title)
             .setContentIntent(openVideoIntent(context, alert.videoId))
             .setAutoCancel(true)
