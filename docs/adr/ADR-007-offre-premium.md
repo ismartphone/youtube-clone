@@ -1,7 +1,7 @@
 # ADR-007 — Offre Premium
 
 ## Statut
-Accepté, remplacé en partie par l'ADR-014 (paiement)
+Accepté, remplacé en partie par l'ADR-014 (paiement) et l'ADR-021 (publicité)
 
 ## Contexte
 Il faut proposer une offre payante dans l'application et choisir comment la payer.

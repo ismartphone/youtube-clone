@@ -1,7 +1,7 @@
 # ADR-021 — Publicités vidéo : pré-roll réel, bandeau sponsorisé
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 L'ADR-007 (section « Publicité ») prévoit pour les comptes gratuits une publicité simulée avant la lecture : un simple écran de quelques secondes, sans régie réelle. Le code actuel le fait ainsi : `AdOverlay` (WatchScreen.kt) affiche un compte à rebours de 5 s (`AD_SECONDS`, `adSecondsLeft` dans WatchViewModel), sans bouton pour passer, et c'est l'application qui décide d'afficher la publicité (`isPremium()`).
@@ -24,9 +24,11 @@ Remplacer l'écran simulé par de vraies publicités vidéo, hébergées chez no
 ### Pré-roll
 - Un compte non Premium voit une publicité avant chaque vidéo, en plein lecteur. Les visiteurs non connectés aussi : ils ne sont pas Premium.
 - Avant chaque vidéo, y compris celle enchaînée par la lecture automatique.
-- Pendant la publicité : mention « Annonce », barre de progression visible mais non déplaçable, aucun contrôle.
+- Pendant la publicité : mention « Annonce », barre de progression visible mais non déplaçable, aucun contrôle de lecture (ni pause, ni déplacement dans la barre).
 - Avant 5 s : « L'annonce peut être ignorée dans N s ». À partir de 5 s : bouton « Ignorer » en bas à droite.
+- Un lien « Supprimer les publicités » reste affiché, car un lien vers l'offre Premium n'est pas un contrôle de lecture. Il est discret (un simple texte, pas un bouton) et placé loin du bouton « Ignorer », pour éviter les clics par erreur. C'est le moment où l'utilisateur est le plus agacé, donc le plus réceptif.
 - Non ignorée, elle va jusqu'au bout, puis la vidéo démarre.
+- Tant que son HLS n'est pas généré, la publicité est lue en MP4, comme une vidéo (ADR-017).
 - Jamais de publicité pour un compte Premium, ni sur les Shorts, ni avant une vidéo téléchargée lue hors ligne.
 
 ### Bandeau sponsorisé
@@ -36,12 +38,15 @@ Remplacer l'écran simulé par de vraies publicités vidéo, hébergées chez no
 - Sous la carte, un lien discret « Supprimer les publicités » qui ouvre l'offre Premium.
 
 ### Backend
+- Nouveau module `ads` : il porte la table AD, les routes du back-office et le tirage au sort. Le module `videos` l'utilise par un port, pour la publicité avant lecture et pour la route du bandeau, puisque c'est lui qui sait si le spectateur est Premium.
 - Nouvelle table AD : titre, fichier, HLS, miniature, durée, date. Une migration Prisma aujourd'hui ; d'autres publicités s'ajoutent ensuite sans migration.
 - Plusieurs publicités possibles : une est tirée au sort à chaque lecture. Une seule existe aujourd'hui.
 - Même traitement que les vidéos : fichier vérifié par ffprobe, version HLS générée, miniature extraite. La piste d'image de couverture intégrée au fichier fourni est écartée.
 - **Décision côté serveur** : la réponse de lecture d'une vidéo inclut la publicité tirée au sort, ou rien (compte Premium, Short). L'application ne décide rien.
 - Le bandeau passe par une route qui renvoie une publicité tirée au sort, ou rien pour un Premium.
 - Une publicité n'est pas une vidéo du catalogue : elle vit dans sa propre table, pas dans VIDEO. Elle n'a donc ni vue comptée, ni page, ni place dans la recherche, le fil ou une chaîne.
+- Supprimer une publicité supprime aussi ses fichiers (MP4, HLS, miniature), comme une vidéo. Sans aucune publicité en base : ni pré-roll ni bandeau.
+- Commande `npm run ads:import`, sur le modèle de `seed:cc-videos` : elle vérifie par ffprobe chaque fichier de `backend/storage/media/ads/` et l'enregistre sans doublon. C'est par elle que le fichier fourni entre en base. Le fichier n'étant pas versionné, il se dépose à la main dans ce dossier sur une autre machine, comme les vidéos CC ; c'est documenté dans le README du backend.
 
 ### Back-office
 - Page « Publicités » : liste, import de fichier, suppression.
@@ -49,16 +54,18 @@ Remplacer l'écran simulé par de vraies publicités vidéo, hébergées chez no
 
 ### Mesures PostHog (envoyées par l'application, ADR-006)
 - Pré-roll : `ad_started`, `ad_skipped` (avec le temps écoulé), `ad_completed`, avec l'identifiant de la publicité.
-- Bandeau : affichage, appui, appui sur « Supprimer les publicités ».
+- Pré-roll, lien « Supprimer les publicités » : `remove_ads_clicked_preroll`, avec l'identifiant de la publicité.
+- Bandeau : `sponsored_ad_shown`, `sponsored_ad_clicked`, `remove_ads_clicked`, chacun avec l'identifiant de la publicité.
+- Les deux liens « Supprimer les publicités » ont des noms distincts pour comparer lequel des deux emplacements convertit le mieux.
 - Le refus des mesures (ADR-013) s'applique : rien ne part s'il est désactivé.
 
-### Questions ouvertes (à trancher par le lead développeur)
-1. **Module backend** : nouveau module `ads`, ou intégration au module `videos` (traitement ffprobe/HLS/miniature) ou `premium` ?
-2. **Noms des événements du bandeau** : seuls ceux du pré-roll sont fixés (par exemple `ad_banner_shown`, `ad_banner_clicked`, `ad_remove_clicked` ?).
-3. **Lien « Supprimer les publicités » pendant le pré-roll** : l'écran actuel en a un ; « aucun contrôle » le retire-t-il, ou reste-t-il comme sur le bandeau ?
-4. **Entrée du fichier fourni en base** : importé par la page « Publicités » du back-office, ou par le seed ? Le fichier n'étant pas versionné, comment est-il présent sur une autre machine ?
-5. **Suppression d'une publicité** : ses fichiers (MP4, HLS, miniature) sont-ils supprimés du disque ? Sans aucune publicité en base, la réponse est « rien » : pas de pré-roll ni de bandeau.
-6. **Publicité dont le HLS n'est pas encore généré** : lue en MP4, comme une vidéo (ADR-017) ?
+### Décisions du lead développeur (4 novembre 2026)
+1. Nouveau module backend `ads` (table AD, routes du back-office, tirage au sort), utilisé par le module `videos` par un port pour la publicité avant lecture et la route du bandeau.
+2. Événements du bandeau : `sponsored_ad_shown`, `sponsored_ad_clicked`, `remove_ads_clicked`, avec l'identifiant de la publicité.
+3. « Aucun contrôle » signifie aucun contrôle de lecture. Pendant le pré-roll, un lien discret « Supprimer les publicités » (texte, loin de « Ignorer ») reste, mesuré par `remove_ads_clicked_preroll`.
+4. Le fichier fourni entre en base par `npm run ads:import` (ffprobe, sans doublon) ; sur une autre machine, il se dépose à la main dans `backend/storage/media/ads/`, documenté dans le README du backend.
+5. Supprimer une publicité supprime ses fichiers ; sans publicité en base, ni pré-roll ni bandeau.
+6. Tant que le HLS n'est pas généré, la publicité est lue en MP4.
 
 ## Alternatives
 - Garder l'écran simulé de l'ADR-007 : avantage, aucun travail. Inconvénient, ce n'est plus la demande du lead développeur ; pas de vraie publicité ni de « Ignorer » à démontrer.
@@ -75,7 +82,8 @@ Remplacer l'écran simulé par de vraies publicités vidéo, hébergées chez no
 - Taux d'abandon et de clics mesurables dans PostHog.
 
 ### Négatives
-- Une migration Prisma (table AD) ; CLAUDE.md est mis à jour par un humain à l'acceptation (AD ajouté au modèle de données).
+- Une migration Prisma (table AD) ; CLAUDE.md est mis à jour par un humain à l'acceptation (AD ajouté au modèle de données, module `ads` ajouté).
+- Un nouveau module backend et une commande `npm run ads:import` à maintenir ; le fichier de publicité, non versionné, se dépose à la main sur chaque machine.
 - La réponse de lecture d'une vidéo change de forme (publicité incluse ou non), et une route de plus pour le bandeau.
 - Un import de fichier par le back-office, qui n'existe pas aujourd'hui pour les vidéos.
 - Le fichier fourni contient une piste d'image à écarter : le traitement doit choisir la bonne piste vidéo.
@@ -91,4 +99,4 @@ Remplacer l'écran simulé par de vraies publicités vidéo, hébergées chez no
 - [ADR-011](ADR-011-ffmpeg-chemins-medias.md) : ffprobe, FFmpeg et chemins relatifs, appliqués aux fichiers de publicité.
 - [ADR-019](ADR-019-je-naime-pas-telechargements-playlists-aide.md) : lecture hors ligne des vidéos téléchargées, sans publicité ; l'aide doit décrire les publicités.
 - [ADR-016](ADR-016-reglages-publication-video.md) : visibilité ; sans effet sur les publicités, qui ne sont pas des vidéos du catalogue.
-- [ADR-003](ADR-003-backend-nestjs.md) : backend hexagonal ; le choix du module est la question ouverte 1.
+- [ADR-003](ADR-003-backend-nestjs.md) : backend hexagonal, monolithe modulaire ; nouveau module `ads`, utilisé par le module `videos` par un port.
