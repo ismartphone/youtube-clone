@@ -1,6 +1,5 @@
 package com.youtubeclone.app.presentation.profile
 
-import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -38,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -74,7 +72,7 @@ class YouActions(
     val onListClick: (YouList) -> Unit = {},
     val onSubscriptionsClick: () -> Unit = {},
     val onEditInterests: () -> Unit = {},
-    val onUnavailableClick: () -> Unit = {},
+    val onHelpClick: () -> Unit = {},
     val onLogoutClick: () -> Unit = {},
     val onPremiumClick: () -> Unit = {},
     val onCancelPremium: () -> Unit = {},
@@ -89,6 +87,7 @@ fun YouScreen(
     onEditInterests: () -> Unit,
     onChannelClick: (channelId: String) -> Unit,
     onCustomizeChannel: () -> Unit,
+    onHelpClick: () -> Unit,
     onListClick: (YouList) -> Unit,
     onSubscriptionsClick: () -> Unit,
     onPremiumClick: () -> Unit,
@@ -99,7 +98,6 @@ fun YouScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val premium by viewModel.premium.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     ErrorToast(viewModel.premiumMessages)
     val actions = YouActions(
         onLoginClick = onLoginClick,
@@ -109,8 +107,7 @@ fun YouScreen(
         onListClick = onListClick,
         onSubscriptionsClick = onSubscriptionsClick,
         onEditInterests = onEditInterests,
-        // Aide n'a pas encore d'écran.
-        onUnavailableClick = { Toast.makeText(context, R.string.you_soon, Toast.LENGTH_SHORT).show() },
+        onHelpClick = onHelpClick,
         onLogoutClick = viewModel::onLogoutClick,
         onPremiumClick = onPremiumClick,
         onCancelPremium = viewModel::onCancelPremium,
@@ -412,7 +409,7 @@ private fun SettingsList(isLoggedIn: Boolean, actions: YouActions) {
         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
         SettingsRow(R.drawable.ic_interests, R.string.you_edit_interests, actions.onEditInterests)
         SettingsRow(R.drawable.ic_settings, R.string.you_settings, actions.onSettingsClick)
-        SettingsRow(R.drawable.ic_help, R.string.you_help, actions.onUnavailableClick)
+        SettingsRow(R.drawable.ic_help, R.string.you_help, actions.onHelpClick)
         if (isLoggedIn) {
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             SettingsRow(R.drawable.ic_logout, R.string.you_logout, actions.onLogoutClick)

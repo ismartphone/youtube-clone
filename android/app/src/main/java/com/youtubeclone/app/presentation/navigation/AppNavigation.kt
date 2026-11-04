@@ -54,6 +54,7 @@ import com.youtubeclone.app.presentation.create.ComposePostScreen
 import com.youtubeclone.app.presentation.create.CreateSheet
 import com.youtubeclone.app.presentation.create.PublishVideoScreen
 import com.youtubeclone.app.presentation.create.PublishedBanner
+import com.youtubeclone.app.presentation.help.HelpScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
 import com.youtubeclone.app.presentation.onboarding.InterestsScreen
 import com.youtubeclone.app.presentation.premium.PaywallScreen
@@ -88,6 +89,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class PaywallRoute(val videoId: String? = null)
 // Création de la chaîne de l'utilisateur connecté.
 @Serializable data object CreateChannelRoute
+// Aide : questions fréquentes (ADR-019).
+@Serializable data object HelpRoute
 // Personnalisation de sa chaîne (ADR-018).
 @Serializable data object CustomizeChannelRoute
 // Rédaction d'un post sur sa chaîne.
@@ -267,6 +270,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     onEditInterests = { navController.navigate(InterestsRoute) },
                     onChannelClick = openChannel,
                     onCustomizeChannel = { navController.navigate(CustomizeChannelRoute) },
+                    onHelpClick = { navController.navigate(HelpRoute) },
                     onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
                     onSubscriptionsClick = { openTab(SubscriptionsRoute) },
                     onPremiumClick = openPaywall,
@@ -331,6 +335,7 @@ fun AppNavigation(openLoginAtStart: Boolean = false, onLoginOpened: () -> Unit =
                     },
                 )
             }
+            composable<HelpRoute> { HelpScreen(onBack = { navController.popBackStack() }) }
             composable<CustomizeChannelRoute> {
                 CustomizeChannelScreen(onClose = { navController.popBackStack() })
             }
