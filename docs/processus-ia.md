@@ -202,6 +202,19 @@ mobile. La retouche de l'ADR-005 est annulée.
 qui ne se gênent pas dans Git mais qui se contredisent sur le fond. Git ne signale aucun conflit.
 Seule une relecture du résultat combiné le montre.
 
+### Cas 9 — Amender ou remplacer un ADR accepté : une règle écrite le 4 novembre
+
+La même question s'est posée trois fois : que faire d'un ADR déjà accepté quand il doit changer ?
+D'abord pour l'ADR-007, réécrit après son acceptation ; puis pour l'ADR-015, quand l'onglet « En
+direct » a remplacé sa mention « Bientôt disponible » par un écran de déblocage. `adr-architecte`
+a signalé que le comportement d'un ADR « Accepté » changeait sans repasser par « Proposé ».
+
+**Reprise :** le 4 novembre, le `CLAUDE.md` reçoit une règle explicite. Un changement de décision
+sur le fond donne un nouvel ADR qui remplace l'ancien, comme pour les ADR-005, 012 et 002. Une
+précision, ou un ajustement de périmètre explicitement demandé par le lead développeur, donne un
+amendement sur place, avec une ligne datée en fin d'ADR et sa raison. L'ADR-015 a été amendé
+ainsi, sans repasser en « Proposé ».
+
 ### Le périmètre tenu
 
 L'index des maquettes couvre aussi des écrans hors périmètre : playlists, « à regarder plus tard »,

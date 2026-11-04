@@ -11,6 +11,9 @@ Rendu le 6 novembre 2026. Projet d'école, développé sous Windows.
 - En cas de doute ou d'information manquante, poser la question au lieu de deviner.
 - Le sous-agent `adr-architecte` (`.claude/agents/`) est le seul à rédiger les ADR. Seul un humain passe un ADR en « Accepté ».
 - Passer un ADR en Accepté signifie modifier son fichier ET l'index `docs/adr/README.md`. Les deux doivent toujours concorder.
+- Modifier un ADR accepté :
+  - changement de décision sur le fond → un nouvel ADR qui remplace l'ancien (comme pour les ADR-005, 012 et 002) ;
+  - précision, ou ajustement de périmètre explicitement demandé par le lead développeur → amendement sur place, avec une ligne datée en fin d'ADR, « Amendé le 4 novembre : … », et la raison. L'ADR reste « Accepté ».
 - Pas d'hybride : l'application mobile est 100 % native (contrainte du sujet).
 
 ## Structure
