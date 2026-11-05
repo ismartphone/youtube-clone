@@ -1,7 +1,7 @@
 # ADR-013 — Mesures d'audience et données personnelles
 
 ## Statut
-Accepté
+Accepté, remplacé en partie par l'ADR-028 (écran d'accueil)
 
 ## Contexte
 L'ADR-006 dit dans sa section RGPD : « Les événements sont anonymes et ne contiennent aucune donnée personnelle. L'utilisateur peut refuser les mesures depuis l'écran d'accueil. »

@@ -16,7 +16,7 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-010](ADR-010-websocket-salles-compteurs.md) | Authentification, salles par vidéo et diffusion des compteurs sur la connexion WebSocket | Accepté |
 | [ADR-011](ADR-011-ffmpeg-chemins-medias.md) | FFmpeg en dépendance système et chemins relatifs pour les fichiers hébergés | Accepté |
 | [ADR-012](ADR-012-paiement-simule-backend.md) | Achat Premium simulé par notre propre backend | Remplacé en grande partie par l'ADR-014 |
-| [ADR-013](ADR-013-mesures-donnees-personnelles.md) | Mesures d'audience et données personnelles | Accepté |
+| [ADR-013](ADR-013-mesures-donnees-personnelles.md) | Mesures d'audience et données personnelles | Accepté, remplacé en partie par l'ADR-028 (écran d'accueil) |
 | [ADR-014](ADR-014-paiement-stripe-mode-test.md) | Paiement Premium par Stripe en mode test | Accepté |
 | [ADR-015](ADR-015-publication-depuis-mobile.md) | Publication de vidéos, de Shorts et de posts depuis l'application mobile | Accepté |
 | [ADR-016](ADR-016-reglages-publication-video.md) | Réglages de publication d'une vidéo : visibilité et commentaires | Accepté |
@@ -31,3 +31,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-025](ADR-025-messagerie-utilisateurs.md) | Messagerie entre utilisateurs : conversations à deux, partage de vidéos, notifications | Accepté |
 | [ADR-026](ADR-026-miniatures-floutees-premium.md) | Miniatures floutées des vidéos Premium pour les comptes sans abonnement | Accepté |
 | [ADR-027](ADR-027-adresse-serveur-configurable.md) | Adresse du serveur configurable dans l'application Android (version debug) | Accepté |
+| [ADR-028](ADR-028-onboarding-parcours-etapes.md) | Onboarding : parcours d'accueil en étapes décrites par des données | Accepté |
