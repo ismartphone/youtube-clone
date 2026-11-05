@@ -346,7 +346,9 @@ fun NowPlayingLayer(
                     onDismiss = { showComments = false },
                 )
             }
-        } else {
+        } else if (miniVisible) {
+            // Masqué sur les écrans plein espace et sous le clavier : sa barre n'est pas dessinée,
+            // pas seulement la vue vidéo envoyée hors écran (ADR-024).
             MiniPlayerBar(
                 detail = detail,
                 isPlaying = isPlaying,
