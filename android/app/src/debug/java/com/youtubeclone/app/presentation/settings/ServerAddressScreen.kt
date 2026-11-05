@@ -99,7 +99,7 @@ private fun ConnectionTestResult(test: ConnectionTest) {
         ConnectionTest.Running -> stringResource(R.string.server_address_testing) to false
         ConnectionTest.Ok -> stringResource(R.string.server_address_test_ok) to false
         is ConnectionTest.HttpError -> stringResource(R.string.server_address_test_http, test.code) to true
-        is ConnectionTest.Failed -> stringResource(R.string.server_address_test_fail, test.reason) to true
+        is ConnectionTest.Failed -> stringResource(R.string.server_address_test_fail) to true
     }
     Text(
         text = text,

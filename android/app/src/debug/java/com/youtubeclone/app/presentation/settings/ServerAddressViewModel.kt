@@ -1,6 +1,7 @@
 package com.youtubeclone.app.presentation.settings
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.youtubeclone.app.data.server.ServerAddress
@@ -43,6 +44,13 @@ data class ServerAddressUiState(
 // Route publique de l'API, appelée sans session : le test n'a besoin d'aucun compte.
 private const val TEST_PATH = "categories"
 private const val TEST_TIMEOUT_SECONDS = 6L
+private const val LOG_TAG = "ServerAddress"
+
+// Le détail technique va au journal ; l'écran affiche une phrase française fixe.
+private fun failed(e: Exception): ConnectionTest.Failed {
+    Log.w(LOG_TAG, "Connexion impossible", e)
+    return ConnectionTest.Failed(e.localizedMessage ?: e.javaClass.simpleName)
+}
 
 /**
  * Réglage de l'adresse du serveur (ADR-027, debug). Le test de connexion a son propre client,
@@ -86,9 +94,9 @@ class ServerAddressViewModel @Inject constructor(
                         if (response.isSuccessful) ConnectionTest.Ok else ConnectionTest.HttpError(response.code)
                     }
                 } catch (e: IOException) {
-                    ConnectionTest.Failed(e.localizedMessage ?: e.javaClass.simpleName)
+                    failed(e)
                 } catch (e: IllegalArgumentException) {
-                    ConnectionTest.Failed(e.localizedMessage ?: e.javaClass.simpleName)
+                    failed(e)
                 }
             }
             _state.update { it.copy(test = result) }
@@ -116,7 +124,7 @@ class ServerAddressViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(saving = false, test = ConnectionTest.Failed(e.localizedMessage ?: e.javaClass.simpleName)) }
+                _state.update { it.copy(saving = false, test = failed(e)) }
             }
         }
     }

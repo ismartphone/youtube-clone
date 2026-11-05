@@ -12,7 +12,7 @@
     <string name="server_address_testing">Test en cours…</string>
     <string name="server_address_test_ok">Le serveur répond.</string>
     <string name="server_address_test_http">Le serveur répond, mais avec une erreur (code %1$d).</string>
-    <string name="server_address_test_fail">Le serveur ne répond pas : %1$s</string>
+    <string name="server_address_test_fail">Le serveur ne répond pas à cette adresse.</string>
     <string name="server_address_reset">Revenir à l\'adresse par défaut</string>
     <string name="server_address_save">Enregistrer et redémarrer</string>
     <string name="server_address_warning">Enregistrer déconnecte tous les comptes de l\'appareil, vide la liste des comptes et redémarre l\'application. Les téléchargements sont conservés.</string>
