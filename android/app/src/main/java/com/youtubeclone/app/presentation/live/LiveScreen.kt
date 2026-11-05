@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.semantics.Role
@@ -336,6 +337,9 @@ private fun Chat(state: LiveUiState.Ready, modifier: Modifier = Modifier) {
                 text = stringResource(R.string.live_chat_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                // Marge et centrage (ADR-030) : à 200 %, la phrase passe sur deux lignes et ne doit pas toucher le bord.
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp),
             )
         }
         return

@@ -22,6 +22,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.runtime.LaunchedEffect
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -674,13 +676,17 @@ private fun TabIcon(tab: Tab, selected: Boolean) {
 @Composable
 private fun TabLabel(tab: Tab, selected: Boolean) {
     val color by tabColor(selected)
-    // 10sp : « Abonnements » tient entier. Une seule ligne, tronquée en dernier recours
-    // (police agrandie dans les réglages d'accessibilité).
-    Text(
-        text = stringResource(tab.label),
-        color = color,
-        fontSize = 10.sp,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-    )
+    // 10sp : « Abonnements » tient entier. Une seule ligne. Comme les barres d'onglets du système,
+    // le libellé ne suit pas la taille de police agrandie (ADR-030) : à 200 %, « Abonnements »
+    // dépasserait la largeur de son onglet et serait coupé. L'icône et le nom lu par TalkBack ne changent pas.
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
+        Text(
+            text = stringResource(tab.label),
+            color = color,
+            fontSize = 10.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }

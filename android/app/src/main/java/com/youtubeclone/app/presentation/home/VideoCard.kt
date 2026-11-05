@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -95,12 +96,14 @@ fun VideoCard(
                 }
             }
             val metaColor = MaterialTheme.colorScheme.onSurfaceVariant
+            // Police très agrandie (ADR-030) : plus de lignes pour le titre et la ligne d'informations, au lieu de « … ».
+            val largeText = LocalDensity.current.fontScale > 1.3f
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = video.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 2,
+                    maxLines = if (largeText) 4 else 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -122,7 +125,7 @@ fun VideoCard(
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = metaColor,
-                    maxLines = 1,
+                    maxLines = if (largeText) 3 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }

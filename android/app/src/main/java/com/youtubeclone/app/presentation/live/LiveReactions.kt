@@ -31,7 +31,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.youtubeclone.app.R
 import com.youtubeclone.app.presentation.common.MinTouchTarget
 import com.youtubeclone.app.domain.model.LIVE_REACTIONS
@@ -65,7 +64,7 @@ fun ReactionBar(onReact: (String) -> Unit, modifier: Modifier = Modifier) {
                     .clip(CircleShape)
                     .clickable(role = Role.Button, onClickLabel = description) { onReact(emoji) },
                 contentAlignment = Alignment.Center,
-            ) { Text(text = emoji, fontSize = 24.sp) }
+            ) { Text(text = emoji, fontSize = with(LocalDensity.current) { 24.dp.toSp() }) } // émoji : taille indépendante de la police (ADR-030)
         }
     }
 }
@@ -125,5 +124,5 @@ private fun BoxScope.RisingEmoji(item: FloatingEmoji, onDone: () -> Unit) {
                     alpha = if (p < 0.1f) p * 10f else if (p > 0.66f) (1f - p) * 3f else 1f
                 }
             },
-    ) { Text(text = item.emoji, fontSize = 28.sp) }
+    ) { Text(text = item.emoji, fontSize = with(LocalDensity.current) { 28.dp.toSp() }) }
 }

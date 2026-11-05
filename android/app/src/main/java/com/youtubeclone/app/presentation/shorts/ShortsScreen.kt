@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -346,6 +347,7 @@ private fun ShortInfo(
     onFollowClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val largeText = LocalDensity.current.fontScale > 1.3f
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             // Zone cliquable de 48 dp (ADR-030) ; l'avatar garde ses 32 dp, centré.
@@ -364,21 +366,25 @@ private fun ShortInfo(
                 text = video.channel.name,
                 style = OverlayTextStyle.merge(MaterialTheme.typography.titleSmall).copy(fontWeight = FontWeight.Bold),
                 color = Color.White,
-                maxLines = 1,
+                maxLines = if (largeText) 2 else 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .weight(1f, fill = false)
                     .clickable(onClick = onChannelClick, role = Role.Button),
             )
-            if (followState != null && followState.canFollow) {
+            if (!largeText && followState != null && followState.canFollow) {
                 FollowButton(state = followState, onClick = onFollowClick, compact = true)
             }
+        }
+        // Police très agrandie (ADR-030) : S'abonner passe sous le nom, qui reste lisible en entier.
+        if (largeText && followState != null && followState.canFollow) {
+            FollowButton(state = followState, onClick = onFollowClick, compact = true)
         }
         Text(
             text = video.title,
             style = OverlayTextStyle.merge(MaterialTheme.typography.bodyMedium),
             color = Color.White,
-            maxLines = 2,
+            maxLines = if (largeText) 5 else 2,
             overflow = TextOverflow.Ellipsis,
         )
     }

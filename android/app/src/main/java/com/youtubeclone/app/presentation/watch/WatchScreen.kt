@@ -847,7 +847,8 @@ private fun TitleBlock(detail: VideoDetail, viewCount: Int) {
                 fontWeight = FontWeight.Bold,
             ),
             color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 2,
+            // Police très agrandie (ADR-030) : le titre s'affiche en entier, sans « … ».
+            maxLines = if (LocalDensity.current.fontScale > 1.3f) Int.MAX_VALUE else 2,
             overflow = TextOverflow.Ellipsis,
             // Titre de la vidéo : annoncé comme un titre (ADR-030).
             modifier = Modifier.semantics { heading() },
@@ -893,39 +894,68 @@ private fun ChannelRow(
     onFollowClick: () -> Unit,
     onNotificationLevelSelect: (NotificationLevel) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    // Police très agrandie (ADR-030) : le nombre d'abonnés passe sous le nom, et le bouton S'abonner
+    // sous la ligne, pour que le nom reste lisible en entier au lieu d'être réduit à « Be… ».
+    // Police normale : mise en page inchangée.
+    val stacked = LocalDensity.current.fontScale > 1.3f
+    val info: @Composable (Modifier) -> Unit = { infoModifier ->
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .weight(1f)
+            modifier = infoModifier
                 .minTouchTarget()
                 .clickable(role = Role.Button, onClick = onChannelClick),
         ) {
             ChannelAvatar(channel, Modifier.size(32.dp))
-            Text(
-                text = channel.name,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            if (followState != null) {
+            val nameText: @Composable (Modifier) -> Unit = { nameModifier ->
                 Text(
-                    text = formatFollowerCount(followState.followerCount),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    text = channel.name,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = if (stacked) 2 else 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = nameModifier,
                 )
             }
+            val countText: @Composable () -> Unit = {
+                if (followState != null) {
+                    Text(
+                        text = formatFollowerCount(followState.followerCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+            if (stacked) {
+                Column(Modifier.weight(1f)) {
+                    nameText(Modifier)
+                    countText()
+                }
+            } else {
+                nameText(Modifier.weight(1f, fill = false))
+                countText()
+            }
         }
+    }
+    val follow: @Composable () -> Unit = {
         if (followState != null && followState.canFollow) {
             FollowButton(state = followState, onClick = onFollowClick, onNotificationLevelSelect = onNotificationLevelSelect)
+        }
+    }
+    if (stacked) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            info(Modifier.fillMaxWidth())
+            follow()
+        }
+    } else {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            info(Modifier.weight(1f))
+            follow()
         }
     }
 }
