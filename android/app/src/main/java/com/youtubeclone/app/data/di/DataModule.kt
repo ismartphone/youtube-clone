@@ -8,6 +8,7 @@ import com.youtubeclone.app.data.remote.AuthInterceptor
 import com.youtubeclone.app.data.remote.CategoryApi
 import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.CommentApi
+import com.youtubeclone.app.data.remote.LivesApi
 import com.youtubeclone.app.data.remote.MessagingApi
 import com.youtubeclone.app.data.remote.DeviceApi
 import com.youtubeclone.app.data.remote.DownloadApi
@@ -23,6 +24,7 @@ import com.youtubeclone.app.data.repository.AuthRepositoryImpl
 import com.youtubeclone.app.data.repository.CategoryRepositoryImpl
 import com.youtubeclone.app.data.repository.ChannelRepositoryImpl
 import com.youtubeclone.app.data.repository.CommentRepositoryImpl
+import com.youtubeclone.app.data.repository.LivesRepositoryImpl
 import com.youtubeclone.app.data.repository.MessagingRepositoryImpl
 import com.youtubeclone.app.data.repository.DownloadsRepositoryImpl
 import com.youtubeclone.app.data.repository.InMemoryPublicationFeed
@@ -42,6 +44,7 @@ import com.youtubeclone.app.domain.repository.ChannelRepository
 import com.youtubeclone.app.domain.repository.CommentRepository
 import com.youtubeclone.app.domain.repository.DownloadsRepository
 import com.youtubeclone.app.domain.repository.LiveVideoRepository
+import com.youtubeclone.app.domain.repository.LivesRepository
 import com.youtubeclone.app.domain.repository.MessagingRepository
 import com.youtubeclone.app.domain.repository.PlaylistRepository
 import com.youtubeclone.app.domain.repository.PushTokenRepository
@@ -113,6 +116,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideMessagingApi(retrofit: Retrofit): MessagingApi = retrofit.create(MessagingApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideLivesApi(retrofit: Retrofit): LivesApi = retrofit.create(LivesApi::class.java)
 
     @Provides
     @Singleton
@@ -193,6 +200,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindLiveVideoRepository(impl: LiveVideoClient): LiveVideoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLivesRepository(impl: LivesRepositoryImpl): LivesRepository
 
     @Binds
     @Singleton
