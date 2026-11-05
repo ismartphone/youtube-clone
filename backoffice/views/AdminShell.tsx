@@ -10,6 +10,8 @@ const NAV_ITEMS = [
   { href: "/videos", label: "Vidéos" },
   { href: "/categories", label: "Catégories" },
   { href: "/ads", label: "Publicités" },
+  { href: "/products", label: "Produits" },
+  { href: "/lives", label: "Lives" },
   { href: "/channels", label: "Chaînes" },
   { href: "/payments", label: "Paiements" },
 ];
