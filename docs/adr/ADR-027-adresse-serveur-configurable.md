@@ -1,7 +1,7 @@
 # ADR-027 — Adresse du serveur configurable dans l'application Android (version debug)
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 L'adresse de l'API est fixée à la compilation : `gradle.properties` (`apiBaseUrl=http://10.0.2.2:3000/`) alimente `BuildConfig.API_BASE_URL`. `10.0.2.2` n'existe que dans l'émulateur. Pour tester sur un téléphone physique, il faut aujourd'hui remplacer l'adresse par l'IP du PC et recompiler (`-PapiBaseUrl=...`).
