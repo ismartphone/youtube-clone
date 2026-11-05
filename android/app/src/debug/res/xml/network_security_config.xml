@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug uniquement : autorise HTTP vers le backend local, joint depuis l'émulateur par 10.0.2.2. -->
+<!-- Debug uniquement (ADR-027) : HTTP en clair autorisé vers toute adresse, pour joindre le PC depuis
+     un téléphone sur le réseau local (IP inconnue d'avance). La release l'interdit (src/main). -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">10.0.2.2</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>
