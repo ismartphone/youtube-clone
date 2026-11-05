@@ -1,7 +1,7 @@
 # ADR-026 — Miniatures floutées des vidéos Premium pour les comptes sans abonnement
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Les vidéos exclusives sont marquées par `VIDEO.isPremium`, depuis le back-office (ADR-007). Leur miniature s'affiche aujourd'hui nette pour tout le monde. L'accès à la lecture est vérifié par le serveur : un compte sans Premium arrive sur le paywall (ADR-007, ADR-014).
@@ -35,7 +35,7 @@ Option A : flou appliqué par l'application, sans rien changer côté serveur.
   - suggestions ;
   - playlists ;
   - historique ;
-  - carte d'une vidéo partagée dans une conversation (étape 2 de l'ADR-025, pas encore construite : elle recevra le flou à sa construction).
+  - carte d'une vidéo partagée dans une conversation (étape 2 de l'ADR-025, construite : elle utilise `VideoThumbnailImage`).
 - Ce composant est `VideoThumbnailImage` (`presentation/common/PremiumThumbnail.kt`). Il lit le statut Premium du compte actif dans `LocalIsPremiumViewer`, fourni à la racine.
 - Rien côté serveur, pas de migration.
 
@@ -77,3 +77,5 @@ Option A : flou appliqué par l'application, sans rien changer côté serveur.
 - [ADR-022](ADR-022-plusieurs-comptes-appareil.md) : le rendu suit le statut Premium du compte actif.
 - [ADR-011](ADR-011-ffmpeg-chemins-medias.md) : FFmpeg, qu'aurait utilisé l'option B écartée.
 - [ADR-001](ADR-001-android-natif.md) : Jetpack Compose, minSdk 26.
+
+Amendé le 5 novembre : la carte de vidéo partagée de la messagerie (ADR-025, étape 2) est construite et utilise `VideoThumbnailImage` ; vérifié dans `ConversationScreen.kt`.
