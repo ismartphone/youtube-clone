@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.ChannelPage
+import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetChannelPostsUseCase
+import com.youtubeclone.app.domain.usecase.LiveUseCases
 import com.youtubeclone.app.domain.usecase.ObserveFollowChangesUseCase
 import com.youtubeclone.app.domain.usecase.ObserveOwnChannelUpdatedUseCase
 import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
@@ -44,6 +46,7 @@ class ChannelViewModel @Inject constructor(
     observePublications: ObservePublicationsUseCase,
     observeOwnChannelUpdated: ObserveOwnChannelUpdatedUseCase,
     private val getChannelPosts: GetChannelPostsUseCase,
+    private val liveUseCases: LiveUseCases,
 ) : ViewModel() {
 
     private val route = savedStateHandle.toRoute<ChannelRoute>()
@@ -63,6 +66,10 @@ class ChannelViewModel @Inject constructor(
     // Onglet Posts : les plus récents. Un échec laisse simplement la liste vide.
     private val _posts = MutableStateFlow<List<Post>>(emptyList())
     val posts: StateFlow<List<Post>> = _posts.asStateFlow()
+
+    // Live en cours de la chaîne (ADR-029), montré sous son en-tête ; null sinon. Un échec le masque.
+    private val _live = MutableStateFlow<Live?>(null)
+    val live: StateFlow<Live?> = _live.asStateFlow()
 
     private var loadJob: Job? = null
 
@@ -94,8 +101,22 @@ class ChannelViewModel @Inject constructor(
         }
     }
 
+    /** Relit le live en cours et son nombre de spectateurs (à l'ouverture et au retour sur la page). */
+    fun refreshLive() {
+        viewModelScope.launch {
+            _live.value = try {
+                liveUseCases.repository.getRunningLives(channelId).firstOrNull()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
+
     fun load() {
         loadJob?.cancel()
+        refreshLive()
         // Un rechargement garde la page affichée au lieu de repasser par le chargement.
         if (_uiState.value !is ChannelUiState.Success) _uiState.value = ChannelUiState.Loading
         loadJob = viewModelScope.launch {

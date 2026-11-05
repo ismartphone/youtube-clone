@@ -15,12 +15,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -28,6 +31,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -35,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,22 +50,27 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.LIVE_MIN_FOLLOWERS
+import com.youtubeclone.app.domain.model.LIVE_TITLE_MAX_LENGTH
 import com.youtubeclone.app.domain.model.MAX_UPLOAD_BYTES
 import com.youtubeclone.app.domain.model.PickedVideoProblem
 import com.youtubeclone.app.domain.model.SHORT_MAX_SECONDS
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.LoadingState
+import com.youtubeclone.app.presentation.common.UiError
+import com.youtubeclone.app.presentation.common.asText
 
 /**
- * Onglets de la feuille de création (ADR-015). En direct n'affiche que l'écran de déblocage : la
- * diffusion elle-même n'est pas développée.
+ * Onglets de la feuille de création (ADR-015). En direct affiche l'écran de déblocage sous 50
+ * abonnés, puis le formulaire de démarrage d'un live (ADR-029).
  * [format] : format de la vidéo publiée depuis l'onglet, null s'il ne publie pas de vidéo.
  */
 enum class CreateTab(
@@ -91,11 +101,14 @@ fun CreateSheet(
     onPublishVideo: (uri: String, format: VideoFormat) -> Unit,
     onCreateChannel: () -> Unit,
     onWritePost: () -> Unit,
+    onLiveStarted: (liveId: String) -> Unit,
     viewModel: CreateViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val pick by viewModel.pick.collectAsStateWithLifecycle()
     val live by viewModel.live.collectAsStateWithLifecycle()
+    val isStartingLive by viewModel.isStartingLive.collectAsStateWithLifecycle()
+    val startLiveError by viewModel.startLiveError.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf(CreateTab.Video) }
     var showLiveRule by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) { viewModel.load() }
@@ -112,6 +125,12 @@ fun CreateSheet(
                 TextButton(onClick = { showLiveRule = false }) { Text(stringResource(R.string.create_live_rule_ok)) }
             },
         )
+    }
+    LaunchedEffect(Unit) {
+        viewModel.openLive.collect { liveId ->
+            onDismiss()
+            onLiveStarted(liveId)
+        }
     }
     LaunchedEffect(Unit) {
         viewModel.openPublish.collect { picked ->
@@ -162,6 +181,13 @@ fun CreateSheet(
                             onRetry = { viewModel.loadLive(force = true) },
                             onCreateShorts = { selected = CreateTab.Short },
                             onLearnMore = { showLiveRule = true },
+                            isStarting = isStartingLive,
+                            startError = startLiveError,
+                            onStartLive = viewModel::startLive,
+                            onOpenLive = { liveId ->
+                                onDismiss()
+                                onLiveStarted(liveId)
+                            },
                         )
                     } else SheetMessage(
                         title = stringResource(selected.title),
@@ -192,6 +218,7 @@ fun CreateSheet(
                 onSelect = {
                     selected = it
                     viewModel.clearPickProblem()
+                    viewModel.clearStartLiveError()
                 },
             )
         }
@@ -243,9 +270,10 @@ private fun SheetMessage(
 }
 
 /**
- * Écran de déblocage du direct, comme sur YouTube : la condition (50 abonnés), la progression
- * réelle de la chaîne, « Créer des Shorts » pour gagner des abonnés et « En savoir plus ». Seuil
- * atteint : l'écran le constate, sans rien promettre, la diffusion n'étant pas développée (ADR-015).
+ * Onglet En direct (ADR-015, ADR-029). Sous le seuil de 50 abonnés : l'écran de déblocage, comme sur
+ * YouTube, avec la condition, la progression réelle de la chaîne, « Créer des Shorts » pour gagner des
+ * abonnés et « En savoir plus ». Seuil atteint : le formulaire de démarrage d'un live. Le serveur
+ * revérifie le seuil.
  */
 @Composable
 private fun LiveUnlock(
@@ -253,12 +281,17 @@ private fun LiveUnlock(
     onRetry: () -> Unit,
     onCreateShorts: () -> Unit,
     onLearnMore: () -> Unit,
+    isStarting: Boolean,
+    startError: UiError?,
+    onStartLive: (title: String, videoId: String) -> Unit,
+    onOpenLive: (liveId: String) -> Unit,
 ) {
     when (state) {
         LiveUiState.Loading -> LoadingState()
         is LiveUiState.Error -> ErrorState(state.error, onRetry = onRetry)
-        is LiveUiState.Loaded -> {
-            val unlocked = state.followerCount >= LIVE_MIN_FOLLOWERS
+        is LiveUiState.Loaded -> if (state.followerCount >= LIVE_MIN_FOLLOWERS) {
+            StartLiveForm(state, isStarting, startError, onStartLive, onOpenLive)
+        } else {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -267,38 +300,27 @@ private fun LiveUnlock(
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
             ) {
                 Text(
-                    text = if (unlocked) {
-                        stringResource(R.string.create_live_unlocked_title, LIVE_MIN_FOLLOWERS)
-                    } else {
-                        stringResource(R.string.create_live_title)
-                    },
+                    text = stringResource(R.string.create_live_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    text = if (unlocked) {
-                        stringResource(R.string.create_live_unlocked_message)
-                    } else {
-                        stringResource(R.string.create_live_message, LIVE_MIN_FOLLOWERS)
-                    },
+                    text = stringResource(R.string.create_live_message, LIVE_MIN_FOLLOWERS),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
-                // Seuil atteint : la barre pleine suffit, « 73 abonnés sur 50 » n'aurait pas de sens.
-                if (!unlocked) {
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.create_live_progress,
-                            state.followerCount,
-                            state.followerCount,
-                            LIVE_MIN_FOLLOWERS,
-                        ),
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.create_live_progress,
+                        state.followerCount,
+                        state.followerCount,
+                        LIVE_MIN_FOLLOWERS,
+                    ),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                )
                 LinearProgressIndicator(
                     progress = { (state.followerCount.toFloat() / LIVE_MIN_FOLLOWERS).coerceAtMost(1f) },
                     modifier = Modifier.fillMaxWidth(),
@@ -306,16 +328,14 @@ private fun LiveUnlock(
                     trackColor = MaterialTheme.colorScheme.outlineVariant,
                 )
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!unlocked) {
-                        Button(
-                            onClick = onCreateShorts,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.onBackground,
-                                contentColor = MaterialTheme.colorScheme.background,
-                            ),
-                        ) { Text(stringResource(R.string.create_live_create_shorts)) }
-                    }
+                    Button(
+                        onClick = onCreateShorts,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.onBackground,
+                            contentColor = MaterialTheme.colorScheme.background,
+                        ),
+                    ) { Text(stringResource(R.string.create_live_create_shorts)) }
                     // Pastille grise sur le fond de la feuille, comme la référence.
                     FilledTonalButton(
                         onClick = onLearnMore,
@@ -325,6 +345,101 @@ private fun LiveUnlock(
                         Text(stringResource(R.string.create_live_learn_more))
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Formulaire de démarrage d'un live (ADR-029) : un titre et une vidéo de la chaîne, publique et non
+ * Premium, qui sera lue en boucle comme flux. Un live déjà en cours est repris au lieu d'en démarrer
+ * un second.
+ */
+@Composable
+private fun StartLiveForm(
+    state: LiveUiState.Loaded,
+    isStarting: Boolean,
+    startError: UiError?,
+    onStartLive: (title: String, videoId: String) -> Unit,
+    onOpenLive: (liveId: String) -> Unit,
+) {
+    val running = state.running
+    if (running != null) {
+        SheetMessage(
+            title = stringResource(R.string.create_live_running_title),
+            message = running.title,
+            action = stringResource(R.string.create_live_running_open),
+            onAction = { onOpenLive(running.id) },
+        )
+        return
+    }
+    if (state.videos.isEmpty()) {
+        SheetMessage(
+            title = stringResource(R.string.create_live_form_title),
+            message = stringResource(R.string.create_live_no_video),
+        )
+        return
+    }
+    var title by rememberSaveable { mutableStateOf("") }
+    var videoId by rememberSaveable { mutableStateOf(state.videos.first().id) }
+    var menuOpen by remember { mutableStateOf(false) }
+    val selected = state.videos.firstOrNull { it.id == videoId } ?: state.videos.first()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+    ) {
+        Text(
+            text = stringResource(R.string.create_live_form_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        OutlinedTextField(
+            value = title,
+            onValueChange = { title = it.take(LIVE_TITLE_MAX_LENGTH) },
+            label = { Text(stringResource(R.string.create_live_field_title)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Box {
+            OutlinedButton(onClick = { menuOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.create_live_field_video, selected.title),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                state.videos.forEach { video ->
+                    DropdownMenuItem(
+                        text = { Text(video.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        onClick = {
+                            videoId = video.id
+                            menuOpen = false
+                        },
+                    )
+                }
+            }
+        }
+        if (startError != null) {
+            Text(
+                text = startError.asText(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        Button(
+            onClick = { onStartLive(title, selected.id) },
+            enabled = title.isNotBlank() && !isStarting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (isStarting) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else {
+                Text(stringResource(R.string.create_live_start))
             }
         }
     }

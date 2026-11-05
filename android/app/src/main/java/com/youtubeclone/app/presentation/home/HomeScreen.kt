@@ -57,6 +57,7 @@ import androidx.media3.common.Player
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Category
+import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.domain.model.VideoAd
@@ -69,6 +70,7 @@ import com.youtubeclone.app.presentation.common.MessageState
 import com.youtubeclone.app.presentation.common.VideoListSkeleton
 import com.youtubeclone.app.presentation.common.rememberStaggeredAppearance
 import com.youtubeclone.app.presentation.common.staggeredAppearance
+import com.youtubeclone.app.presentation.live.LiveCard
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
@@ -109,11 +111,13 @@ fun HomeScreen(
     onPostClick: (channelId: String) -> Unit,
     onMessagesClick: () -> Unit,
     onLoginRequired: () -> Unit,
+    onLiveClick: (liveId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val unreadMessages by viewModel.unreadMessages.collectAsStateWithLifecycle()
     val latestPost by viewModel.latestPost.collectAsStateWithLifecycle()
+    val lives by viewModel.lives.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val sponsoredAd by viewModel.sponsoredAd.collectAsStateWithLifecycle()
     val adMuted by viewModel.adPreview.muted.collectAsStateWithLifecycle()
@@ -123,7 +127,11 @@ fun HomeScreen(
     // Un lecteur ouvert (écran de lecture ou mini-lecteur, ADR-024) suspend aussi le bandeau : deux
     // vidéos en même temps, c'est deux décodeurs.
     val nowPlaying by rememberUpdatedState(LocalNowPlayingActive.current)
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onFeedShown(!nowPlaying) }
+    // Retour sur le fil (autre écran, arrière-plan) : les lives et leurs spectateurs sont relus (ADR-029).
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        viewModel.onFeedShown(!nowPlaying)
+        viewModel.refreshLives()
+    }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(nowPlaying) {
         viewModel.onFeedShown(!nowPlaying && lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
@@ -160,6 +168,8 @@ fun HomeScreen(
         unreadMessages = unreadMessages,
         onMessagesClick = onMessagesClick,
         onLoginRequired = onLoginRequired,
+        lives = lives,
+        onLiveClick = onLiveClick,
     )
 }
 
@@ -187,6 +197,8 @@ private fun HomeContent(
     unreadMessages: Int = 0,
     onMessagesClick: () -> Unit = {},
     onLoginRequired: () -> Unit = {},
+    lives: List<Live> = emptyList(),
+    onLiveClick: (liveId: String) -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -223,7 +235,11 @@ private fun HomeContent(
                     verticalArrangement = Arrangement.spacedBy(VideoCardSpacing),
                     contentPadding = PaddingValues(top = 4.dp, bottom = VideoCardSpacing),
                 ) {
-                    // Bandeau sponsorisé (ADR-021), tout en haut ; jamais pour un compte Premium.
+                    // Lives en cours (ADR-029), tout en haut du fil : avant même le bandeau sponsorisé.
+                    items(lives, key = { "live-" + it.id }) { live ->
+                        LiveCard(live = live, onClick = { onLiveClick(live.id) })
+                    }
+                    // Bandeau sponsorisé (ADR-021), jamais pour un compte Premium.
                     if (sponsoredAd != null && sponsoredAdPreview != null) {
                         item(key = SPONSORED_KEY) {
                             SponsoredAdCard(

@@ -70,6 +70,7 @@ import com.youtubeclone.app.presentation.downloads.DownloadsScreen
 import com.youtubeclone.app.presentation.downloads.OfflinePlayerScreen
 import com.youtubeclone.app.presentation.help.HelpScreen
 import com.youtubeclone.app.presentation.home.HomeScreen
+import com.youtubeclone.app.presentation.live.LiveScreen
 import com.youtubeclone.app.presentation.messaging.ConversationScreen
 import com.youtubeclone.app.presentation.messaging.ConversationsScreen
 import com.youtubeclone.app.presentation.messaging.NewConversationScreen
@@ -146,10 +147,14 @@ import kotlinx.serialization.Serializable
 @Serializable data class NewConversationRoute(val shareVideoId: String? = null)
 @Serializable data class ConversationRoute(val conversationId: String)
 
+// Un live en cours (ADR-029). Le nom du paramètre est lu par LiveViewModel.
+@Serializable data class LiveRoute(val liveId: String)
+
 private val FULL_SCREEN_ROUTES = listOf(
     ConversationsRoute::class,
     NewConversationRoute::class,
     ConversationRoute::class,
+    LiveRoute::class,
     AdPlayerRoute::class,
     ShortsPlayerRoute::class,
     PaywallRoute::class,
@@ -248,6 +253,14 @@ fun AppNavigation(
     val miniInset = if (nowPlayingId != null && !nowExpanded && miniVisible) MiniPlayerHeight else 0.dp
     // Actions de l'écran de lecture et des écrans, partagées hors du graphe de navigation.
     val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
+    // Un live n'a pas de mini-lecteur (ADR-029, D15) : la vidéo en cours est fermée avant de l'ouvrir,
+    // sinon deux lecteurs joueraient en même temps.
+    val openLive = { liveId: String ->
+        focusManager.clearFocus()
+        keyboard?.hide()
+        watchViewModel.close()
+        navController.navigate(LiveRoute(liveId))
+    }
     val openLogin = { navController.navigate(LoginRoute()) }
     val openPaywall = { navController.navigate(PaywallRoute()) }
     // « Envoyer à », puis « Rechercher quelqu'un d'autre » (ADR-025, étape 2).
@@ -334,6 +347,7 @@ fun AppNavigation(
                 onPublishVideo = { uri, format -> navController.navigate(PublishVideoRoute(uri, format.name)) },
                 onCreateChannel = { navController.navigate(CreateChannelRoute) },
                 onWritePost = { navController.navigate(ComposePostRoute) },
+                onLiveStarted = openLive,
             )
         }
         // Debug seulement (ADR-027) : le message « Impossible de joindre le serveur » renvoie au réglage.
@@ -376,6 +390,13 @@ fun AppNavigation(
                         onRemoveAdsClick = openPaywall,
                         onPostClick = openChannelPosts,
                         onMessagesClick = { navController.navigate(ConversationsRoute) },
+                        onLoginRequired = openLogin,
+                        onLiveClick = openLive,
+                    )
+                }
+                composable<LiveRoute> {
+                    LiveScreen(
+                        onBack = { navController.popBackStack() },
                         onLoginRequired = openLogin,
                     )
                 }
@@ -451,6 +472,7 @@ fun AppNavigation(
                         onShortClick = { videoId -> navController.navigate(ShortsPlayerRoute(videoId)) },
                         onLoginRequired = openLogin,
                         onCustomizeClick = { navController.navigate(CustomizeChannelRoute) },
+                        onLiveClick = openLive,
                     )
                 }
                 composable<YouRoute> {

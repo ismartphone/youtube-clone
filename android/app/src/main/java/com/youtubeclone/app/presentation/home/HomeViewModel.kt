@@ -7,6 +7,7 @@ import com.youtubeclone.app.domain.analytics.AdPlacement
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.analytics.AnalyticsEvent
 import com.youtubeclone.app.domain.model.Category
+import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.Post
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.domain.model.Video
@@ -16,6 +17,7 @@ import com.youtubeclone.app.domain.usecase.GetCurrentUserUseCase
 import com.youtubeclone.app.domain.usecase.GetHomeFeedUseCase
 import com.youtubeclone.app.domain.usecase.GetLatestPostUseCase
 import com.youtubeclone.app.domain.usecase.GetSponsoredAdUseCase
+import com.youtubeclone.app.domain.usecase.LiveUseCases
 import com.youtubeclone.app.domain.usecase.ObserveInterestsUseCase
 import com.youtubeclone.app.domain.usecase.ObservePremiumStatusUseCase
 import com.youtubeclone.app.domain.usecase.ObservePublicationsUseCase
@@ -64,6 +66,7 @@ class HomeViewModel @Inject constructor(
     observePremium: ObservePremiumStatusUseCase,
     private val analytics: Analytics,
     private val getLatestPost: GetLatestPostUseCase,
+    private val liveUseCases: LiveUseCases,
     unreadMessages: UnreadMessages,
 ) : ViewModel() {
 
@@ -89,6 +92,11 @@ class HomeViewModel @Inject constructor(
     // Post le plus récent de la plateforme, inséré après les premières vidéos ; null sans post.
     private val _latestPost = MutableStateFlow<Post?>(null)
     val latestPost: StateFlow<Post?> = _latestPost.asStateFlow()
+
+    // Lives en cours (ADR-029), en tête du fil. Lus à l'ouverture de l'écran et au retour au premier
+    // plan, sans connexion permanente (D15) ; un échec laisse la liste précédente.
+    private val _lives = MutableStateFlow<List<Live>>(emptyList())
+    val lives: StateFlow<List<Live>> = _lives.asStateFlow()
 
     // Publicité dont l'affichage a déjà été mesuré : une fois par chargement, pas à chaque défilement.
     private var shownAdId: String? = null
@@ -169,6 +177,19 @@ class HomeViewModel @Inject constructor(
             firstScreenReadiness.markReady()
         }
         loadLatestPost()
+        refreshLives()
+    }
+
+    /** Relit les lives en cours et leur nombre de spectateurs. */
+    fun refreshLives() {
+        viewModelScope.launch {
+            try {
+                _lives.value = liveUseCases.repository.getRunningLives()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+        }
     }
 
     // Un échec laisse le fil sans post.

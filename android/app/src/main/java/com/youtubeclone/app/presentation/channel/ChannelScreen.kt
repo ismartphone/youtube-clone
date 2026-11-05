@@ -47,11 +47,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.ChannelPage
+import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.FollowStatus
 import com.youtubeclone.app.domain.model.NotificationLevel
 import com.youtubeclone.app.domain.model.Post
@@ -70,6 +73,7 @@ import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatVideoCount
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.live.LiveCard
 import com.youtubeclone.app.presentation.home.previewVideo
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import com.youtubeclone.app.presentation.watch.SuggestedVideoCard
@@ -107,6 +111,7 @@ fun ChannelScreen(
     onShortClick: (videoId: String) -> Unit,
     onLoginRequired: () -> Unit,
     onCustomizeClick: () -> Unit,
+    onLiveClick: (liveId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ChannelViewModel = hiltViewModel(),
 ) {
@@ -114,6 +119,9 @@ fun ChannelScreen(
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
     val posts by viewModel.posts.collectAsStateWithLifecycle()
+    val live by viewModel.live.collectAsStateWithLifecycle()
+    // Retour sur la page (depuis le live, par exemple) : le live et ses spectateurs sont relus.
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.refreshLive() }
     ErrorToast(viewModel.follow.errors)
     NotificationPermissionRequest(viewModel.follow.bellActivated)
 
@@ -129,6 +137,8 @@ fun ChannelScreen(
             is ChannelUiState.Success -> ChannelContent(
                 page = state.page,
                 posts = posts,
+                live = live,
+                onLiveClick = onLiveClick,
                 followState = followState,
                 // Visiteur : la connexion est demandée au moment de s'abonner.
                 onFollowClick = { if (isLoggedIn) viewModel.follow.toggle() else onLoginRequired() },
@@ -157,6 +167,8 @@ private fun ChannelContent(
     onNotificationLevelSelect: (NotificationLevel) -> Unit = {},
     onCustomizeClick: () -> Unit = {},
     initialTab: ChannelTab = ChannelTab.Videos,
+    live: Live? = null,
+    onLiveClick: (liveId: String) -> Unit = {},
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(initialTab) }
     val tabVideos = page.videos.filter { it.format == selectedTab.format }
@@ -169,6 +181,8 @@ private fun ChannelContent(
         verticalArrangement = Arrangement.spacedBy(ShortsGap),
     ) {
         fullWidthItem("header") { ChannelHeader(page, followState, onFollowClick, onNotificationLevelSelect, onCustomizeClick) }
+        // Live en cours de la chaîne (ADR-029), entre l'en-tête et les onglets.
+        if (live != null) fullWidthItem("live") { LiveCard(live, onClick = { onLiveClick(live.id) }, modifier = Modifier.padding(bottom = 8.dp)) }
         fullWidthItem("tabs") {
             ChannelTabs(selected = selectedTab, onSelect = { selectedTab = it })
         }

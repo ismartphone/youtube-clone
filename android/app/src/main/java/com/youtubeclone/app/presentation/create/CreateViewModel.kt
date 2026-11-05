@@ -3,11 +3,16 @@ package com.youtubeclone.app.presentation.create
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.youtubeclone.app.domain.model.Channel
+import com.youtubeclone.app.domain.model.LIVE_MIN_FOLLOWERS
+import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.PickedVideoProblem
+import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoFormat
+import com.youtubeclone.app.domain.model.VideoVisibility
 import com.youtubeclone.app.domain.usecase.CheckPickedVideoUseCase
 import com.youtubeclone.app.domain.usecase.GetChannelPageUseCase
 import com.youtubeclone.app.domain.usecase.GetOwnChannelUseCase
+import com.youtubeclone.app.domain.usecase.LiveUseCases
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -33,11 +38,19 @@ sealed interface CreateUiState {
     data class Ready(val channel: Channel) : CreateUiState
 }
 
-/** Onglet En direct : abonnés réels de la chaîne, comparés au seuil de déblocage (ADR-015). */
+/**
+ * Onglet En direct : abonnés réels de la chaîne, comparés au seuil de déblocage (ADR-015). Seuil
+ * atteint, [videos] sont les vidéos que le serveur accepte comme flux (publiques, non Premium) et
+ * [running] le live déjà en cours de la chaîne, s'il y en a un (ADR-029).
+ */
 sealed interface LiveUiState {
     data object Loading : LiveUiState
     data class Error(val error: UiError) : LiveUiState
-    data class Loaded(val followerCount: Int) : LiveUiState
+    data class Loaded(
+        val followerCount: Int,
+        val videos: List<Video> = emptyList(),
+        val running: Live? = null,
+    ) : LiveUiState
 }
 
 /** Vidéo choisie et acceptée : l'écran de publication s'ouvre avec elle. */
@@ -56,6 +69,7 @@ class CreateViewModel @Inject constructor(
     private val getOwnChannel: GetOwnChannelUseCase,
     private val checkPickedVideo: CheckPickedVideoUseCase,
     private val getChannelPage: GetChannelPageUseCase,
+    private val lives: LiveUseCases,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CreateUiState>(CreateUiState.Loading)
@@ -66,6 +80,17 @@ class CreateViewModel @Inject constructor(
 
     private val _live = MutableStateFlow<LiveUiState>(LiveUiState.Loading)
     val live: StateFlow<LiveUiState> = _live.asStateFlow()
+
+    private val _isStartingLive = MutableStateFlow(false)
+    val isStartingLive: StateFlow<Boolean> = _isStartingLive.asStateFlow()
+
+    // Refus du serveur au démarrage (moins de 50 abonnés, vidéo refusée, live déjà en cours...).
+    private val _startLiveError = MutableStateFlow<UiError?>(null)
+    val startLiveError: StateFlow<UiError?> = _startLiveError.asStateFlow()
+
+    // Live démarré : la feuille se ferme et son écran s'ouvre.
+    private val _openLive = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val openLive: SharedFlow<String> = _openLive.asSharedFlow()
 
     private val _openPublish = MutableSharedFlow<PickedForPublish>(extraBufferCapacity = 1)
     val openPublish: SharedFlow<PickedForPublish> = _openPublish.asSharedFlow()
@@ -106,13 +131,42 @@ class CreateViewModel @Inject constructor(
         _live.value = LiveUiState.Loading
         liveJob = viewModelScope.launch {
             _live.value = try {
-                LiveUiState.Loaded(getChannelPage(channel.id).followStatus.followerCount)
+                val page = getChannelPage(channel.id)
+                val unlocked = page.followStatus.followerCount >= LIVE_MIN_FOLLOWERS
+                LiveUiState.Loaded(
+                    followerCount = page.followStatus.followerCount,
+                    videos = if (unlocked) page.videos.filter { it.visibility == VideoVisibility.PUBLIC && !it.isPremium } else emptyList(),
+                    // Un échec de cette lecture n'empêche pas de démarrer : le serveur refuse un second live.
+                    running = if (unlocked) runCatching { lives.repository.getRunningLives(channel.id).firstOrNull() }.getOrNull() else null,
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 LiveUiState.Error(e.toUiError())
             }
         }
+    }
+
+    /** Démarre le live avec [videoId] comme flux. Le serveur est seul juge : seuil, vidéo admissible, live déjà en cours. */
+    fun startLive(title: String, videoId: String) {
+        if (_isStartingLive.value || title.isBlank()) return
+        _isStartingLive.value = true
+        _startLiveError.value = null
+        viewModelScope.launch {
+            try {
+                _openLive.tryEmit(lives.start(title, videoId).id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _startLiveError.value = e.toUiError()
+            } finally {
+                _isStartingLive.value = false
+            }
+        }
+    }
+
+    fun clearStartLiveError() {
+        _startLiveError.value = null
     }
 
     /**

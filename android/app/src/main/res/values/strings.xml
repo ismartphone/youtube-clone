@@ -32,8 +32,29 @@
     </plurals>
     <string name="create_live_create_shorts">Créer des Shorts</string>
     <string name="create_live_learn_more">En savoir plus</string>
-    <string name="create_live_unlocked_title">Votre chaîne a atteint %1$d abonnés</string>
-    <string name="create_live_unlocked_message">Continuez à publier des Shorts et des vidéos pour faire grandir votre audience.</string>
+    <string name="create_live_form_title">Passer en direct</string>
+    <string name="create_live_field_title">Titre du live</string>
+    <string name="create_live_field_video">Vidéo : %1$s</string>
+    <string name="create_live_start">Passer en direct</string>
+    <string name="create_live_no_video">Publiez d\'abord une vidéo publique, non Premium, pour la diffuser en direct.</string>
+    <string name="create_live_running_title">Votre live est en cours</string>
+    <string name="create_live_running_open">Retourner au live</string>
+    <string name="live_badge">EN DIRECT</string>
+    <plurals name="live_viewers">
+        <item quantity="one">%1$d spectateur</item>
+        <item quantity="other">%1$d spectateurs</item>
+    </plurals>
+    <string name="live_not_found">Ce live n\'existe pas.</string>
+    <string name="live_ended">Le live est terminé</string>
+    <string name="live_chat_closed">Le chat est fermé : le live est terminé.</string>
+    <string name="live_chat_empty">Aucun message pour l\'instant. Lancez la discussion !</string>
+    <string name="live_chat_placeholder">Écrire dans le chat</string>
+    <string name="live_chat_login">Se connecter pour écrire</string>
+    <string name="live_end_button">Terminer</string>
+    <string name="live_end_title">Terminer le live ?</string>
+    <string name="live_end_message">Le live s\'arrête pour tous les spectateurs. Vous ne pourrez pas le reprendre.</string>
+    <string name="live_end_confirm">Terminer le live</string>
+    <string name="live_end_cancel">Annuler</string>
     <string name="create_live_rule_title">Diffuser en direct</string>
     <string name="create_live_rule_message">La diffusion en direct depuis un mobile est réservée aux chaînes qui comptent au moins %1$d abonnés. Publier des Shorts et des vidéos reste le meilleur moyen de faire grandir votre audience.</string>
     <string name="create_live_rule_ok">Compris</string>
