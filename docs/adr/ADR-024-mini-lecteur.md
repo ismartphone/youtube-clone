@@ -79,7 +79,7 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
 ### Ce qui change de cycle de vie
 - **Compteur de vues et historique :** enregistrés par le propriétaire du lecteur, une fois par vidéo, quel que soit l'affichage.
 - **Qualité et sous-titres :** réglages du lecteur partagé ; ils survivent à la réduction. Le menu reste dans l'écran de lecture.
-- **Lecture automatique :** gérée par le propriétaire du lecteur (question 2 : continue-t-elle en mini-lecteur ?).
+- **Lecture automatique :** le compte à rebours reste dans l'écran de lecture. En mini-lecteur, rien ne s'enchaîne : la vidéo s'arrête à la fin, sans compte à rebours ni annonce hors de l'écran de lecture (décision 2).
 - **Publicité pré-roll :** l'annonce se joue dans l'écran de lecture, sans réduction possible. Son ExoPlayer distinct (`AdPlaybackController`) peut rester lié à l'écran de lecture : il est terminé avant toute réduction.
 - **Salle WebSocket :** recommandation, la fermer à la réduction et la rouvrir à la réouverture. Commentaires et compteurs ne s'affichent que dans l'écran de lecture.
 - **Libération du décodeur en arrière-plan :** elle ne dépend plus de l'écran de lecture, mais de l'activité (`ON_STOP`) dès qu'une vidéo est en cours, en plein écran comme en mini-lecteur. Les parades actuelles s'appliquent toujours à la sortie de l'application.
@@ -91,13 +91,13 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
 - Le mini-lecteur est développé sur une branche dédiée, pas sur `main`. Il n'est fusionné que quand tout est testé : lecture, Shorts, annonce, hors ligne, son en arrière-plan du Premium.
 - Si la branche dérape ou casse un lecteur existant, elle est abandonnée.
 
-### Questions au lead développeur
-1. **Pile de vidéos :** vidéo A, puis suggestion B, puis Retour. Aujourd'hui, on revient à A. Avec le lecteur unique, Retour réduit B en mini-lecteur, et A n'est plus dans une pile. Accepté ?
-2. **Lecture automatique en mini-lecteur :** la vidéo suivante s'enchaîne-t-elle aussi en mini-lecteur, et avec une annonce avant elle pour un non Premium ? Si oui, il faut rouvrir l'écran de lecture pour l'annonce, puisqu'une annonce ne se réduit pas.
-3. **Lecteur hors ligne :** sans mini-lecteur (recommandé) ?
-4. **Écrans où le mini-lecteur est masqué** (Shorts, publication, paywall) : pause, puis reprise au retour (recommandé) ? Ou fermeture ?
-5. **Bandeau sponsorisé (ADR-021) :** il se lit tout seul en haut du fil. Avec un mini-lecteur actif, deux vidéos tournent en même temps (deux décodeurs) ; le bandeau reste en sourdine. Faut-il suspendre le bandeau quand le mini-lecteur est présent ?
-6. **Salle WebSocket :** fermée à la réduction et rouverte à la réouverture (recommandé) ?
+### Décisions du lead développeur (5 novembre 2026)
+1. **Pile de vidéos :** accepté. Vidéo A, puis suggestion B, puis Retour : Retour réduit B en mini-lecteur, et A n'est plus dans une pile.
+2. **Lecture automatique en mini-lecteur :** rien ne s'enchaîne. La vidéo s'arrête à la fin, sans compte à rebours ni annonce hors de l'écran de lecture (choix explicite du lead).
+3. **Lecteur hors ligne :** sans mini-lecteur. L'ouvrir ferme le mini-lecteur (recommandation suivie).
+4. **Écrans où le mini-lecteur est masqué** (Shorts, publication, paywall) : pause, puis reprise au retour (recommandation suivie).
+5. **Bandeau sponsorisé (ADR-021) :** suspendu tant qu'un mini-lecteur est présent, pour ne pas faire tourner deux vidéos en même temps (choix explicite du lead).
+6. **Salle WebSocket :** fermée à la réduction, rouverte à la réouverture (recommandation suivie).
 
 ## Alternatives
 - **Garder le lecteur dans l'écran de lecture et en créer un second pour le mini-lecteur** à la même position. Avantage : peu de refonte. Inconvénients : rechargement, coupure du son et de l'image à chaque passage ; contraire à la décision.
@@ -129,3 +129,5 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
 - [ADR-020](ADR-020-notifications-fcm.md) : l'appui sur une notification ouvre l'écran de lecture, à adapter si celui-ci quitte la navigation.
 - [ADR-022](ADR-022-plusieurs-comptes-appareil.md) : une bascule de compte ferme le mini-lecteur.
 - [ADR-001](ADR-001-android-natif.md) : Media3 ExoPlayer et Jetpack Compose.
+
+Amendé le 5 novembre : réponses du lead aux six questions (autoplay sans enchaînement en mini-lecteur, bandeau sponsorisé suspendu).
