@@ -482,4 +482,16 @@
     <string name="accounts_remove_text">%1$s sera retiré de cet appareil, avec ses téléchargements. Vous pourrez l\'ajouter de nouveau en vous connectant.</string>
     <string name="accounts_cancel">Annuler</string>
     <string name="accounts_limit">%1$d comptes au plus sur cet appareil</string>
+    <string name="live_product_pin">Épingler un produit</string>
+    <string name="live_product_unpin">Retirer</string>
+    <string name="live_product_picker_title">Épingler un produit</string>
+    <string name="live_product_picker_empty">Votre chaîne n\'a aucun produit. L\'administration peut en ajouter.</string>
+    <string name="live_product_buy">Acheter</string>
+    <string name="live_product_buy_login">Se connecter pour acheter</string>
+    <string name="live_purchase_sheet_title">Paiement simulé</string>
+    <string name="live_purchase_sheet_note">Paiement simulé : aucun débit réel.</string>
+    <string name="live_purchase_confirm">Payer</string>
+    <string name="live_purchase_done">Achat confirmé, merci !</string>
+    <string name="live_purchase_canceled">Paiement annulé : rien n\'a été débité.</string>
+    <string name="live_purchase_failed">Le paiement n\'a pas abouti : rien n\'a été débité.</string>
 </resources>

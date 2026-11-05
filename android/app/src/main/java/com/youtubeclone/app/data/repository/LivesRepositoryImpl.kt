@@ -5,13 +5,18 @@ import com.youtubeclone.app.data.remote.LivesApi
 import com.youtubeclone.app.data.remote.apiCall
 import com.youtubeclone.app.data.remote.dto.LiveMessageDto
 import com.youtubeclone.app.data.remote.dto.LiveMessageRequestDto
+import com.youtubeclone.app.data.remote.dto.LivePinnedDto
+import com.youtubeclone.app.data.remote.dto.LivePurchaseRequestDto
 import com.youtubeclone.app.data.remote.dto.LiveReactionDto
 import com.youtubeclone.app.data.remote.dto.LiveReactionRequestDto
 import com.youtubeclone.app.data.remote.dto.LiveViewersDto
+import com.youtubeclone.app.data.remote.dto.PinProductRequestDto
 import com.youtubeclone.app.data.remote.dto.StartLiveRequestDto
 import com.youtubeclone.app.data.remote.dto.toDomain
 import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.LiveChatMessage
+import com.youtubeclone.app.domain.model.LiveCheckout
+import com.youtubeclone.app.domain.model.LiveProduct
 import com.youtubeclone.app.domain.model.LiveRoomEvent
 import com.youtubeclone.app.domain.repository.LivesRepository
 import javax.inject.Inject
@@ -46,6 +51,23 @@ class LivesRepositoryImpl @Inject constructor(
         apiCall(json) { api.sendReaction(liveId, LiveReactionRequestDto(emoji)) }
     }
 
+    override suspend fun getMyProducts(): List<LiveProduct> =
+        apiCall(json) { api.getMyProducts() }.items.map { it.toDomain() }
+
+    override suspend fun pinProduct(liveId: String, productId: String): LiveProduct =
+        apiCall(json) { api.pinProduct(liveId, PinProductRequestDto(productId)) }.toDomain()
+
+    override suspend fun unpinProduct(liveId: String) {
+        apiCall(json) { api.unpinProduct(liveId) }
+    }
+
+    override suspend fun startCheckout(liveId: String): LiveCheckout =
+        apiCall(json) { api.checkout(liveId) }.toDomain()
+
+    override suspend fun confirmPurchase(liveId: String, purchaseToken: String) {
+        apiCall(json) { api.confirmPurchase(liveId, LivePurchaseRequestDto(purchaseToken)) }
+    }
+
     override fun liveEvents(liveId: String): Flow<LiveRoomEvent> =
         socket.events("liveId" to liveId, LiveRoomEvent.Connected, ::parse)
 
@@ -53,6 +75,7 @@ class LivesRepositoryImpl @Inject constructor(
         "live:message" -> LiveRoomEvent.MessageReceived(json.decodeFromJsonElement(LiveMessageDto.serializer(), data).toDomain())
         "live:viewers" -> LiveRoomEvent.ViewersChanged(json.decodeFromJsonElement(LiveViewersDto.serializer(), data).viewerCount)
         "live:reaction" -> LiveRoomEvent.ReactionReceived(json.decodeFromJsonElement(LiveReactionDto.serializer(), data).emoji)
+        "live:pinned" -> LiveRoomEvent.ProductPinned(json.decodeFromJsonElement(LivePinnedDto.serializer(), data).product?.toDomain())
         "live:ended" -> LiveRoomEvent.Ended
         else -> null
     }

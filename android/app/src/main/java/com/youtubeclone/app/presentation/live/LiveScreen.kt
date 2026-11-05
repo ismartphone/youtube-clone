@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -58,7 +59,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
+import android.widget.Toast
 import coil3.compose.AsyncImage
+import com.stripe.android.PaymentConfiguration
+import com.stripe.android.paymentsheet.PaymentSheet
+import com.stripe.android.paymentsheet.PaymentSheetResult
+import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.LiveAuthor
 import com.youtubeclone.app.domain.model.LiveChatMessage
@@ -82,7 +88,50 @@ fun LiveScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val draft by viewModel.draft.collectAsStateWithLifecycle()
     val isSending by viewModel.isSending.collectAsStateWithLifecycle()
+    val purchase by viewModel.purchase.collectAsStateWithLifecycle()
+    val ownProducts by viewModel.ownProducts.collectAsStateWithLifecycle()
     ErrorToast(viewModel.errors)
+    val context = LocalContext.current
+    LaunchedEffect(viewModel) {
+        viewModel.notices.collect { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
+    }
+    // Mode Stripe (ADR-014) : la PaymentSheet encaisse avec la clé publiable reçue du serveur ; son
+    // issue est renvoyée au ViewModel, qui fait vérifier le paiement avant d'enregistrer l'achat.
+    val paymentSheet = rememberPaymentSheet { result ->
+        viewModel.onStripeOutcome(
+            completed = result is PaymentSheetResult.Completed,
+            canceled = result is PaymentSheetResult.Canceled,
+        )
+    }
+    val channelName = (state as? LiveUiState.Ready)?.live?.channel?.name.orEmpty()
+    LaunchedEffect(purchase.stripePayment) {
+        val payment = purchase.stripePayment ?: return@LaunchedEffect
+        PaymentConfiguration.init(context, payment.publishableKey)
+        paymentSheet.presentWithPaymentIntent(
+            payment.clientSecret,
+            PaymentSheet.Configuration(merchantDisplayName = channelName),
+        )
+        viewModel.onStripeSheetShown()
+    }
+    if (purchase.simulatedToken != null) {
+        SimulatedPurchaseDialog(
+            product = (state as? LiveUiState.Ready)?.pinnedProduct,
+            isConfirming = purchase.isBusy,
+            onConfirm = viewModel::confirmSimulated,
+            onDismiss = viewModel::dismissSimulated,
+        )
+    }
+    var pickingProduct by rememberSaveable { mutableStateOf(false) }
+    if (pickingProduct) {
+        ProductPickerDialog(
+            products = ownProducts,
+            onPick = {
+                pickingProduct = false
+                viewModel.pin(it)
+            },
+            onDismiss = { pickingProduct = false },
+        )
+    }
     // Salle ouverte seulement écran visible : le compteur de spectateurs est celui des gens qui regardent.
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(viewModel, lifecycleOwner) {
@@ -121,6 +170,25 @@ fun LiveScreen(
             is LiveUiState.Ready -> {
                 LiveVideo(current, viewModel, onBack)
                 LiveInfo(current, onEnd = { confirmEnd = true })
+                // Produit épinglé : visible chez tous, en direct. Le diffuseur peut épingler ou retirer.
+                PinnedProductCard(
+                    product = current.pinnedProduct.takeIf { !current.isEnded },
+                    isBroadcaster = current.isBroadcaster,
+                    isBuying = purchase.isBusy,
+                    isLoggedIn = current.myId != null,
+                    onBuy = viewModel::startPurchase,
+                    onLoginRequired = onLoginRequired,
+                    onUnpin = viewModel::unpin,
+                )
+                if (current.isBroadcaster && !current.isEnded && current.pinnedProduct == null) {
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.loadOwnProducts()
+                            pickingProduct = true
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+                    ) { Text(stringResource(R.string.live_product_pin)) }
+                }
                 // Les émojis des réactions remontent par-dessus le chat, sans le masquer ni capter les appuis.
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     Chat(current, Modifier.fillMaxSize())
@@ -268,6 +336,20 @@ private fun Chat(state: LiveUiState.Ready, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ChatLine(message: LiveChatMessage) {
+    if (message.isPurchase) {
+        // Annonce écrite par le serveur : jamais le montant ni le moyen de paiement.
+        Text(
+            text = "\uD83D\uDED2  " + message.content,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                .padding(horizontal = 10.dp, vertical = 8.dp),
+        )
+        return
+    }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
         ChatAvatar(message.author)
         Text(

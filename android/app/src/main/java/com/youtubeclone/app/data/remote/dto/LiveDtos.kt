@@ -5,6 +5,8 @@ import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.LiveAuthor
 import com.youtubeclone.app.domain.model.LiveChatMessage
+import com.youtubeclone.app.domain.model.LiveCheckout
+import com.youtubeclone.app.domain.model.LiveProduct
 import com.youtubeclone.app.domain.model.LiveStatus
 import com.youtubeclone.app.domain.model.LiveStream
 import java.time.Instant
@@ -30,6 +32,37 @@ data class LiveStreamDto(
 )
 
 @Serializable
+data class LiveProductDto(
+    val id: String,
+    val name: String,
+    val price: Int,
+    val currency: String = "eur",
+    val imageUrl: String,
+    val description: String = "",
+)
+
+@Serializable
+data class LiveProductListDto(val items: List<LiveProductDto>)
+
+@Serializable
+data class PinProductRequestDto(val productId: String)
+
+@Serializable
+data class LivePurchaseRequestDto(val purchaseToken: String)
+
+@Serializable
+data class LiveCheckoutDto(
+    val mode: String,
+    val purchaseToken: String,
+    val clientSecret: String? = null,
+    val publishableKey: String? = null,
+)
+
+/** Événement `live:pinned` : [product] est null quand le produit est retiré. */
+@Serializable
+data class LivePinnedDto(val liveId: String, val product: LiveProductDto? = null)
+
+@Serializable
 data class LiveDto(
     val id: String,
     val title: String,
@@ -38,6 +71,7 @@ data class LiveDto(
     val viewerCount: Int = 0,
     val channel: LiveChannelDto,
     val video: LiveStreamDto? = null,
+    val pinnedProduct: LiveProductDto? = null,
 )
 
 @Serializable
@@ -54,6 +88,8 @@ data class LiveAuthorDto(
 data class LiveMessageDto(
     val id: String,
     val liveId: String,
+    // CHAT, ou PURCHASE pour l'annonce d'un achat écrite par le serveur.
+    val kind: String = "CHAT",
     val content: String,
     val createdAt: String,
     val author: LiveAuthorDto,
@@ -100,6 +136,23 @@ fun LiveDto.toDomain() = Live(
             durationSeconds = it.durationSeconds,
         )
     },
+    pinnedProduct = pinnedProduct?.toDomain(),
+)
+
+fun LiveProductDto.toDomain() = LiveProduct(
+    id = id,
+    name = name,
+    priceCents = price,
+    currency = currency,
+    imageUrl = resolveMediaUrl(imageUrl),
+    description = description,
+)
+
+fun LiveCheckoutDto.toDomain() = LiveCheckout(
+    mode = paymentMode(mode),
+    purchaseToken = purchaseToken,
+    clientSecret = clientSecret,
+    publishableKey = publishableKey,
 )
 
 fun LiveMessageDto.toDomain() = LiveChatMessage(
@@ -108,4 +161,5 @@ fun LiveMessageDto.toDomain() = LiveChatMessage(
     content = content,
     createdAt = Instant.parse(createdAt),
     author = LiveAuthor(author.id, author.displayName, author.avatarUrl?.let(::resolveMediaUrl)),
+    isPurchase = kind == "PURCHASE",
 )

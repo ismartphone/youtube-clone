@@ -34,7 +34,7 @@ data class SubscribeRequest(
 )
 
 // Mode inconnu (version plus récente du serveur) : repli sur l'achat simulé.
-private fun paymentMode(mode: String) = if (mode == "stripe") PaymentMode.STRIPE else PaymentMode.SIMULATED
+internal fun paymentMode(mode: String) = if (mode == "stripe") PaymentMode.STRIPE else PaymentMode.SIMULATED
 
 fun PaymentConfigDto.toDomain() = PaymentConfig(mode = paymentMode(mode), publishableKey = publishableKey)
 

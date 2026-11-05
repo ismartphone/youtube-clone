@@ -14,6 +14,26 @@ const val LIVE_CHAT_MAX_LENGTH = 300
 
 enum class LiveStatus { Live, Ended }
 
+/** Produit épinglé par le diffuseur (ADR-029) : carte affichée en direct chez tous les spectateurs. */
+data class LiveProduct(
+    val id: String,
+    val name: String,
+    /** En centimes. */
+    val priceCents: Int,
+    /** Devise ISO en minuscules (« eur »). */
+    val currency: String,
+    val imageUrl: String,
+    val description: String,
+)
+
+/** Mode de paiement d'un achat de live : Stripe en mode test, ou le repli simulé (ADR-014). */
+data class LiveCheckout(
+    val mode: PaymentMode,
+    val purchaseToken: String,
+    val clientSecret: String?,
+    val publishableKey: String?,
+)
+
 /** Vidéo du catalogue lue en boucle comme flux du live. */
 data class LiveStream(
     val videoId: String,
@@ -35,6 +55,7 @@ data class Live(
     val viewerCount: Int,
     val channel: Channel,
     val stream: LiveStream?,
+    val pinnedProduct: LiveProduct? = null,
 ) {
     val isLive: Boolean get() = status == LiveStatus.Live
 
@@ -63,6 +84,8 @@ data class LiveChatMessage(
     val content: String,
     val createdAt: Instant,
     val author: LiveAuthor,
+    /** Annonce d'un achat écrite par le serveur, à distinguer d'un message du chat (ADR-029). */
+    val isPurchase: Boolean = false,
 )
 
 /** Événements reçus en direct dans la salle du live. */
@@ -78,6 +101,9 @@ sealed interface LiveRoomEvent {
 
     /** Un spectateur a réagi : [emoji] remonte à l'écran. Jamais stockée, donc jamais rejouée. */
     data class ReactionReceived(val emoji: String) : LiveRoomEvent
+
+    /** Le diffuseur a épinglé [product], ou l'a retiré (null) : la carte apparaît ou disparaît. */
+    data class ProductPinned(val product: LiveProduct?) : LiveRoomEvent
 
     /** Le diffuseur a terminé le live. */
     data object Ended : LiveRoomEvent

@@ -13,6 +13,8 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.LIVE_CHAT_MAX_LENGTH
 import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.LiveChatMessage
+import com.youtubeclone.app.domain.model.LiveProduct
+import com.youtubeclone.app.domain.model.PaymentMode
 import com.youtubeclone.app.domain.model.LiveRoomEvent
 import com.youtubeclone.app.domain.usecase.GetOwnChannelUseCase
 import com.youtubeclone.app.domain.usecase.LiveUseCases
@@ -34,6 +36,18 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Paiement Stripe à présenter dans la PaymentSheet, une seule fois (ADR-029, étape 3). */
+data class LiveStripePayment(val publishableKey: String, val clientSecret: String)
+
+/** Achat en cours du produit épinglé. */
+data class LivePurchaseState(
+    val isBusy: Boolean = false,
+    /** Mode Stripe : à présenter dans la PaymentSheet puis remis à null. */
+    val stripePayment: LiveStripePayment? = null,
+    /** Mode simulé (repli) : jeton à confirmer depuis la feuille de paiement simulée. */
+    val simulatedToken: String? = null,
+)
+
 sealed interface LiveUiState {
     data object Loading : LiveUiState
     data class Error(val error: UiError) : LiveUiState
@@ -47,6 +61,8 @@ sealed interface LiveUiState {
         val messages: List<LiveChatMessage>,
         val viewerCount: Int,
         val isEnded: Boolean,
+        /** Produit épinglé par le diffuseur, visible chez tous ; null sans épinglage. */
+        val pinnedProduct: LiveProduct? = null,
     ) : LiveUiState
 }
 
@@ -84,6 +100,22 @@ class LiveViewModel @Inject constructor(
     private val _reactions = MutableSharedFlow<String>(extraBufferCapacity = 32, onBufferOverflow = BufferOverflow.DROP_OLDEST)
     val reactions: SharedFlow<String> = _reactions.asSharedFlow()
 
+    private val _ownProducts = MutableStateFlow<List<LiveProduct>?>(null)
+
+    /** Produits de la chaîne du diffuseur, lus à l'ouverture du choix ; null tant qu'ils ne le sont pas. */
+    val ownProducts: StateFlow<List<LiveProduct>?> = _ownProducts.asStateFlow()
+
+    private val _purchase = MutableStateFlow(LivePurchaseState())
+    val purchase: StateFlow<LivePurchaseState> = _purchase.asStateFlow()
+
+    // Référence du paiement Stripe en cours, renvoyée au serveur une fois la PaymentSheet réglée.
+    private var pendingStripeToken: String? = null
+
+    private val _notices = MutableSharedFlow<Int>(extraBufferCapacity = 1)
+
+    /** Messages d'information (achat confirmé), par identifiant de texte. */
+    val notices: SharedFlow<Int> = _notices.asSharedFlow()
+
     /** Lecteur du flux, propre à cet écran : le même fichier en boucle, comme un direct. */
     val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
         repeatMode = Player.REPEAT_MODE_ALL
@@ -113,6 +145,7 @@ class LiveViewModel @Inject constructor(
                     messages = messages,
                     viewerCount = if (live.isLive) socketViewers ?: live.viewerCount else 0,
                     isEnded = !live.isLive,
+                    pinnedProduct = if (live.isLive) live.pinnedProduct else null,
                 )
                 if (live.isLive) startPlayback(live) else player.stop()
             } catch (e: CancellationException) {
@@ -194,6 +227,127 @@ class LiveViewModel @Inject constructor(
         }
     }
 
+    /** Le diffuseur ouvre le choix du produit à épingler : ses produits sont relus à chaque ouverture. */
+    fun loadOwnProducts() {
+        viewModelScope.launch {
+            try {
+                _ownProducts.value = lives.repository.getMyProducts()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _ownProducts.value = emptyList()
+                _errors.tryEmit(e.toUiError())
+            }
+        }
+    }
+
+    /** Épingle [product] : la carte apparaît chez tous, auteur compris, par la salle. */
+    fun pin(product: LiveProduct) {
+        viewModelScope.launch {
+            try {
+                val pinned = lives.repository.pinProduct(liveId, product.id)
+                updateReady { it.copy(pinnedProduct = pinned) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errors.tryEmit(e.toUiError())
+            }
+        }
+    }
+
+    fun unpin() {
+        viewModelScope.launch {
+            try {
+                lives.repository.unpinProduct(liveId)
+                updateReady { it.copy(pinnedProduct = null) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errors.tryEmit(e.toUiError())
+            }
+        }
+    }
+
+    /**
+     * Étape 1 de l'achat (ADR-029) : le serveur démarre le paiement du produit épinglé, à son prix.
+     * En mode Stripe, la PaymentSheet s'ouvre ; en mode simulé (repli), la feuille de paiement simulée.
+     */
+    fun startPurchase() {
+        if (_purchase.value.isBusy) return
+        _purchase.value = LivePurchaseState(isBusy = true)
+        viewModelScope.launch {
+            try {
+                val checkout = lives.repository.startCheckout(liveId)
+                when (checkout.mode) {
+                    PaymentMode.SIMULATED -> _purchase.value = LivePurchaseState(simulatedToken = checkout.purchaseToken)
+                    PaymentMode.STRIPE -> {
+                        val key = checkout.publishableKey
+                        val secret = checkout.clientSecret
+                        if (key == null || secret == null) {
+                            _purchase.value = LivePurchaseState()
+                            _errors.tryEmit(UiError(R.string.live_purchase_failed))
+                            return@launch
+                        }
+                        pendingStripeToken = checkout.purchaseToken
+                        _purchase.value = LivePurchaseState(isBusy = true, stripePayment = LiveStripePayment(key, secret))
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _purchase.value = LivePurchaseState()
+                // Live terminé, produit retiré, auto-achat : le message du serveur est affiché tel quel.
+                _errors.tryEmit(e.toUiError())
+            }
+        }
+    }
+
+    /** La PaymentSheet est affichée : elle ne doit pas être présentée une seconde fois. */
+    fun onStripeSheetShown() {
+        _purchase.update { it.copy(stripePayment = null) }
+    }
+
+    /** Fin de la PaymentSheet : réglée, le serveur vérifie le paiement auprès de Stripe avant d'enregistrer l'achat. */
+    fun onStripeOutcome(completed: Boolean, canceled: Boolean) {
+        val token = pendingStripeToken
+        pendingStripeToken = null
+        if (completed && token != null) {
+            confirm(token)
+            return
+        }
+        _purchase.value = LivePurchaseState()
+        _errors.tryEmit(UiError(if (canceled) R.string.live_purchase_canceled else R.string.live_purchase_failed))
+    }
+
+    /** Mode simulé, étape 2 : le serveur vérifie le jeton et enregistre l'achat. */
+    fun confirmSimulated() {
+        val token = _purchase.value.simulatedToken ?: return
+        if (_purchase.value.isBusy) return
+        confirm(token)
+    }
+
+    /** Feuille simulée fermée sans confirmer : le jeton expirera de lui-même côté serveur. */
+    fun dismissSimulated() {
+        if (_purchase.value.isBusy) return
+        _purchase.value = LivePurchaseState()
+    }
+
+    private fun confirm(token: String) {
+        _purchase.update { it.copy(isBusy = true) }
+        viewModelScope.launch {
+            try {
+                lives.repository.confirmPurchase(liveId, token)
+                _notices.tryEmit(R.string.live_purchase_done)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errors.tryEmit(e.toUiError())
+            } finally {
+                _purchase.value = LivePurchaseState()
+            }
+        }
+    }
+
     /** Le diffuseur termine le live : la salle est prévenue, l'écran passe à « terminé ». */
     fun endLive() {
         viewModelScope.launch {
@@ -223,6 +377,7 @@ class LiveViewModel @Inject constructor(
                     socketViewers = event.viewerCount
                     updateReady { it.copy(viewerCount = event.viewerCount) }
                 }
+                is LiveRoomEvent.ProductPinned -> updateReady { it.copy(pinnedProduct = event.product) }
                 LiveRoomEvent.Ended -> markEnded()
             }
         }
@@ -231,7 +386,7 @@ class LiveViewModel @Inject constructor(
     private fun markEnded() {
         socketViewers = 0
         player.stop()
-        updateReady { it.copy(isEnded = true, viewerCount = 0) }
+        updateReady { it.copy(isEnded = true, viewerCount = 0, pinnedProduct = null) }
     }
 
     // Notre propre message arrive deux fois (réponse du POST et diffusion) : une seule ligne.
