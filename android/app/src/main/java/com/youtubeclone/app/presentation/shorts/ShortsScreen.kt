@@ -47,6 +47,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -248,6 +250,7 @@ private fun ShortPage(
         // Miniature visible tant que la première image de la vidéo n'est pas affichée.
         AsyncImage(
             model = video.thumbnailUrl,
+            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
@@ -258,6 +261,7 @@ private fun ShortPage(
         if (player != null && coverWithThumbnail) {
             AsyncImage(
                 model = video.thumbnailUrl,
+                // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -397,6 +401,9 @@ private fun ShortActions(
         ShortAction(
             icon = R.drawable.ic_like,
             label = likes?.let { formatCompactCount(it.likeCount) } ?: stringResource(R.string.shorts_like),
+            description = likes?.let {
+                stringResource(R.string.a11y_action_with_count, stringResource(R.string.shorts_like), formatCompactCount(it.likeCount))
+            } ?: stringResource(R.string.shorts_like),
             tint = likeTint,
             // Tant que le détail n'est pas chargé, l'état « j'aime » est inconnu : pas d'action.
             enabled = likes != null && !likes.isPending,
@@ -406,6 +413,7 @@ private fun ShortActions(
         ShortAction(
             icon = R.drawable.ic_dislike,
             label = stringResource(R.string.watch_dislike),
+            description = stringResource(R.string.watch_dislike),
             tint = dislikeTint,
             enabled = likes != null && !likes.isPending,
             onClick = onDislikeClick,
@@ -415,10 +423,18 @@ private fun ShortActions(
             ShortAction(
                 icon = R.drawable.ic_comment,
                 label = commentCount?.let(::formatCompactCount) ?: stringResource(R.string.shorts_comments),
+                description = commentCount?.let {
+                    stringResource(R.string.a11y_action_with_count, stringResource(R.string.shorts_comments), formatCompactCount(it))
+                } ?: stringResource(R.string.shorts_comments),
                 onClick = onCommentsClick,
             )
         }
-        ShortAction(R.drawable.ic_share, stringResource(R.string.shorts_share), onClick = onShareClick)
+        ShortAction(
+            R.drawable.ic_share,
+            stringResource(R.string.shorts_share),
+            description = stringResource(R.string.shorts_share),
+            onClick = onShareClick,
+        )
     }
 }
 
@@ -426,19 +442,23 @@ private fun ShortActions(
 private fun ShortAction(
     @DrawableRes icon: Int,
     label: String,
+    description: String,
     onClick: () -> Unit,
     tint: Color = Color.White,
     enabled: Boolean = true,
 ) {
+    // TalkBack (ADR-030) : [description] dit l'action (« J'aime, 1,2 k ») ; [label], seul, ne disait que le nombre.
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clip(MaterialTheme.shapes.medium)
-            .clickable(enabled = enabled, onClick = onClick, role = Role.Button),
+            .clickable(enabled = enabled, onClick = onClick, role = Role.Button)
+            .clearAndSetSemantics { contentDescription = description },
     ) {
         // Icône nue, comme la référence ; le dégradé du bas garde le contraste.
         Icon(
             painter = painterResource(icon),
+            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
             contentDescription = null,
             tint = tint,
             modifier = Modifier
