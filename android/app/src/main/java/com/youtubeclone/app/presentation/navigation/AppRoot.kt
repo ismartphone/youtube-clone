@@ -13,10 +13,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.presentation.account.AccountsViewModel
 import com.youtubeclone.app.presentation.common.LocalIsPremiumViewer
+import com.youtubeclone.app.presentation.common.LocalNowPlayingActive
 import com.youtubeclone.app.presentation.onboarding.AppStartState
 import com.youtubeclone.app.presentation.onboarding.AppStartViewModel
 import com.youtubeclone.app.presentation.onboarding.OnboardingScreen
 import com.youtubeclone.app.presentation.onboarding.OpeningAnimation
+import com.youtubeclone.app.presentation.watch.WatchViewModel
 
 /**
  * Point d'entrée de l'interface : écran d'accueil au tout premier lancement, sinon directement
@@ -50,7 +52,12 @@ fun AppRoot(
                 // Statut Premium du compte actif, pour toutes les miniatures (ADR-026). Même
                 // instance que celle de la navigation : le ViewModel est lié à l'activité.
                 val isPremium by hiltViewModel<AccountsViewModel>().isPremium.collectAsStateWithLifecycle()
-                CompositionLocalProvider(LocalIsPremiumViewer provides isPremium) {
+                // Un lecteur est ouvert (ADR-024) : le bandeau sponsorisé du fil se suspend.
+                val nowPlayingId by hiltViewModel<WatchViewModel>().currentVideoId.collectAsStateWithLifecycle()
+                CompositionLocalProvider(
+                    LocalIsPremiumViewer provides isPremium,
+                    LocalNowPlayingActive provides (nowPlayingId != null),
+                ) {
                     AppNavigation(
                         openLoginAtStart = loginRequested,
                         onLoginOpened = { loginRequested = false },
