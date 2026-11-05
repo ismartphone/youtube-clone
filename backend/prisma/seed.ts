@@ -17,6 +17,7 @@ import {
   ccOwnerEmail,
   ccVideoUrl,
 } from './cc-videos.js';
+import { seedLiveFans } from './live-fans.js';
 import { seedBannerUrl } from './seed-banners.js';
 import { LOCAL_SEED_VIDEOS, localVideoUrl } from './seed-videos.js';
 
@@ -136,6 +137,9 @@ async function main() {
     { userId: studio.id, channelId: explorerChannelId },
   ];
   await prisma.follow.createMany({ data: follows });
+  // 49 abonnés fictifs de plus : avec Camille, Studio Libre atteint les 50 abonnés qui permettent
+  // de démarrer un live (ADR-029).
+  const fans = await seedLiveFans(prisma, studioChannelId);
 
   const videos = [
     {
@@ -284,7 +288,7 @@ async function main() {
   });
 
   console.log(
-    `Seed terminé : 6 catégories, ${4 + CC_CREATORS.length} utilisateurs, ${2 + CC_CREATORS.length} chaînes, ${follows.length} abonnements, ${videos.length + CC_VIDEOS.length} vidéos.`,
+    `Seed terminé : 6 catégories, ${4 + fans.created + CC_CREATORS.length} utilisateurs, ${2 + CC_CREATORS.length} chaînes, ${follows.length + fans.created} abonnements, ${videos.length + CC_VIDEOS.length} vidéos.`,
   );
 }
 
