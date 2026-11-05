@@ -4,6 +4,8 @@ import {
   ChannelRequiredError,
   ChatRateLimiter,
   ChatTooFastError,
+  ReactionRateLimiter,
+  ReactionsTooFastError,
   LiveAlreadyRunningError,
   LiveEndedError,
   MIN_FOLLOWERS_FOR_LIVE,
@@ -12,6 +14,7 @@ import {
   canStreamVideo,
   toLiveView,
   type LiveChatMessage,
+  type LiveReaction,
   type LiveRecord,
   type LiveView,
 } from '../domain/live.js';
@@ -33,6 +36,7 @@ export class LivesUseCases {
     private readonly repository: LivesRepository,
     private readonly rooms: LiveRooms,
     private readonly rateLimiter: ChatRateLimiter = new ChatRateLimiter(),
+    private readonly reactionLimiter: ReactionRateLimiter = new ReactionRateLimiter(),
     private readonly now: () => Date = () => new Date(),
   ) {}
 
@@ -138,6 +142,31 @@ export class LivesUseCases {
     );
     this.rooms.toLive(liveId, 'live:message', message);
     return message;
+  }
+
+  /**
+   * Diffuse une réaction à la salle (ADR-029, D6). Jamais stockée ni rejouée. null si le live
+   * n'existe pas ; LiveEndedError s'il est terminé ; ReactionsTooFastError au-delà de quatre par
+   * seconde. Un compte banni du chat peut encore réagir.
+   */
+  async react(
+    userId: string,
+    liveId: string,
+    emoji: LiveReaction,
+  ): Promise<boolean | null> {
+    const found = await this.repository.find(liveId);
+    if (!found) {
+      return null;
+    }
+    const live = await this.refresh(found);
+    if (live.status !== 'LIVE') {
+      throw new LiveEndedError();
+    }
+    if (!this.reactionLimiter.tryAcquire(userId)) {
+      throw new ReactionsTooFastError();
+    }
+    this.rooms.toLive(liveId, 'live:reaction', { liveId, emoji });
+    return true;
   }
 
   /**

@@ -3,6 +3,8 @@ import {
   ChannelRequiredError,
   ChatRateLimiter,
   ChatTooFastError,
+  ReactionRateLimiter,
+  ReactionsTooFastError,
   LiveAlreadyRunningError,
   LiveEndedError,
   NotEnoughFollowersError,
@@ -296,6 +298,62 @@ describe('LivesUseCases.send', () => {
     await expect(
       useCases.send('camille', 'inconnu', 'Salut'),
     ).resolves.toBeNull();
+  });
+});
+
+describe('LivesUseCases.react', () => {
+  it('diffuse la réaction à la salle sans rien stocker', async () => {
+    const { repository, rooms, useCases } = setup();
+    const { id } = await useCases.start('diffuseur', 'Titre', 'video');
+    await expect(useCases.react('camille', id, '🔥')).resolves.toBe(true);
+    expect(rooms.sent).toContainEqual({
+      liveId: id,
+      event: 'live:reaction',
+      data: { liveId: id, emoji: '🔥' },
+    });
+    expect(repository.messages).toHaveLength(0);
+  });
+
+  it('refuse au-delà de quatre réactions par seconde, par compte', async () => {
+    const { rooms, useCases } = setup();
+    const { id } = await useCases.start('diffuseur', 'Titre', 'video');
+    for (let i = 0; i < 4; i++) await useCases.react('camille', id, '👍');
+    await expect(useCases.react('camille', id, '👍')).rejects.toBeInstanceOf(
+      ReactionsTooFastError,
+    );
+    // Un autre compte n'est pas touché.
+    await expect(useCases.react('lea', id, '👍')).resolves.toBe(true);
+    expect(rooms.sent.filter((e) => e.event === 'live:reaction')).toHaveLength(
+      5,
+    );
+  });
+
+  it('refuse de réagir dans un live terminé', async () => {
+    const { useCases } = setup();
+    const { id } = await useCases.start('diffuseur', 'Titre', 'video');
+    await useCases.end('diffuseur', id);
+    await expect(useCases.react('camille', id, '😂')).rejects.toBeInstanceOf(
+      LiveEndedError,
+    );
+  });
+
+  it('renvoie null pour un live inexistant', async () => {
+    const { useCases } = setup();
+    await expect(
+      useCases.react('camille', 'inconnu', '😂'),
+    ).resolves.toBeNull();
+  });
+});
+
+describe('ReactionRateLimiter', () => {
+  it('libère la fenêtre une fois la seconde écoulée', () => {
+    let now = 0;
+    const limiter = new ReactionRateLimiter(2, 1000, () => now);
+    expect(limiter.tryAcquire('a')).toBe(true);
+    expect(limiter.tryAcquire('a')).toBe(true);
+    expect(limiter.tryAcquire('a')).toBe(false);
+    now = 1000;
+    expect(limiter.tryAcquire('a')).toBe(true);
   });
 });
 

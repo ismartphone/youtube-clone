@@ -5,6 +5,7 @@ export const LIVE_ROOMS = Symbol('LIVE_ROOMS');
 
 export interface LiveEvents {
   'live:message': unknown;
+  'live:reaction': { liveId: string; emoji: string };
   'live:viewers': { liveId: string; viewerCount: number };
   'live:ended': { liveId: string };
 }

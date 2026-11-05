@@ -11,6 +11,19 @@ export const CHAT_MESSAGE_MAX_LENGTH = 300;
 export const CHAT_MIN_INTERVAL_MS = 1000;
 export const CHAT_HISTORY_SIZE = 50;
 
+// Réactions (ADR-029, D6) : six émojis fixes, jamais stockés, au plus quatre par seconde et par compte.
+export const LIVE_REACTIONS = [
+  '❤️', // cœur
+  '👏', // applaudissements
+  '😂', // rire
+  '😮', // surprise
+  '🔥', // feu
+  '👍', // pouce
+] as const;
+export type LiveReaction = (typeof LIVE_REACTIONS)[number];
+export const REACTION_MAX_PER_WINDOW = 4;
+export const REACTION_WINDOW_MS = 1000;
+
 export type LiveStatus = 'LIVE' | 'ENDED';
 export type VideoVisibility = 'PUBLIC' | 'UNLISTED' | 'PRIVATE';
 
@@ -154,6 +167,12 @@ export class ChatTooFastError extends Error {
   }
 }
 
+export class ReactionsTooFastError extends Error {
+  constructor() {
+    super('Doucement : quelques réactions par seconde.');
+  }
+}
+
 export class LiveEndedError extends Error {
   constructor() {
     super('Ce live est terminé.');
@@ -184,6 +203,42 @@ export class ChatRateLimiter {
     if (this.lastSentAt.size > 5000) {
       for (const [id, at] of this.lastSentAt) {
         if (now - at >= this.intervalMs) this.lastSentAt.delete(id);
+      }
+    }
+    return true;
+  }
+}
+
+/**
+ * Limiteur de débit des réactions : au plus [max] par fenêtre de [windowMs] et par compte. En
+ * mémoire, comme celui du chat : valable pour une seule instance du serveur (ADR-010).
+ */
+export class ReactionRateLimiter {
+  private readonly sentAt = new Map<string, number[]>();
+
+  constructor(
+    private readonly max: number = REACTION_MAX_PER_WINDOW,
+    private readonly windowMs: number = REACTION_WINDOW_MS,
+    private readonly now: () => number = Date.now,
+  ) {}
+
+  // Vrai (et la réaction est comptée) si [userId] peut réagir maintenant.
+  tryAcquire(userId: string): boolean {
+    const now = this.now();
+    const recent = (this.sentAt.get(userId) ?? []).filter(
+      (at) => now - at < this.windowMs,
+    );
+    if (recent.length >= this.max) {
+      this.sentAt.set(userId, recent);
+      return false;
+    }
+    recent.push(now);
+    this.sentAt.set(userId, recent);
+    if (this.sentAt.size > 5000) {
+      for (const [id, times] of this.sentAt) {
+        if (times.every((at) => now - at >= this.windowMs)) {
+          this.sentAt.delete(id);
+        }
       }
     }
     return true;

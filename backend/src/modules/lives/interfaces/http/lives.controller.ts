@@ -16,7 +16,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, Length } from 'class-validator';
 import type { AuthenticatedUser } from '../../../auth/domain/user.js';
 import { CurrentUser } from '../../../auth/interfaces/http/current-user.decorator.js';
 import { JwtAuthGuard } from '../../../auth/interfaces/http/jwt-auth.guard.js';
@@ -30,9 +30,12 @@ import {
   ChatTooFastError,
   LIVE_TITLE_MAX_LENGTH,
   LiveAlreadyRunningError,
+  LIVE_REACTIONS,
   LiveEndedError,
   NotEnoughFollowersError,
+  ReactionsTooFastError,
   VideoNotEligibleError,
+  type LiveReaction,
 } from '../../domain/live.js';
 
 const trim = ({ value }: { value: unknown }) =>
@@ -53,6 +56,11 @@ export class LiveMessageBody {
   @IsString()
   @Length(1, CHAT_MESSAGE_MAX_LENGTH)
   content: string;
+}
+
+export class LiveReactionBody {
+  @IsIn(LIVE_REACTIONS)
+  emoji: LiveReaction;
 }
 
 export class RunningLivesQuery {
@@ -79,7 +87,10 @@ function translate(error: unknown): never {
   ) {
     throw new ConflictException(error.message);
   }
-  if (error instanceof ChatTooFastError) {
+  if (
+    error instanceof ChatTooFastError ||
+    error instanceof ReactionsTooFastError
+  ) {
     throw new HttpException(error.message, HttpStatus.TOO_MANY_REQUESTS);
   }
   throw error;
@@ -157,6 +168,22 @@ export class LivesController {
   ) {
     try {
       return found(await this.lives.send(user.id, id, body.content));
+    } catch (error) {
+      translate(error);
+    }
+  }
+
+  // Réaction : diffusée à la salle, jamais stockée (ADR-029, D6).
+  @Post(':id/reactions')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async react(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: LiveReactionBody,
+  ): Promise<void> {
+    try {
+      found(await this.lives.react(user.id, id, body.emoji));
     } catch (error) {
       translate(error);
     }
