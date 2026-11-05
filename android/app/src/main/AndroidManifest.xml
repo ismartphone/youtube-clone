@@ -11,6 +11,8 @@
     <!-- Téléchargements hors ligne (ADR-019) : service au premier plan et sa notification de progression. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Vibrations du parcours d'accueil (ADR-028) ; permission normale, accordée à l'installation. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- networkSecurityConfig : HTTP vers 10.0.2.2 autorisé en debug seulement (voir src/debug). -->
     <application
