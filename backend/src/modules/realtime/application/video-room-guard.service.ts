@@ -1,11 +1,13 @@
 import type { WebSocket } from 'ws';
 import type {
   ConversationRoomAccess,
+  LiveRoomAccess,
   VideoRoomAccess,
   VideoRoomGuard,
 } from '../domain/video-room-guard.js';
 import {
   conversationRoom,
+  liveRoom,
   userRoom,
   videoRoom,
   type InMemoryRooms,
@@ -19,6 +21,7 @@ export class VideoRoomGuardService implements VideoRoomGuard {
     private readonly rooms: InMemoryRooms,
     private readonly access: VideoRoomAccess,
     private readonly conversations: ConversationRoomAccess,
+    private readonly lives: LiveRoomAccess,
   ) {}
 
   // Salle d'une vidéo : ouverte à qui peut voir la vidéo.
@@ -39,6 +42,13 @@ export class VideoRoomGuardService implements VideoRoomGuard {
       (await this.conversations.isParticipant(conversationId, userId))
     ) {
       this.rooms.join(client, conversationRoom(conversationId), userId);
+    }
+  }
+
+  // Salle d'un live : ouverte à tous tant qu'il est en cours, visiteurs compris (lecture seule).
+  async joinLive(client: WebSocket, liveId: string, userId: string | null) {
+    if (await this.lives.isRunning(liveId)) {
+      this.rooms.join(client, liveRoom(liveId), userId);
     }
   }
 

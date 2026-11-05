@@ -19,9 +19,16 @@ export interface VideoRoomGuard {
 }
 
 export const CONVERSATION_ROOM_ACCESS = Symbol('CONVERSATION_ROOM_ACCESS');
+export const LIVE_ROOM_ACCESS = Symbol('LIVE_ROOM_ACCESS');
 
 // Salle d'une conversation (ADR-025) : réservée à ses deux participants.
 export interface ConversationRoomAccess {
   // Faux pour un visiteur, un tiers, ou une conversation qui n'existe pas.
   isParticipant(conversationId: string, userId: string): Promise<boolean>;
+}
+
+// Salle d'un live (ADR-029) : ouverte à tous, visiteurs compris, tant que le live est en cours.
+export interface LiveRoomAccess {
+  // Faux pour un live terminé ou qui n'existe pas : le refus ne révèle rien.
+  isRunning(liveId: string): Promise<boolean>;
 }
