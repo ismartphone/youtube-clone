@@ -185,11 +185,10 @@ private enum class Tab(
     You(YouRoute, YouRoute::class, R.string.tab_you, R.drawable.ic_tab_you),
 }
 
-/** [openLoginAtStart] : ouvre la connexion au-dessus du fil d'accueil, puis appelle [onLoginOpened]. */
+/** [startOnShorts] : l'onglet Shorts est le premier affiché, au lieu du fil d'accueil (format préféré, ADR-028). */
 @Composable
 fun AppNavigation(
-    openLoginAtStart: Boolean = false,
-    onLoginOpened: () -> Unit = {},
+    startOnShorts: Boolean = false,
     notifiedVideoId: String? = null,
     onNotifiedVideoOpened: () -> Unit = {},
     notifiedConversationId: String? = null,
@@ -211,12 +210,6 @@ fun AppNavigation(
         focusManager.clearFocus()
         keyboard?.hide()
         watchViewModel.open(videoId)
-    }
-    LaunchedEffect(openLoginAtStart) {
-        if (openLoginAtStart) {
-            navController.navigate(LoginRoute())
-            onLoginOpened()
-        }
     }
     // Appui sur une notification de publication : la vidéo s'ouvre par-dessus l'écran courant. Depuis
     // un écran plein espace (Shorts, publication, paywall...), on revient d'abord au fil : sinon ses
@@ -297,6 +290,9 @@ fun AppNavigation(
         }
         navController.popBackStack(route, inclusive = false)
     }
+    // Format préféré « Shorts » choisi à l'accueil (ADR-028) : l'application s'ouvre sur l'onglet Shorts.
+    // Une seule fois par ouverture de la navigation ; le fil d'accueil reste l'onglet de départ du graphe.
+    LaunchedEffect(Unit) { if (startOnShorts) openTab(ShortsRoute) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),

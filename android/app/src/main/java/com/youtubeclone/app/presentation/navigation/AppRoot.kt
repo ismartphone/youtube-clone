@@ -21,7 +21,7 @@ import com.youtubeclone.app.presentation.onboarding.OpeningAnimation
 import com.youtubeclone.app.presentation.watch.WatchViewModel
 
 /**
- * Point d'entrée de l'interface : écran d'accueil au tout premier lancement, sinon directement
+ * Point d'entrée de l'interface : parcours d'accueil au tout premier lancement (ADR-028), sinon directement
  * l'application. L'animation d'ouverture recouvre l'écran choisi, qui charge dessous en même temps.
  * [notifiedVideoId] : vidéo à ouvrir après un appui sur une notification (ADR-020) ;
  * [notifiedConversationId] : conversation à ouvrir après un appui sur une notification de message (ADR-025).
@@ -38,17 +38,15 @@ fun AppRoot(
     val isAppReady by viewModel.isAppReady.collectAsStateWithLifecycle()
     // Jouée une fois par lancement : ni une rotation ni un retour de l'arrière-plan ne la rejouent.
     var openingDone by rememberSaveable { mutableStateOf(false) }
-    // « Se connecter » sur l'écran d'accueil : la connexion s'ouvre au-dessus du fil, une seule fois.
-    var loginRequested by rememberSaveable { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize()) {
         when (state) {
             AppStartState.Loading -> Unit // préférences en cours de lecture, sous l'animation
             AppStartState.Onboarding -> {
                 TrackScreen("Onboarding")
-                OnboardingScreen(onLoginClick = { loginRequested = true })
+                OnboardingScreen()
             }
-            AppStartState.Ready -> {
+            is AppStartState.Ready -> {
                 // Statut Premium du compte actif, pour toutes les miniatures (ADR-026). Même
                 // instance que celle de la navigation : le ViewModel est lié à l'activité.
                 val isPremium by hiltViewModel<AccountsViewModel>().isPremium.collectAsStateWithLifecycle()
@@ -59,8 +57,7 @@ fun AppRoot(
                     LocalNowPlayingActive provides (nowPlayingId != null),
                 ) {
                     AppNavigation(
-                        openLoginAtStart = loginRequested,
-                        onLoginOpened = { loginRequested = false },
+                        startOnShorts = (state as AppStartState.Ready).startOnShorts,
                         notifiedVideoId = notifiedVideoId,
                         onNotifiedVideoOpened = onNotifiedVideoOpened,
                         notifiedConversationId = notifiedConversationId,
