@@ -24,6 +24,16 @@ const LIVE_SELECT = {
       ownerId: true,
     },
   },
+  pinnedProduct: {
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      currency: true,
+      imageUrl: true,
+      description: true,
+    },
+  },
   video: {
     select: {
       id: true,

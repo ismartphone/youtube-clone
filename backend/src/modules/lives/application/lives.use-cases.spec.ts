@@ -43,6 +43,7 @@ function liveRecord(overrides: Partial<LiveRecord> = {}): LiveRecord {
       visibility: 'PUBLIC',
       isPremium: false,
     },
+    pinnedProduct: null,
     ...overrides,
   };
 }

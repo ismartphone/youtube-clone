@@ -1,6 +1,7 @@
 // Modèles et règles du domaine des lives (ADR-029), indépendants de Prisma et de NestJS.
 
 import type { VideoFormat } from '../../videos/domain/video.js';
+import type { LiveProductCard } from './shopping.js';
 
 // Seuil d'abonnés (FOLLOW) pour démarrer un live : même règle que l'écran de l'ADR-015, mais
 // gardée ici par le serveur, pas seulement par l'application.
@@ -79,6 +80,8 @@ export interface LiveRecord {
   endedAt: Date | null;
   channel: LiveChannel;
   video: LiveVideo | null;
+  // Produit épinglé par le diffuseur (ADR-029) ; null sans épinglage.
+  pinnedProduct: LiveProductCard | null;
 }
 
 // Live tel que vu par un client : avec son nombre de spectateurs, sans détail interne.
@@ -89,6 +92,7 @@ export interface LiveView {
   startedAt: Date;
   endedAt: Date | null;
   viewerCount: number;
+  pinnedProduct: LiveProductCard | null;
   channel: Omit<LiveChannel, 'ownerId'>;
   video: Pick<
     LiveVideo,
@@ -105,6 +109,7 @@ export function toLiveView(record: LiveRecord, viewerCount: number): LiveView {
     startedAt: record.startedAt,
     endedAt: record.endedAt,
     viewerCount,
+    pinnedProduct: record.pinnedProduct,
     channel,
     video: record.video && {
       id: record.video.id,

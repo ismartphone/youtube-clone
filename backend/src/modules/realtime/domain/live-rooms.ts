@@ -8,6 +8,8 @@ export interface LiveEvents {
   'live:reaction': { liveId: string; emoji: string };
   'live:viewers': { liveId: string; viewerCount: number };
   'live:ended': { liveId: string };
+  // Produit épinglé (carte du produit) ou retiré (null), ADR-029.
+  'live:pinned': { liveId: string; product: unknown };
 }
 
 export interface LiveRooms {

@@ -106,6 +106,24 @@ export class LivesUseCases {
     return this.view(await this.finish(live));
   }
 
+  /**
+   * Le live tel que stocké, après la fin paresseuse (D1) ; null s'il n'existe pas. Pour les cas
+   * d'usage qui doivent savoir s'il est en cours et à qui il appartient (produit épinglé, achat).
+   */
+  async findFresh(liveId: string): Promise<LiveRecord | null> {
+    const live = await this.repository.find(liveId);
+    return live ? this.refresh(live) : null;
+  }
+
+  /**
+   * Termine le live à la demande de l'administration (D2) : débloque un live resté ouvert. Sans
+   * effet s'il est déjà terminé. null s'il n'existe pas.
+   */
+  async endByAdmin(liveId: string): Promise<LiveView | null> {
+    const live = await this.repository.find(liveId);
+    return live ? this.view(await this.finish(live)) : null;
+  }
+
   // Derniers messages du chat, du plus récent au plus ancien ; null si le live n'existe pas.
   async listMessages(liveId: string): Promise<LiveChatMessage[] | null> {
     if (!(await this.repository.find(liveId))) {
