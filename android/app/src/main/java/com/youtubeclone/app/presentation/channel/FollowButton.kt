@@ -22,6 +22,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.NotificationLevel
@@ -71,6 +73,7 @@ fun FollowButton(
         animationSpec = tween(duration, easing = Motion.Easing),
         label = "followContent",
     )
+    val followState = stringResource(if (state.isFollowing) R.string.channel_follow_state_on else R.string.channel_follow_state_off)
     Button(
         onClick = { if (withBell) showNotifications = true else onClick() },
         enabled = !state.isPending,
@@ -83,6 +86,8 @@ fun FollowButton(
         ),
         contentPadding = if (compact) PaddingValues(horizontal = 12.dp) else ButtonDefaults.ContentPadding,
         modifier = modifier
+            // Pour TalkBack (ADR-030) : l'état est dit en plus de l'action, et son changement est annoncé au focus.
+            .semantics { stateDescription = followState }
             .then(if (compact) Modifier.height(32.dp) else Modifier)
             .then(if (reduceMotion) Modifier else Modifier.animateContentSize(tween(duration, easing = Motion.Easing))),
     ) {

@@ -202,6 +202,8 @@ fun LiveScreen(
                 // Les émojis des réactions remontent par-dessus le chat, sans le masquer ni capter les appuis.
                 Box(Modifier.weight(1f).fillMaxWidth()) {
                     Chat(current, Modifier.fillMaxSize())
+                    // Annonces regroupées pour TalkBack (ADR-030) : chat et spectateurs, jamais en boucle.
+                    LiveAnnouncements(current.messages, current.myId, current.viewerCount, current.isEnded)
                     if (!current.isEnded) {
                         FloatingReactions(viewModel.reactions, Modifier.matchParentSize())
                     }

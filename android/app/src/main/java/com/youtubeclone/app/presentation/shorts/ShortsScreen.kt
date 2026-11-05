@@ -49,7 +49,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -311,6 +313,8 @@ private fun ShortPage(
                 contentDescription = stringResource(R.string.shorts_paused),
                 tint = Color.White,
                 modifier = Modifier
+                    // Annoncé quand la pause apparaît (ADR-030), sans reprise en boucle : le nœud ne change pas ensuite.
+                    .semantics { liveRegion = LiveRegionMode.Polite }
                     .align(Alignment.Center)
                     .size(72.dp)
                     .background(Color.Black.copy(alpha = 0.4f), CircleShape)

@@ -44,6 +44,11 @@
         <item quantity="one">%1$d spectateur</item>
         <item quantity="other">%1$d spectateurs</item>
     </plurals>
+    <string name="live_announce_message">%1$s : %2$s</string>
+    <plurals name="live_announce_new_messages">
+        <item quantity="one">%1$d nouveau message</item>
+        <item quantity="other">%1$d nouveaux messages</item>
+    </plurals>
     <string name="live_not_found">Ce live n\'existe pas.</string>
     <string name="live_ended">Le live est terminé</string>
     <string name="live_chat_closed">Le chat est fermé : le live est terminé.</string>
@@ -293,6 +298,8 @@
 
 
     <string name="channel_follow">S\'abonner</string>
+    <string name="channel_follow_state_on">Abonné</string>
+    <string name="channel_follow_state_off">Non abonné</string>
     <string name="channel_unsubscribe">Se désabonner</string>
     <string name="notifications_title">Notifications</string>
     <string name="notifications_all">Toutes</string>
