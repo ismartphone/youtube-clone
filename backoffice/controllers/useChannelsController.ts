@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ChannelSummary } from "@/models/catalog";
+import { isLocalhostUrl, LOCALHOST_URL_MESSAGE } from "@/models/media";
 import { listChannels, updateChannelBanner } from "@/services/catalogService";
 import { errorMessage, useRemoteData } from "./useRemoteData";
 
@@ -24,6 +25,10 @@ export function useChannelsController() {
 
   async function saveBanner(channel: ChannelSummary) {
     const value = bannerDraft(channel).trim();
+    if (isLocalhostUrl(value)) {
+      setErrors((current) => ({ ...current, [channel.id]: LOCALHOST_URL_MESSAGE }));
+      return;
+    }
     setSavingId(channel.id);
     try {
       // Champ vide : la bannière est effacée, l'application affiche alors un aplat.

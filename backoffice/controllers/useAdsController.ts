@@ -11,6 +11,7 @@ import {
   type Ad,
 } from "@/models/ads";
 import { deleteAd, importAd, listAds, removeAdLogo, setAdLogo, updateAd } from "@/services/adsService";
+import { isLocalhostUrl, LOCALHOST_URL_MESSAGE } from "@/models/media";
 import { errorMessage, useRemoteData } from "./useRemoteData";
 
 /** Champs de la carte du bandeau sponsorisé, tels que saisis. */
@@ -33,6 +34,7 @@ function draftError(draft: AdDraft): string | null {
   const title = draft.title.trim();
   if (!title) return "Saisissez un titre.";
   if (title.length > AD_TITLE_MAX_LENGTH) return `Le titre ne doit pas dépasser ${AD_TITLE_MAX_LENGTH} caractères.`;
+  if (isLocalhostUrl(draft.destinationUrl)) return LOCALHOST_URL_MESSAGE;
   if (!URL_PATTERN.test(draft.destinationUrl.trim())) {
     return "Saisissez l'adresse complète du site, par exemple https://www.exemple.fr.";
   }

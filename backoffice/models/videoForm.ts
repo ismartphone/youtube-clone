@@ -1,4 +1,5 @@
 import type { VideoDetail, VideoFormat, VideoVisibility } from "./catalog";
+import { isLocalhostUrl, LOCALHOST_URL_MESSAGE } from "./media";
 
 // Formulaire de création et de modification d'une vidéo.
 // Mêmes règles que la validation de l'API (admin.bodies.ts), pour signaler l'erreur avant l'envoi.
@@ -97,13 +98,17 @@ export function validateVideoForm(values: VideoFormValues): VideoFormErrors {
   if (!values.channelId) errors.channelId = "Choisissez une chaîne.";
 
   const video = values.videoUrl.trim();
-  if (!isHttpUrl(video) && !isLocalVideo(video)) {
+  if (isLocalhostUrl(video)) {
+    errors.videoUrl = LOCALHOST_URL_MESSAGE;
+  } else if (!isHttpUrl(video) && !isLocalVideo(video)) {
     errors.videoUrl =
       "Saisissez une URL complète (http:// ou https://) ou le chemin d'une vidéo stockée sur le serveur (/media/videos/…).";
   }
   // Facultative : vide, le serveur la génère. Une miniature déjà générée garde son chemin relatif.
   const thumbnail = values.thumbnailUrl.trim();
-  if (thumbnail && !isHttpUrl(thumbnail) && !isGeneratedThumbnail(thumbnail)) {
+  if (thumbnail && isLocalhostUrl(thumbnail)) {
+    errors.thumbnailUrl = LOCALHOST_URL_MESSAGE;
+  } else if (thumbnail && !isHttpUrl(thumbnail) && !isGeneratedThumbnail(thumbnail)) {
     errors.thumbnailUrl = "Saisissez une URL complète, commençant par http:// ou https://.";
   }
 
