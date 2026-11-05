@@ -253,3 +253,7 @@ Le lead développeur a répondu le 5 novembre 2026. Sauf mention contraire, la d
 - [ADR-020](ADR-020-notifications-fcm.md), [ADR-024](ADR-024-mini-lecteur.md) : pas de notification au démarrage ni de mini-lecteur pour un live (D15).
 - [ADR-003](ADR-003-backend-nestjs.md) : architecture hexagonale ; nouveaux modules `lives` et `products`.
 - [ADR-001](ADR-001-android-natif.md) : application native Android ; écran du live, PaymentSheet.
+
+Amendé le 5 novembre : écart mineur constaté à l'étape 3 : le choix du produit à épingler côté diffuseur est une boîte de dialogue (AlertDialog) et non une feuille de paiement dessinée comme le Premium ; accepté tel quel par le lead développeur.
+
+Amendé le 5 novembre : l'étape 4 (modération par le diffuseur, « bonus » de l'énoncé) est sautée sur décision du lead développeur, le temps étant consacré au challenge d'accessibilité ; la table LIVE_RESTRICTION n'est donc pas créée et l'envoi par destinataire n'est pas ajouté à la passerelle ; les décisions D10 (modération) restent documentées comme non livrées. Les limites de l'étape 2 (plafond de 12 émojis jamais vu en action, chevauchement des émojis d'une même rafale, refus du serveur ignoré sans message, barre de réactions absente pour un visiteur, comportement voulu) et de l'étape 3 (repli de paiement simulé non testé de bout en bout, produit supprimé en plein paiement enregistré avec productId vide) sont acceptées par le lead développeur.
