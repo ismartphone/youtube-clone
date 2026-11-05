@@ -494,4 +494,14 @@
     <string name="live_purchase_done">Achat confirmé, merci !</string>
     <string name="live_purchase_canceled">Paiement annulé : rien n\'a été débité.</string>
     <string name="live_purchase_failed">Le paiement n\'a pas abouti : rien n\'a été débité.</string>
+    <!-- Accessibilité (ADR-030) : libellés lus par TalkBack -->
+    <string name="a11y_video_card">%1$s, chaîne %2$s, %3$s, %4$s, durée %5$s</string>
+    <string name="a11y_video_card_premium">%1$s, vidéo Premium</string>
+    <string name="a11y_video_card_locked">%1$s, réservée aux abonnés Premium</string>
+    <string name="a11y_open_channel">Ouvrir la chaîne %1$s</string>
+    <string name="a11y_live_card">En direct : %1$s, chaîne %2$s, %3$s</string>
+    <string name="a11y_live_stream">Direct : %1$s, chaîne %2$s</string>
+    <string name="a11y_action_with_count">%1$s, %2$s</string>
+    <string name="a11y_mini_player_expand">Rouvrir la vidéo</string>
+    <string name="a11y_player_progress">Position dans la vidéo</string>
 </resources>

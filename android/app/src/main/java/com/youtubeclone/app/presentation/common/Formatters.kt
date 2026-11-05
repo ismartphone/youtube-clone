@@ -76,3 +76,19 @@ private fun ago(count: Long, singular: String, plural: String) =
 /** Date complète en français, dans le fuseau de l'appareil : « 23 novembre 2026 ». */
 fun formatLongDate(date: Instant, zone: ZoneId = ZoneId.systemDefault()): String =
     DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.FRANCE).format(date.atZone(zone))
+
+/**
+ * Durée dite à voix haute (TalkBack, ADR-030) : « 4 minutes et 5 secondes », « 1 heure, 2 minutes et
+ * 30 secondes ». « 4:05 » serait lu comme une heure ou un score.
+ */
+fun formatSpokenDuration(totalSeconds: Int): String {
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    val parts = buildList {
+        if (hours > 0) add(if (hours == 1) "1 heure" else "$hours heures")
+        if (minutes > 0) add(if (minutes == 1) "1 minute" else "$minutes minutes")
+        if (seconds > 0 || isEmpty()) add(if (seconds < 2) "$seconds seconde" else "$seconds secondes")
+    }
+    return if (parts.size == 1) parts[0] else parts.dropLast(1).joinToString(", ") + " et " + parts.last()
+}

@@ -22,6 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,19 +63,34 @@ fun ViewerCountPill(count: Int, modifier: Modifier = Modifier) {
 /**
  * Carte d'un live en cours, en tête du fil d'accueil et sur la page de la chaîne : miniature de la
  * vidéo du flux avec la pastille « EN DIRECT » et le nombre de spectateurs, puis l'avatar de la
- * chaîne, le titre du live et le nom de la chaîne. Un appui ouvre le live.
+ * chaîne, le titre du live et le nom de la chaîne. Un appui ouvre le live. Pour TalkBack (ADR-030) :
+ * un seul arrêt, « En direct : titre, chaîne, N spectateurs ».
  */
 @Composable
 fun LiveCard(live: Live, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier = modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    val description = stringResource(
+        R.string.a11y_live_card,
+        live.title,
+        live.channel.name,
+        pluralStringResource(R.plurals.live_viewers, live.viewerCount, live.viewerCount),
+    )
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = description },
+    ) {
+        // Enfants masqués à TalkBack : la phrase de la carte les remplace.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .clearAndSetSemantics {},
         ) {
             AsyncImage(
                 model = live.stream?.thumbnailUrl,
+                // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.matchParentSize(),
@@ -81,7 +99,7 @@ fun LiveCard(live: Live, onClick: () -> Unit, modifier: Modifier = Modifier) {
             ViewerCountPill(live.viewerCount, Modifier.align(Alignment.BottomEnd).padding(8.dp))
         }
         Row(
-            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp).clearAndSetSemantics {},
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ChannelAvatar(channel = live.channel, modifier = Modifier.size(36.dp).clip(CircleShape))

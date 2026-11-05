@@ -12,6 +12,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -19,16 +22,22 @@ import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.presentation.common.VisibilityBadge
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.common.videoAccessibilityLabel
 import com.youtubeclone.app.presentation.home.VideoThumbnail
 import com.youtubeclone.app.presentation.home.previewVideo
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 
-/** Vidéo suggérée, format compact : miniature à gauche, titre et métadonnées à droite. */
+/**
+ * Vidéo suggérée, format compact : miniature à gauche, titre et métadonnées à droite. Pour TalkBack
+ * (ADR-030) : un seul arrêt, lu en une phrase (titre, chaîne, vues, date, durée).
+ */
 @Composable
 fun SuggestedVideoCard(video: Video, modifier: Modifier = Modifier) {
+    val label = videoAccessibilityLabel(video)
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .semantics(mergeDescendants = true) { contentDescription = label }
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -36,9 +45,11 @@ fun SuggestedVideoCard(video: Video, modifier: Modifier = Modifier) {
             video = video,
             modifier = Modifier
                 .width(160.dp)
-                .clip(RoundedCornerShape(8.dp)),
+                .clip(RoundedCornerShape(8.dp))
+                .clearAndSetSemantics {},
         )
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Masqué à TalkBack : la phrase de la carte le remplace.
+        Column(modifier = Modifier.clearAndSetSemantics {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             VisibilityBadge(video.visibility)
             Text(
                 text = video.title,

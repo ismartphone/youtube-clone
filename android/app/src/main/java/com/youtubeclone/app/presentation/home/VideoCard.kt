@@ -19,6 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
@@ -28,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.domain.model.VideoFormat
@@ -37,6 +44,7 @@ import com.youtubeclone.app.presentation.common.VideoThumbnailImage
 import com.youtubeclone.app.presentation.common.formatDuration
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.common.videoAccessibilityLabel
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import java.time.Instant
 
@@ -46,6 +54,8 @@ import java.time.Instant
  * Pas de bordure ni d'ombre : l'espacement entre les cartes est porté par la liste.
  * [showChannelAvatar] à false sur la page d'une chaîne, où l'avatar serait répété sur chaque carte.
  * Avec [onChannelClick], l'avatar et le nom de la chaîne ouvrent sa page.
+ * TalkBack (ADR-030) : la carte est UN seul arrêt, lu en une phrase (titre, chaîne, vues, date, durée) ;
+ * l'accès à la chaîne devient une action personnalisée de ce même arrêt, pas un arrêt de plus.
  */
 @Composable
 fun VideoCard(
@@ -54,10 +64,20 @@ fun VideoCard(
     onChannelClick: (() -> Unit)? = null,
     showChannelAvatar: Boolean = true,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        VideoThumbnail(video, Modifier.fillMaxWidth())
+    val label = videoAccessibilityLabel(video)
+    val openChannelLabel = stringResource(R.string.a11y_open_channel, video.channel.name)
+    Column(
+        modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+            contentDescription = label
+            if (onChannelClick != null) {
+                customActions = listOf(CustomAccessibilityAction(openChannelLabel) { onChannelClick(); true })
+            }
+        },
+    ) {
+        // Les enfants sont masqués à TalkBack : la phrase de la carte les remplace (le toucher, lui, marche).
+        VideoThumbnail(video, Modifier.fillMaxWidth().clearAndSetSemantics {})
         Row(
-            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp).clearAndSetSemantics {},
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (showChannelAvatar) {
