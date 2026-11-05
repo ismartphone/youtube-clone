@@ -36,12 +36,15 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val autoplay by viewModel.autoplay.collectAsStateWithLifecycle()
+    val onboardingFeedback by viewModel.onboardingFeedback.collectAsStateWithLifecycle()
     val shareUsageStats by viewModel.shareUsageStats.collectAsStateWithLifecycle()
     val messageNotifications by viewModel.messageNotifications.collectAsStateWithLifecycle()
     ErrorToast(viewModel.errors)
     SettingsContent(
         autoplay = autoplay,
         onAutoplayChange = viewModel::onAutoplayChange,
+        onboardingFeedback = onboardingFeedback,
+        onOnboardingFeedbackChange = viewModel::onOnboardingFeedbackChange,
         shareUsageStats = shareUsageStats,
         onShareUsageStatsChange = viewModel::onShareUsageStatsChange,
         messageNotifications = messageNotifications,
@@ -56,6 +59,8 @@ fun SettingsScreen(
 private fun SettingsContent(
     autoplay: Boolean?,
     onAutoplayChange: (Boolean) -> Unit,
+    onboardingFeedback: Boolean?,
+    onOnboardingFeedbackChange: (Boolean) -> Unit,
     shareUsageStats: Boolean?,
     onShareUsageStatsChange: (Boolean) -> Unit,
     onBack: () -> Unit,
@@ -72,6 +77,14 @@ private fun SettingsContent(
                 detail = stringResource(R.string.settings_autoplay_detail),
                 checked = autoplay,
                 onCheckedChange = onAutoplayChange,
+            )
+        }
+        if (onboardingFeedback != null) {
+            SwitchRow(
+                title = stringResource(R.string.settings_onboarding_feedback),
+                detail = stringResource(R.string.settings_onboarding_feedback_detail),
+                checked = onboardingFeedback,
+                onCheckedChange = onOnboardingFeedbackChange,
             )
         }
         if (shareUsageStats != null) {
@@ -128,6 +141,6 @@ private fun SwitchRow(title: String, detail: String, checked: Boolean, onChecked
 @Composable
 private fun SettingsContentPreview() {
     YoutubeCloneTheme {
-        SettingsContent(autoplay = true, onAutoplayChange = {}, shareUsageStats = true, onShareUsageStatsChange = {}, onBack = {})
+        SettingsContent(autoplay = true, onAutoplayChange = {}, onboardingFeedback = true, onOnboardingFeedbackChange = {}, shareUsageStats = true, onShareUsageStatsChange = {}, onBack = {})
     }
 }

@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.youtubeclone.app.domain.repository.MessagingRepository
 import com.youtubeclone.app.domain.usecase.ObserveAutoplayUseCase
+import com.youtubeclone.app.domain.usecase.ObserveOnboardingFeedbackUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.domain.usecase.ObserveShareUsageStatsUseCase
 import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
+import com.youtubeclone.app.domain.usecase.SetOnboardingFeedbackUseCase
 import com.youtubeclone.app.domain.usecase.SetShareUsageStatsUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -29,6 +31,8 @@ class SettingsViewModel @Inject constructor(
     private val setShareUsageStats: SetShareUsageStatsUseCase,
     observeAutoplay: ObserveAutoplayUseCase,
     private val setAutoplay: SetAutoplayUseCase,
+    observeOnboardingFeedback: ObserveOnboardingFeedbackUseCase,
+    private val setOnboardingFeedback: SetOnboardingFeedbackUseCase,
     observeSession: ObserveSessionUseCase,
     private val messaging: MessagingRepository,
 ) : ViewModel() {
@@ -74,6 +78,14 @@ class SettingsViewModel @Inject constructor(
 
     fun onAutoplayChange(enabled: Boolean) {
         viewModelScope.launch { setAutoplay(enabled) }
+    }
+
+    /** « Sons et vibrations » du parcours d'accueil (ADR-028) ; null tant que la préférence n'est pas lue. */
+    val onboardingFeedback: StateFlow<Boolean?> = observeOnboardingFeedback()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun onOnboardingFeedbackChange(enabled: Boolean) {
+        viewModelScope.launch { setOnboardingFeedback(enabled) }
     }
 
     /** null tant que la préférence n'est pas lue : l'interrupteur n'est pas encore affiché. */

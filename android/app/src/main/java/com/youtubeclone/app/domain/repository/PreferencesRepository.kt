@@ -1,5 +1,6 @@
 package com.youtubeclone.app.domain.repository
 
+import com.youtubeclone.app.domain.model.VideoFormat
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -19,6 +20,12 @@ interface PreferencesRepository {
     /** « Lecture automatique » : true par défaut ; enchaîne sur la vidéo suggérée à la fin d'une vidéo. */
     val autoplay: Flow<Boolean>
 
+    /** Format préféré choisi dans le parcours d'accueil (ADR-028) ; null sans choix. Décide de l'onglet d'arrivée. */
+    val preferredFormat: Flow<VideoFormat?>
+
+    /** « Sons et vibrations » du parcours d'accueil (ADR-028) : true par défaut. */
+    val onboardingFeedback: Flow<Boolean>
+
     /** Marque l'écran d'accueil comme vu. */
     suspend fun completeOnboarding()
 
@@ -27,4 +34,8 @@ interface PreferencesRepository {
     suspend fun setShareUsageStats(enabled: Boolean)
 
     suspend fun setAutoplay(enabled: Boolean)
+
+    suspend fun setPreferredFormat(format: VideoFormat?)
+
+    suspend fun setOnboardingFeedback(enabled: Boolean)
 }

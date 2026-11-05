@@ -5,8 +5,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.repository.PreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
@@ -43,6 +45,12 @@ class PreferencesRepositoryImpl @Inject constructor(
     override val autoplay: Flow<Boolean> =
         preferences.map { it[AUTOPLAY] ?: true }.distinctUntilChanged()
 
+    override val preferredFormat: Flow<VideoFormat?> =
+        preferences.map { prefs -> VideoFormat.entries.firstOrNull { it.name == prefs[PREFERRED_FORMAT] } }.distinctUntilChanged()
+
+    override val onboardingFeedback: Flow<Boolean> =
+        preferences.map { it[ONBOARDING_FEEDBACK] ?: true }.distinctUntilChanged()
+
     override suspend fun completeOnboarding() {
         dataStore.edit { it[ONBOARDING_COMPLETED] = true }
     }
@@ -59,10 +67,20 @@ class PreferencesRepositoryImpl @Inject constructor(
         dataStore.edit { it[AUTOPLAY] = enabled }
     }
 
+    override suspend fun setPreferredFormat(format: VideoFormat?) {
+        dataStore.edit { if (format == null) it.remove(PREFERRED_FORMAT) else it[PREFERRED_FORMAT] = format.name }
+    }
+
+    override suspend fun setOnboardingFeedback(enabled: Boolean) {
+        dataStore.edit { it[ONBOARDING_FEEDBACK] = enabled }
+    }
+
     private companion object {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val INTERESTS = stringSetPreferencesKey("interest_category_ids")
         val SHARE_USAGE_STATS = booleanPreferencesKey("share_usage_stats")
         val AUTOPLAY = booleanPreferencesKey("autoplay")
+        val PREFERRED_FORMAT = stringPreferencesKey("preferred_format")
+        val ONBOARDING_FEEDBACK = booleanPreferencesKey("onboarding_feedback")
     }
 }
