@@ -7,4 +7,13 @@
          adb shell pm grant com.youtubeclone.app android.permission.ACCESS_LOCAL_NETWORK -->
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
+    <application>
+        <!-- Debug uniquement (ADR-027) : redémarrage après un changement d'adresse du serveur. -->
+        <activity
+            android:name="com.youtubeclone.app.restart.RestartActivity"
+            android:exported="false"
+            android:process=":restart"
+            android:theme="@android:style/Theme.NoDisplay" />
+    </application>
+
 </manifest>

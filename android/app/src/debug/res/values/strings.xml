@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug uniquement (ADR-027) : textes du réglage de l'adresse du serveur. -->
+<resources>
+    <string name="server_address_title">Adresse du serveur</string>
+    <string name="server_address_link">Régler l\'adresse du serveur</string>
+    <string name="server_address_current">Adresse utilisée : %1$s</string>
+    <string name="server_address_default">Adresse par défaut : %1$s</string>
+    <string name="server_address_field">Adresse du serveur</string>
+    <string name="server_address_hint">Par exemple http://192.168.1.20:3000/</string>
+    <string name="server_address_invalid">Adresse invalide : saisissez une adresse commençant par http:// ou https://, suivie du nom ou de l\'IP du serveur.</string>
+    <string name="server_address_test">Tester la connexion</string>
+    <string name="server_address_testing">Test en cours…</string>
+    <string name="server_address_test_ok">Le serveur répond.</string>
+    <string name="server_address_test_http">Le serveur répond, mais avec une erreur (code %1$d).</string>
+    <string name="server_address_test_fail">Le serveur ne répond pas : %1$s</string>
+    <string name="server_address_reset">Revenir à l\'adresse par défaut</string>
+    <string name="server_address_save">Enregistrer et redémarrer</string>
+    <string name="server_address_warning">Enregistrer déconnecte tous les comptes de l\'appareil, vide la liste des comptes et redémarre l\'application. Les téléchargements sont conservés.</string>
+</resources>

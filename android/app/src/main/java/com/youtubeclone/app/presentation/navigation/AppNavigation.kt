@@ -74,7 +74,10 @@ import com.youtubeclone.app.presentation.premium.PaywallScreen
 import com.youtubeclone.app.presentation.profile.YouListScreen
 import com.youtubeclone.app.presentation.profile.YouScreen
 import com.youtubeclone.app.presentation.search.SearchScreen
+import com.youtubeclone.app.presentation.settings.ProvideServerAddressLink
 import com.youtubeclone.app.presentation.settings.SettingsScreen
+import com.youtubeclone.app.presentation.settings.openServerAddress
+import com.youtubeclone.app.presentation.settings.serverAddressDestination
 import com.youtubeclone.app.presentation.shorts.ShortsScreen
 import com.youtubeclone.app.presentation.subscriptions.SubscriptionsScreen
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
@@ -283,236 +286,246 @@ fun AppNavigation(
                 onWritePost = { navController.navigate(ComposePostRoute) },
             )
         }
-        NavHost(
-            navController = navController,
-            startDestination = HomeRoute,
-            modifier = Modifier.padding(innerPadding),
-            enterTransition = transitions.enter,
-            exitTransition = transitions.exit,
-            popEnterTransition = transitions.popEnter,
-            popExitTransition = transitions.popExit,
-        ) {
-            val openVideo = { videoId: String -> navController.navigate(WatchRoute(videoId)) }
-            val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
-            val openChannelPosts = { channelId: String -> navController.navigate(ChannelRoute(channelId, tab = "Posts")) }
-            val openLogin = { navController.navigate(LoginRoute()) }
-            val openPaywall = { navController.navigate(PaywallRoute()) }
-            // « Envoyer à », puis « Rechercher quelqu'un d'autre » (ADR-025, étape 2).
-            val shareToSomeone = { videoId: String -> navController.navigate(NewConversationRoute(shareVideoId = videoId)) }
+        // Debug seulement (ADR-027) : le message « Impossible de joindre le serveur » renvoie au réglage.
+        ProvideServerAddressLink(onOpen = { navController.openServerAddress() }) {
+            NavHost(
+                navController = navController,
+                startDestination = HomeRoute,
+                modifier = Modifier.padding(innerPadding),
+                enterTransition = transitions.enter,
+                exitTransition = transitions.exit,
+                popEnterTransition = transitions.popEnter,
+                popExitTransition = transitions.popExit,
+            ) {
+                val openVideo = { videoId: String -> navController.navigate(WatchRoute(videoId)) }
+                val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
+                val openChannelPosts = { channelId: String -> navController.navigate(ChannelRoute(channelId, tab = "Posts")) }
+                val openLogin = { navController.navigate(LoginRoute()) }
+                val openPaywall = { navController.navigate(PaywallRoute()) }
+                // « Envoyer à », puis « Rechercher quelqu'un d'autre » (ADR-025, étape 2).
+                val shareToSomeone = { videoId: String -> navController.navigate(NewConversationRoute(shareVideoId = videoId)) }
 
-            composable<HomeRoute> {
-                HomeScreen(
-                    onVideoClick = openVideo,
-                    onChannelClick = openChannel,
-                    onAccountClick = openAccounts,
-                    onSearchClick = { navController.navigate(SearchRoute) },
-                    onSponsoredAdPlay = { ad ->
-                        navController.navigate(
-                            AdPlayerRoute(
-                                ad.id,
-                                ad.title,
-                                ad.streamUrl,
-                                ad.isHls,
-                                ad.durationSeconds,
-                                ad.destinationUrl,
-                                ad.advertiserName,
-                                ad.ctaLabel,
-                            ),
-                        )
-                    },
-                    onRemoveAdsClick = openPaywall,
-                    onPostClick = openChannelPosts,
-                    onMessagesClick = { navController.navigate(ConversationsRoute) },
-                    onLoginRequired = openLogin,
-                )
-            }
-            composable<ConversationsRoute> {
-                ConversationsScreen(
-                    onBack = { navController.popBackStack() },
-                    onConversationClick = { id -> navController.navigate(ConversationRoute(id)) },
-                    onNewConversation = { navController.navigate(NewConversationRoute()) },
-                )
-            }
-            composable<NewConversationRoute> {
-                NewConversationScreen(
-                    onBack = { navController.popBackStack() },
-                    // La recherche cède la place à la conversation : Retour ramène à la liste.
-                    onConversationOpened = { id ->
-                        navController.navigate(ConversationRoute(id)) { popUpTo<NewConversationRoute> { inclusive = true } }
-                    },
-                )
-            }
-            composable<ConversationRoute> {
-                ConversationScreen(
-                    onBack = { navController.popBackStack() },
-                    // Un Short partagé s'ouvre dans le lecteur des Shorts.
-                    onOpenVideo = { video ->
-                        navController.navigate(if (video.isShort) ShortsPlayerRoute(video.id) else WatchRoute(video.id))
-                    },
-                )
-            }
-            composable<AdPlayerRoute> {
-                AdPlayerScreen(onClose = { navController.popBackStack() })
-            }
-            composable<ShortsRoute> {
-                ShortsScreen(
-                    onChannelClick = openChannel,
-                    onLoginRequired = openLogin,
-                    onPremiumClick = openPaywall,
-                    onShareToSomeone = shareToSomeone,
-                )
-            }
-            composable<ShortsPlayerRoute> {
-                ShortsScreen(
-                    onChannelClick = openChannel,
-                    onLoginRequired = openLogin,
-                    onPremiumClick = openPaywall,
-                    onShareToSomeone = shareToSomeone,
-                    onBack = { navController.popBackStack() },
-                )
-            }
-            composable<PaywallRoute> { entry ->
-                val videoId = entry.toRoute<PaywallRoute>().videoId
-                PaywallScreen(
-                    onClose = { navController.popBackStack() },
-                    onLoginRequired = openLogin,
-                    // Achat ouvert par une vidéo exclusive : elle est rouverte à la place du paywall.
-                    onPurchased = {
-                        if (videoId != null) {
-                            navController.navigate(WatchRoute(videoId)) { popUpTo<PaywallRoute> { inclusive = true } }
-                        } else {
-                            navController.popBackStack()
-                        }
-                    },
-                )
-            }
-            composable<SubscriptionsRoute> {
-                SubscriptionsScreen(
-                    onVideoClick = openVideo,
-                    onChannelClick = openChannel,
-                    onPostClick = openChannelPosts,
-                    onLoginClick = openLogin,
-                )
-            }
-            composable<WatchRoute> {
-                WatchScreen(
-                    onBack = { navController.popBackStack() },
-                    onVideoClick = openVideo,
-                    onChannelClick = openChannel,
-                    onLoginRequired = openLogin,
-                    // Vidéo exclusive refusée par le serveur : le paywall prend la place de l'écran.
-                    onPremiumRequired = { videoId ->
-                        navController.navigate(PaywallRoute(videoId)) { popUpTo<WatchRoute> { inclusive = true } }
-                    },
-                    onRemoveAdsClick = openPaywall,
-                    onOpenDownloads = { navController.navigate(DownloadsRoute) },
-                    onShareToSomeone = shareToSomeone,
-                )
-            }
-            composable<ChannelRoute> {
-                ChannelScreen(
-                    onBack = { navController.popBackStack() },
-                    onVideoClick = openVideo,
-                    onShortClick = { videoId -> navController.navigate(ShortsPlayerRoute(videoId)) },
-                    onLoginRequired = openLogin,
-                    onCustomizeClick = { navController.navigate(CustomizeChannelRoute) },
-                )
-            }
-            composable<YouRoute> {
-                YouScreen(
-                    onLoginClick = { navController.navigate(LoginRoute()) },
-                    onRegisterClick = { navController.navigate(RegisterRoute) },
-                    onEditInterests = { navController.navigate(InterestsRoute) },
-                    onChannelClick = openChannel,
-                    onCustomizeChannel = { navController.navigate(CustomizeChannelRoute) },
-                    onHelpClick = { navController.navigate(HelpRoute) },
-                    onPlaylistClick = { playlistId -> navController.navigate(PlaylistRoute(playlistId)) },
-                    onDownloadsClick = { navController.navigate(DownloadsRoute) },
-                    onVideoClick = openVideo,
-                    onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
-                    onSubscriptionsClick = { openTab(SubscriptionsRoute) },
-                    onPremiumClick = openPaywall,
-                    onSettingsClick = { navController.navigate(SettingsRoute) },
-                    onCreateChannel = { navController.navigate(CreateChannelRoute) },
-                    onAccountClick = openAccounts,
-                )
-            }
-            composable<SettingsRoute> { SettingsScreen(onBack = { navController.popBackStack() }) }
-            composable<SearchRoute> {
-                SearchScreen(
-                    onBack = { navController.popBackStack() },
-                    onVideoClick = openVideo,
-                    onChannelClick = openChannel,
-                )
-            }
-            composable<YouListRoute> {
-                YouListScreen(onBack = { navController.popBackStack() }, onVideoClick = openVideo)
-            }
-            // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
-            // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute()).
-            composable<LoginRoute> {
-                LoginScreen(
-                    onLoggedIn = { navController.popBackStack() },
-                    onRegisterClick = {
-                        navController.navigate(RegisterRoute) { popUpTo<LoginRoute> { inclusive = true } }
-                    },
-                    // Visiteur : retour à l'écran d'où venait la demande, ou au fil d'accueil.
-                    onContinueAsVisitor = { navController.popBackStack() },
-                )
-            }
-            composable<RegisterRoute> {
-                RegisterScreen(
-                    onRegistered = { navController.popBackStack() },
-                    onLoginClick = {
-                        navController.navigate(LoginRoute()) { popUpTo<RegisterRoute> { inclusive = true } }
-                    },
-                    onContinueAsVisitor = { navController.popBackStack() },
-                )
-            }
-            composable<PublishVideoRoute> {
-                PublishVideoScreen(
-                    onClose = { navController.popBackStack() },
-                    // Retour à l'écran d'où le créateur était parti, où s'affiche la confirmation.
-                    onPublished = { navController.popBackStack() },
-                )
-            }
-            composable<ComposePostRoute> {
-                ComposePostScreen(
-                    onClose = { navController.popBackStack() },
-                    // Retour à l'écran d'où le créateur était parti, où s'affiche la confirmation.
-                    onPublished = { navController.popBackStack() },
-                )
-            }
-            composable<CreateChannelRoute> {
-                CreateChannelScreen(
-                    onClose = { navController.popBackStack() },
-                    // La page de la nouvelle chaîne remplace le formulaire : Retour ramène d'où l'on venait.
-                    onCreated = { channelId ->
-                        navController.navigate(ChannelRoute(channelId)) {
-                            popUpTo<CreateChannelRoute> { inclusive = true }
-                        }
-                    },
-                )
-            }
-            composable<PlaylistRoute> {
-                PlaylistScreen(onBack = { navController.popBackStack() }, onVideoClick = openVideo)
-            }
-            composable<DownloadsRoute> {
-                DownloadsScreen(
-                    onBack = { navController.popBackStack() },
-                    onPlay = { videoId -> navController.navigate(OfflinePlayerRoute(videoId)) },
-                )
-            }
-            composable<OfflinePlayerRoute> { OfflinePlayerScreen(onBack = { navController.popBackStack() }) }
-            composable<HelpRoute> { HelpScreen(onBack = { navController.popBackStack() }) }
-            composable<CustomizeChannelRoute> {
-                CustomizeChannelScreen(onClose = { navController.popBackStack() })
-            }
-            composable<InterestsRoute> {
-                InterestsScreen(
-                    onSaved = { navController.popBackStack() },
-                    onBack = { navController.popBackStack() },
-                )
+                composable<HomeRoute> {
+                    HomeScreen(
+                        onVideoClick = openVideo,
+                        onChannelClick = openChannel,
+                        onAccountClick = openAccounts,
+                        onSearchClick = { navController.navigate(SearchRoute) },
+                        onSponsoredAdPlay = { ad ->
+                            navController.navigate(
+                                AdPlayerRoute(
+                                    ad.id,
+                                    ad.title,
+                                    ad.streamUrl,
+                                    ad.isHls,
+                                    ad.durationSeconds,
+                                    ad.destinationUrl,
+                                    ad.advertiserName,
+                                    ad.ctaLabel,
+                                ),
+                            )
+                        },
+                        onRemoveAdsClick = openPaywall,
+                        onPostClick = openChannelPosts,
+                        onMessagesClick = { navController.navigate(ConversationsRoute) },
+                        onLoginRequired = openLogin,
+                    )
+                }
+                composable<ConversationsRoute> {
+                    ConversationsScreen(
+                        onBack = { navController.popBackStack() },
+                        onConversationClick = { id -> navController.navigate(ConversationRoute(id)) },
+                        onNewConversation = { navController.navigate(NewConversationRoute()) },
+                    )
+                }
+                composable<NewConversationRoute> {
+                    NewConversationScreen(
+                        onBack = { navController.popBackStack() },
+                        // La recherche cède la place à la conversation : Retour ramène à la liste.
+                        onConversationOpened = { id ->
+                            navController.navigate(ConversationRoute(id)) { popUpTo<NewConversationRoute> { inclusive = true } }
+                        },
+                    )
+                }
+                composable<ConversationRoute> {
+                    ConversationScreen(
+                        onBack = { navController.popBackStack() },
+                        // Un Short partagé s'ouvre dans le lecteur des Shorts.
+                        onOpenVideo = { video ->
+                            navController.navigate(if (video.isShort) ShortsPlayerRoute(video.id) else WatchRoute(video.id))
+                        },
+                    )
+                }
+                composable<AdPlayerRoute> {
+                    AdPlayerScreen(onClose = { navController.popBackStack() })
+                }
+                composable<ShortsRoute> {
+                    ShortsScreen(
+                        onChannelClick = openChannel,
+                        onLoginRequired = openLogin,
+                        onPremiumClick = openPaywall,
+                        onShareToSomeone = shareToSomeone,
+                    )
+                }
+                composable<ShortsPlayerRoute> {
+                    ShortsScreen(
+                        onChannelClick = openChannel,
+                        onLoginRequired = openLogin,
+                        onPremiumClick = openPaywall,
+                        onShareToSomeone = shareToSomeone,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<PaywallRoute> { entry ->
+                    val videoId = entry.toRoute<PaywallRoute>().videoId
+                    PaywallScreen(
+                        onClose = { navController.popBackStack() },
+                        onLoginRequired = openLogin,
+                        // Achat ouvert par une vidéo exclusive : elle est rouverte à la place du paywall.
+                        onPurchased = {
+                            if (videoId != null) {
+                                navController.navigate(WatchRoute(videoId)) { popUpTo<PaywallRoute> { inclusive = true } }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        },
+                    )
+                }
+                composable<SubscriptionsRoute> {
+                    SubscriptionsScreen(
+                        onVideoClick = openVideo,
+                        onChannelClick = openChannel,
+                        onPostClick = openChannelPosts,
+                        onLoginClick = openLogin,
+                    )
+                }
+                composable<WatchRoute> {
+                    WatchScreen(
+                        onBack = { navController.popBackStack() },
+                        onVideoClick = openVideo,
+                        onChannelClick = openChannel,
+                        onLoginRequired = openLogin,
+                        // Vidéo exclusive refusée par le serveur : le paywall prend la place de l'écran.
+                        onPremiumRequired = { videoId ->
+                            navController.navigate(PaywallRoute(videoId)) { popUpTo<WatchRoute> { inclusive = true } }
+                        },
+                        onRemoveAdsClick = openPaywall,
+                        onOpenDownloads = { navController.navigate(DownloadsRoute) },
+                        onShareToSomeone = shareToSomeone,
+                    )
+                }
+                composable<ChannelRoute> {
+                    ChannelScreen(
+                        onBack = { navController.popBackStack() },
+                        onVideoClick = openVideo,
+                        onShortClick = { videoId -> navController.navigate(ShortsPlayerRoute(videoId)) },
+                        onLoginRequired = openLogin,
+                        onCustomizeClick = { navController.navigate(CustomizeChannelRoute) },
+                    )
+                }
+                composable<YouRoute> {
+                    YouScreen(
+                        onLoginClick = { navController.navigate(LoginRoute()) },
+                        onRegisterClick = { navController.navigate(RegisterRoute) },
+                        onEditInterests = { navController.navigate(InterestsRoute) },
+                        onChannelClick = openChannel,
+                        onCustomizeChannel = { navController.navigate(CustomizeChannelRoute) },
+                        onHelpClick = { navController.navigate(HelpRoute) },
+                        onPlaylistClick = { playlistId -> navController.navigate(PlaylistRoute(playlistId)) },
+                        onDownloadsClick = { navController.navigate(DownloadsRoute) },
+                        onVideoClick = openVideo,
+                        onListClick = { list -> navController.navigate(YouListRoute(list.name)) },
+                        onSubscriptionsClick = { openTab(SubscriptionsRoute) },
+                        onPremiumClick = openPaywall,
+                        onSettingsClick = { navController.navigate(SettingsRoute) },
+                        onCreateChannel = { navController.navigate(CreateChannelRoute) },
+                        onAccountClick = openAccounts,
+                    )
+                }
+                composable<SettingsRoute> {
+                    SettingsScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenServerAddress = { navController.openServerAddress() },
+                    )
+                }
+                // Réglage de test, debug seulement (ADR-027) ; sans effet en release.
+                serverAddressDestination(navController)
+                composable<SearchRoute> {
+                    SearchScreen(
+                        onBack = { navController.popBackStack() },
+                        onVideoClick = openVideo,
+                        onChannelClick = openChannel,
+                    )
+                }
+                composable<YouListRoute> {
+                    YouListScreen(onBack = { navController.popBackStack() }, onVideoClick = openVideo)
+                }
+                // Connexion et inscription s'ouvrent par-dessus l'écran qui les demande, et y reviennent une fois
+                // la session ouverte. Pour exiger un compte avant une action : navController.navigate(LoginRoute()).
+                composable<LoginRoute> {
+                    LoginScreen(
+                        onLoggedIn = { navController.popBackStack() },
+                        onRegisterClick = {
+                            navController.navigate(RegisterRoute) { popUpTo<LoginRoute> { inclusive = true } }
+                        },
+                        // Visiteur : retour à l'écran d'où venait la demande, ou au fil d'accueil.
+                        onContinueAsVisitor = { navController.popBackStack() },
+                    )
+                }
+                composable<RegisterRoute> {
+                    RegisterScreen(
+                        onRegistered = { navController.popBackStack() },
+                        onLoginClick = {
+                            navController.navigate(LoginRoute()) { popUpTo<RegisterRoute> { inclusive = true } }
+                        },
+                        onContinueAsVisitor = { navController.popBackStack() },
+                    )
+                }
+                composable<PublishVideoRoute> {
+                    PublishVideoScreen(
+                        onClose = { navController.popBackStack() },
+                        // Retour à l'écran d'où le créateur était parti, où s'affiche la confirmation.
+                        onPublished = { navController.popBackStack() },
+                    )
+                }
+                composable<ComposePostRoute> {
+                    ComposePostScreen(
+                        onClose = { navController.popBackStack() },
+                        // Retour à l'écran d'où le créateur était parti, où s'affiche la confirmation.
+                        onPublished = { navController.popBackStack() },
+                    )
+                }
+                composable<CreateChannelRoute> {
+                    CreateChannelScreen(
+                        onClose = { navController.popBackStack() },
+                        // La page de la nouvelle chaîne remplace le formulaire : Retour ramène d'où l'on venait.
+                        onCreated = { channelId ->
+                            navController.navigate(ChannelRoute(channelId)) {
+                                popUpTo<CreateChannelRoute> { inclusive = true }
+                            }
+                        },
+                    )
+                }
+                composable<PlaylistRoute> {
+                    PlaylistScreen(onBack = { navController.popBackStack() }, onVideoClick = openVideo)
+                }
+                composable<DownloadsRoute> {
+                    DownloadsScreen(
+                        onBack = { navController.popBackStack() },
+                        onPlay = { videoId -> navController.navigate(OfflinePlayerRoute(videoId)) },
+                    )
+                }
+                composable<OfflinePlayerRoute> { OfflinePlayerScreen(onBack = { navController.popBackStack() }) }
+                composable<HelpRoute> { HelpScreen(onBack = { navController.popBackStack() }) }
+                composable<CustomizeChannelRoute> {
+                    CustomizeChannelScreen(onClose = { navController.popBackStack() })
+                }
+                composable<InterestsRoute> {
+                    InterestsScreen(
+                        onSaved = { navController.popBackStack() },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
             }
         }
         // Confirmation d'une publication, par-dessus l'écran d'où le créateur était parti.

@@ -29,7 +29,12 @@ import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 // d'usage (ADR-013) et, pour un compte connecté, notifications de messages (ADR-025).
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenServerAddress: () -> Unit = {},
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
     val autoplay by viewModel.autoplay.collectAsStateWithLifecycle()
     val shareUsageStats by viewModel.shareUsageStats.collectAsStateWithLifecycle()
     val messageNotifications by viewModel.messageNotifications.collectAsStateWithLifecycle()
@@ -41,6 +46,7 @@ fun SettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel:
         onShareUsageStatsChange = viewModel::onShareUsageStatsChange,
         messageNotifications = messageNotifications,
         onMessageNotificationsChange = viewModel::onMessageNotificationsChange,
+        onOpenServerAddress = onOpenServerAddress,
         onBack = onBack,
         modifier = modifier,
     )
@@ -55,6 +61,7 @@ private fun SettingsContent(
     onBack: () -> Unit,
     messageNotifications: Boolean? = null,
     onMessageNotificationsChange: (Boolean) -> Unit = {},
+    onOpenServerAddress: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -84,6 +91,8 @@ private fun SettingsContent(
                 onCheckedChange = onMessageNotificationsChange,
             )
         }
+        // Réglage de test : n'existe qu'en debug (ADR-027), vide en release.
+        ServerAddressSettingsRow(onClick = onOpenServerAddress)
     }
 }
 
