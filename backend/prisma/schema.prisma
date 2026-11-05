@@ -65,6 +65,7 @@ model User {
   watchHistory                WatchHistory[]
   playlists                   Playlist[]
   deviceTokens                DeviceToken[]
+  liveMessages                LiveMessage[]
 
   @@map("users")
 }
@@ -98,6 +99,7 @@ model Channel {
   videos    Video[]
   followers Follow[]
   posts     Post[]
+  lives     Live[]
 
   @@map("channels")
 }
@@ -161,6 +163,7 @@ model Video {
   likes         Like[]
   watchHistory  WatchHistory[]
   playlistItems PlaylistItem[]
+  lives         Live[]
 
   @@index([format, publishedAt(sort: Desc)]) // fil d'accueil et onglet Shorts
   @@index([channelId, format, publishedAt(sort: Desc)]) // page de chaîne
@@ -368,4 +371,55 @@ model Message {
   @@index([conversationId, createdAt(sort: Desc)])
   @@index([videoId])
   @@map("messages")
+}
+
+// État d'un live (ADR-029) : en direct, ou terminé par son diffuseur.
+enum LiveStatus {
+  LIVE
+  ENDED
+}
+
+// Nature d'un message du chat d'un live : écrit par un spectateur, ou annonce d'un achat écrite
+// par le serveur (ADR-029, étape 3).
+enum LiveMessageKind {
+  CHAT
+  PURCHASE
+}
+
+// Live shopping (ADR-029) : direct simulé, dont le flux est une vidéo du catalogue lue en boucle.
+// Un seul live en cours par chaîne (vérifié par le cas d'usage, dans une transaction).
+model Live {
+  id        String     @id @default(uuid()) @db.Uuid
+  channelId String     @db.Uuid
+  title     String
+  // Vidéo du catalogue utilisée comme flux. Supprimée depuis : la ligne du live est conservée,
+  // videoId devient vide (le live terminé reste lisible dans le back-office).
+  videoId   String?    @db.Uuid
+  status    LiveStatus @default(LIVE)
+  startedAt DateTime   @default(now())
+  endedAt   DateTime?
+
+  channel  Channel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  video    Video?        @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  messages LiveMessage[]
+
+  @@index([status, startedAt(sort: Desc)]) // lives en cours, accueil
+  @@index([channelId, status])
+  @@map("lives")
+}
+
+// Chat d'un live (ADR-029).
+model LiveMessage {
+  id        String          @id @default(uuid()) @db.Uuid
+  liveId    String          @db.Uuid
+  userId    String          @db.Uuid
+  kind      LiveMessageKind @default(CHAT)
+  content   String
+  createdAt DateTime        @default(now())
+
+  live Live @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([liveId, createdAt(sort: Desc)])
+  @@map("live_messages")
 }
