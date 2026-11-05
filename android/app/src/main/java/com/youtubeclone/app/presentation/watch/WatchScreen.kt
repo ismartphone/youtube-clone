@@ -28,7 +28,10 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -38,11 +41,14 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -61,12 +67,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -87,7 +98,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -128,18 +138,38 @@ import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import java.time.Instant
+import kotlin.math.abs
 
 // Écran de lecture d'après les maquettes (android/maquettes/lecture-01, -36 et -54, captures iOS) :
 // lecteur collé en haut, titre, actions, chaîne, aperçu des commentaires, puis vidéos suggérées.
 // On reprend la mise en page et la hiérarchie, avec les conventions Android et Material.
+//
+// ADR-024 : l'écran de lecture est une couche posée au-dessus de la navigation, qui se réduit en
+// mini-lecteur. Une seule vue vidéo (PlayerSurface), toujours au même endroit de l'arbre Compose,
+// ne fait que changer de taille et de position : sa surface n'est jamais recréée.
 
 private val ActionChipHeight = 36.dp
 private val PillShape = RoundedCornerShape(50)
 
+/** Hauteur du mini-lecteur ; la navigation laisse cette place en bas des écrans. */
+val MiniPlayerHeight = 64.dp
+private val MiniPlayerVideoWidth = MiniPlayerHeight * 16 / 9
+
+// Distance d'un glissement pour réduire l'écran de lecture ou fermer le mini-lecteur.
+private val SwipeThreshold = 80.dp
+
+// Distance qui met la vue vidéo hors de l'écran, sans la détruire, quand le mini-lecteur est masqué.
+private val OffscreenOffset = 4000.dp
+
+/**
+ * Couche du lecteur en cours : écran de lecture déployé, ou mini-lecteur. Ne dessine rien tant
+ * qu'aucune vidéo n'est ouverte. [miniVisible] : le mini-lecteur peut s'afficher (faux sur les
+ * écrans plein espace et quand le clavier est ouvert). Ouvrir un autre écran depuis l'écran de
+ * lecture le réduit d'abord, pour que cet écran soit visible.
+ */
 @Composable
-fun WatchScreen(
-    onBack: () -> Unit,
-    onVideoClick: (videoId: String) -> Unit,
+fun NowPlayingLayer(
+    miniVisible: Boolean,
     onChannelClick: (channelId: String) -> Unit,
     onLoginRequired: () -> Unit,
     onPremiumRequired: (videoId: String) -> Unit,
@@ -149,9 +179,29 @@ fun WatchScreen(
     modifier: Modifier = Modifier,
     viewModel: WatchViewModel = hiltViewModel(),
 ) {
+    // Application masquée (ADR-024) : la libération du décodeur dépend de l'activité, plein lecteur
+    // comme mini-lecteur. Un compte Premium garde le son (lecture en arrière-plan).
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onAppStopped() }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onAppStarted() }
+
+    val videoId by viewModel.currentVideoId.collectAsStateWithLifecycle()
+    val id = videoId ?: return
+    val expanded by viewModel.expanded.collectAsStateWithLifecycle()
+
+    // Retour réduit en mini-lecteur ; ignoré pendant une annonce (ADR-021). Déclaré avant le plein
+    // écran, dont le Retour (sortie du plein écran) doit passer en premier.
+    BackHandler(enabled = expanded) { viewModel.minimize() }
+    val fullscreen = rememberFullscreen(enabled = expanded)
+
+    // Ouvrir un autre écran depuis l'écran de lecture : il se réduit d'abord.
+    fun leaving(action: () -> Unit) {
+        viewModel.minimizeForNavigation()
+        action()
+    }
+
     val download by viewModel.download.collectAsStateWithLifecycle()
     // Sans Premium, Télécharger ouvre l'offre (ADR-019, décision 15).
-    LaunchedEffect(viewModel) { viewModel.downloadNeedsPremium.collect { onRemoveAdsClick() } }
+    LaunchedEffect(viewModel) { viewModel.downloadNeedsPremium.collect { leaving(onRemoveAdsClick) } }
     // Android 13 et plus : la notification de progression des téléchargements demande une
     // autorisation. Refusée, le téléchargement se fait quand même, sans notification visible.
     val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -160,10 +210,12 @@ fun WatchScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val adState by viewModel.ads.state.collectAsStateWithLifecycle()
     val showThumbnail by viewModel.showThumbnail.collectAsStateWithLifecycle()
+    val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
     val isLoggedIn by viewModel.isLoggedIn.collectAsStateWithLifecycle()
     val followState by viewModel.follow.state.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
-    val commentsState by viewModel.comments.state.collectAsStateWithLifecycle()
+    val commentsController by viewModel.comments.collectAsStateWithLifecycle()
+    val commentsState by commentsController.state.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val autoplay by viewModel.autoplay.collectAsStateWithLifecycle()
     val qualities by viewModel.qualities.collectAsStateWithLifecycle()
@@ -172,134 +224,267 @@ fun WatchScreen(
     val subtitlesEnabled by viewModel.subtitlesEnabled.collectAsStateWithLifecycle()
     var showPlayerMenu by rememberSaveable { mutableStateOf(false) }
     var showSaveSheet by rememberSaveable { mutableStateOf(false) }
-    if (showSaveSheet) {
-        SaveToPlaylistSheet(videoId = viewModel.videoId, onDismiss = { showSaveSheet = false })
-    }
-    if (showPlayerMenu) {
-        PlayerMenuSheet(
-            qualities = qualities.map { it.size },
-            selectedQuality = selectedQuality,
-            onQualitySelected = {
-                viewModel.selectQuality(it)
-                showPlayerMenu = false
-            },
-            hasSubtitles = (uiState as? WatchUiState.Success)?.detail?.subtitleUrl != null,
-            subtitlesEnabled = subtitlesEnabled,
-            onSubtitlesChange = viewModel::setSubtitlesEnabled,
-            autoplayEnabled = autoplayEnabled,
-            onAutoplayChange = viewModel::onAutoplayChange,
-            onDismiss = { showPlayerMenu = false },
-        )
-    }
+    var showComments by rememberSaveable { mutableStateOf(false) }
+    // Défilement conservé pendant la réduction, remis en haut pour une autre vidéo.
+    val listState = remember(id) { LazyListState() }
+
     // Fin du décompte de lecture automatique : la vidéo suivante s'ouvre comme une suggestion.
     LaunchedEffect(viewModel) {
-        viewModel.autoplayNext.collect(onVideoClick)
+        viewModel.autoplayNext.collect(viewModel::open)
     }
     ErrorToast(viewModel.follow.errors)
     NotificationPermissionRequest(viewModel.follow.bellActivated)
     ErrorToast(viewModel.errors)
-    ErrorToast(viewModel.comments.errors)
+    ErrorToast(commentsController.errors)
 
-    // Écran masqué. Si l'activité reste visible, c'est une autre destination qui le recouvre
-    // (autre vidéo, chaîne…) : pause. Sinon l'application passe en arrière-plan : un compte
-    // Premium garde le son (lecture en arrière-plan).
-    val activity = LocalActivity.current as? LifecycleOwner
-    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
-        val appInBackground = activity?.lifecycle?.currentState?.isAtLeast(Lifecycle.State.STARTED) != true
-        viewModel.onScreenStopped(appInBackground)
-    }
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onScreenStarted() }
-
-    // Connexion temps réel ouverte tant que l'écran est visible : fermée quand on le quitte
-    // (autre écran, application en arrière-plan), rouverte au retour.
+    // Connexion temps réel ouverte tant que l'écran de lecture est déployé et visible : fermée à la
+    // réduction (commentaires et compteurs ne s'affichent que dans l'écran de lecture), rouverte
+    // au redéploiement.
     val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(viewModel, lifecycleOwner) {
-        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            viewModel.collectLiveUpdates()
+    if (expanded) {
+        LaunchedEffect(viewModel, lifecycleOwner, id) {
+            lifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.collectLiveUpdates()
+            }
+        }
+    }
+
+    // Refus du serveur : la vidéo est fermée et le paywall prend sa place.
+    if (uiState is WatchUiState.PremiumRequired) {
+        LaunchedEffect(id) {
+            viewModel.close()
+            onPremiumRequired(id)
         }
     }
 
     val context = LocalContext.current
-    var showComments by rememberSaveable { mutableStateOf(false) }
     // Partager : « Envoyer à » pour un compte connecté (ADR-025, étape 2).
-    val sharing = rememberVideoSharing(isLoggedIn, onShareToSomeone)
-    val fullscreen = rememberFullscreen()
+    val sharing = rememberVideoSharing(isLoggedIn) { videoId -> leaving { onShareToSomeone(videoId) } }
 
     // Visiteur : la connexion est demandée au moment d'agir.
-    fun requireLogin(action: () -> Unit) = if (isLoggedIn) action() else onLoginRequired()
+    fun requireLogin(action: () -> Unit) = if (isLoggedIn) action() else leaving(onLoginRequired)
 
-    when (val state = uiState) {
-        WatchUiState.Loading -> LoadingState(modifier)
-        is WatchUiState.Error -> ErrorState(state.error, viewModel::load, modifier)
-        // Refus du serveur : l'écran laisse sa place au paywall.
-        WatchUiState.PremiumRequired -> {
-            LoadingState(modifier)
-            LaunchedEffect(Unit) { onPremiumRequired(viewModel.videoId) }
-        }
-        is WatchUiState.Success -> {
-            val video = state.detail.video
-            WatchContent(
-                fullscreen = fullscreen.isOn,
-                detail = state.detail,
-                stats = stats,
-                followState = followState,
-                comments = commentsState,
-                suggestions = suggestions,
-                player = {
-                    PlayerArea(
-                        fullscreen = fullscreen.isOn,
-                        onFullscreenToggle = fullscreen::set,
-                        detail = state.detail,
-                        player = viewModel.player,
-                        showThumbnail = showThumbnail,
-                        adState = adState,
-                        adPlayer = viewModel.ads.player,
-                        onSkipAd = viewModel.ads::skip,
-                        onVisitAdSite = viewModel.ads::onVisitSite,
-                        onRemoveAdsClick = {
-                            viewModel.ads.onRemoveAdsClicked()
-                            onRemoveAdsClick()
-                        },
-                        autoplay = autoplay,
-                        onCancelAutoplay = viewModel::cancelAutoplay,
-                        onBack = onBack,
-                        onMenuClick = { showPlayerMenu = true },
-                        subtitlesEnabled = subtitlesEnabled,
-                        onSubtitlesClick = { viewModel.setSubtitlesEnabled(!subtitlesEnabled) },
-                    )
-                },
-                onChannelClick = { onChannelClick(video.channel.id) },
-                onFollowClick = { requireLogin(viewModel.follow::toggle) },
-                onNotificationLevelSelect = viewModel.follow::selectNotificationLevel,
-                onLikeClick = { requireLogin(viewModel::toggleLike) },
-                onDislikeClick = { requireLogin(viewModel::toggleDislike) },
-                onSaveClick = { requireLogin { showSaveSheet = true } },
-                download = download,
-                onDownloadClick = {
-                    requireLogin {
-                        when {
-                            download != null -> onOpenDownloads()
-                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                                PackageManager.PERMISSION_GRANTED ->
-                                notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            else -> viewModel.startDownload()
-                        }
+    val detail = (uiState as? WatchUiState.Success)?.detail
+
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val fullWidth = maxWidth
+        val fullHeight = maxHeight
+        if (expanded) {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+                when (val state = uiState) {
+                    WatchUiState.Loading, WatchUiState.PremiumRequired -> Column(Modifier.fillMaxSize()) {
+                        Spacer(Modifier.fillMaxWidth().aspectRatio(16f / 9f))
+                        LoadingState(Modifier.weight(1f))
                     }
-                },
-                onShareClick = { sharing.share(video) },
-                onCommentsClick = { showComments = true },
-                onSuggestionClick = onVideoClick,
-                modifier = modifier,
-            )
-            if (showComments) {
+                    is WatchUiState.Error -> Column(Modifier.fillMaxSize()) {
+                        Spacer(Modifier.fillMaxWidth().aspectRatio(16f / 9f))
+                        ErrorState(state.error, viewModel::load, Modifier.weight(1f))
+                    }
+                    is WatchUiState.Success -> {
+                        val video = state.detail.video
+                        WatchContent(
+                            fullscreen = fullscreen.isOn,
+                            detail = state.detail,
+                            stats = stats,
+                            followState = followState,
+                            comments = commentsState,
+                            suggestions = suggestions,
+                            listState = listState,
+                            // La vue vidéo est à la racine de la couche : ici, seulement sa place.
+                            player = { Spacer(Modifier.fillMaxWidth().aspectRatio(16f / 9f)) },
+                            onChannelClick = { leaving { onChannelClick(video.channel.id) } },
+                            onFollowClick = { requireLogin(viewModel.follow::toggle) },
+                            onNotificationLevelSelect = viewModel.follow::selectNotificationLevel,
+                            onLikeClick = { requireLogin(viewModel::toggleLike) },
+                            onDislikeClick = { requireLogin(viewModel::toggleDislike) },
+                            onSaveClick = { requireLogin { showSaveSheet = true } },
+                            download = download,
+                            onDownloadClick = {
+                                requireLogin {
+                                    when {
+                                        download != null -> leaving(onOpenDownloads)
+                                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                                            PackageManager.PERMISSION_GRANTED ->
+                                            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        else -> viewModel.startDownload()
+                                    }
+                                }
+                            },
+                            onShareClick = { sharing.share(video) },
+                            onCommentsClick = { showComments = true },
+                            onSuggestionClick = viewModel::open,
+                        )
+                    }
+                }
+            }
+            if (showSaveSheet) {
+                SaveToPlaylistSheet(videoId = id, onDismiss = { showSaveSheet = false })
+            }
+            if (showPlayerMenu) {
+                PlayerMenuSheet(
+                    qualities = qualities.map { it.size },
+                    selectedQuality = selectedQuality,
+                    onQualitySelected = {
+                        viewModel.selectQuality(it)
+                        showPlayerMenu = false
+                    },
+                    hasSubtitles = detail?.subtitleUrl != null,
+                    subtitlesEnabled = subtitlesEnabled,
+                    onSubtitlesChange = viewModel::setSubtitlesEnabled,
+                    autoplayEnabled = autoplayEnabled,
+                    onAutoplayChange = viewModel::onAutoplayChange,
+                    onDismiss = { showPlayerMenu = false },
+                )
+            }
+            if (showComments && detail != null) {
                 CommentsSheet(
                     state = commentsState,
-                    controller = viewModel.comments,
+                    controller = commentsController,
                     isLoggedIn = isLoggedIn,
-                    onLoginRequired = onLoginRequired,
+                    onLoginRequired = { leaving(onLoginRequired) },
                     onDismiss = { showComments = false },
                 )
+            }
+        } else if (miniVisible) {
+            // Masqué sur les écrans plein espace et sous le clavier : sa barre n'est pas dessinée,
+            // pas seulement la vue vidéo envoyée hors écran (ADR-024).
+            MiniPlayerBar(
+                detail = detail,
+                isPlaying = isPlaying,
+                // Une annonce en pause attend le plein lecteur : lecture/pause le redéploie.
+                onTogglePlay = { if (adState != null) viewModel.expand() else viewModel.togglePlayback() },
+                onExpand = viewModel::expand,
+                onClose = viewModel::close,
+                modifier = Modifier.align(Alignment.BottomStart),
+            )
+        }
+
+        // La seule vue vidéo : au-dessus de l'écran de lecture ou du mini-lecteur, qui réservent sa
+        // place. Mini-lecteur masqué : hors de l'écran, avec la même taille, pour que sa surface
+        // ne soit pas recréée au retour.
+        val playerModifier = when {
+            expanded && fullscreen.isOn -> Modifier.size(fullWidth, fullHeight)
+            expanded -> Modifier.size(fullWidth, fullWidth * 9 / 16)
+            miniVisible -> Modifier.offset(y = fullHeight - MiniPlayerHeight).size(MiniPlayerVideoWidth, MiniPlayerHeight)
+            else -> Modifier.offset(y = fullHeight + OffscreenOffset).size(MiniPlayerVideoWidth, MiniPlayerHeight)
+        }
+        PlayerSurface(
+            compact = !expanded,
+            fullscreen = fullscreen.isOn,
+            onFullscreenToggle = fullscreen::set,
+            detail = detail,
+            player = viewModel.player,
+            showThumbnail = showThumbnail,
+            adState = adState,
+            adPlayer = viewModel.ads.player,
+            onSkipAd = viewModel.ads::skip,
+            onVisitAdSite = viewModel.ads::onVisitSite,
+            onRemoveAdsClick = {
+                viewModel.ads.onRemoveAdsClicked()
+                leaving(onRemoveAdsClick)
+            },
+            autoplay = autoplay,
+            onCancelAutoplay = viewModel::cancelAutoplay,
+            onBack = { viewModel.minimize() },
+            onExpand = viewModel::expand,
+            onClose = viewModel::close,
+            onMenuClick = { showPlayerMenu = true },
+            subtitlesEnabled = subtitlesEnabled,
+            onSubtitlesClick = { viewModel.setSubtitlesEnabled(!subtitlesEnabled) },
+            modifier = playerModifier,
+        )
+    }
+}
+
+// Mini-lecteur ancré en bas : la vidéo en petit à gauche (la vue vidéo flotte à cet emplacement),
+// puis titre, chaîne, lecture/pause et croix. Un appui rouvre l'écran de lecture, un glissement
+// latéral ferme.
+@Composable
+private fun MiniPlayerBar(
+    detail: VideoDetail?,
+    isPlaying: Boolean,
+    onTogglePlay: () -> Unit,
+    onExpand: () -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(MiniPlayerHeight)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .swipeToDismiss(onSwipeSideways = onClose),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Spacer(Modifier.width(MiniPlayerVideoWidth).fillMaxHeight())
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clickable(onClick = onExpand)
+                .padding(horizontal = 12.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = detail?.video?.title.orEmpty(),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = detail?.video?.channel?.name.orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        IconButton(onClick = onTogglePlay, enabled = detail != null) {
+            Icon(
+                painter = painterResource(if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play),
+                contentDescription = stringResource(if (isPlaying) R.string.mini_player_pause else R.string.mini_player_play),
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+        IconButton(onClick = onClose) {
+            Icon(
+                painter = painterResource(R.drawable.ic_close),
+                contentDescription = stringResource(R.string.mini_player_close),
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
+        }
+    }
+}
+
+/**
+ * Détecte un glissement vers le bas ([onSwipeDown]) ou sur le côté ([onSwipeSideways]) sans rien
+ * consommer : les contrôles de Media3 en dessous gardent leurs appuis et leurs glissements. Le
+ * geste est jugé au relâchement, s'il dépasse [SwipeThreshold] et reste net dans son axe.
+ */
+private fun Modifier.swipeToDismiss(
+    onSwipeDown: (() -> Unit)? = null,
+    onSwipeSideways: (() -> Unit)? = null,
+): Modifier = composed {
+    val thresholdPx = with(LocalDensity.current) { SwipeThreshold.toPx() }
+    val currentDown by rememberUpdatedState(onSwipeDown)
+    val currentSideways by rememberUpdatedState(onSwipeSideways)
+    pointerInput(Unit) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            var dx = 0f
+            var dy = 0f
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val change = event.changes.firstOrNull { it.id == down.id } ?: return@awaitEachGesture
+                if (!change.pressed) break
+                dx += change.positionChange().x
+                dy += change.positionChange().y
+            }
+            when {
+                dy > thresholdPx && dy > 2 * abs(dx) -> currentDown?.invoke()
+                abs(dx) > thresholdPx && abs(dx) > 2 * abs(dy) -> currentSideways?.invoke()
             }
         }
     }
@@ -313,6 +498,7 @@ private fun WatchContent(
     followState: FollowUiState?,
     comments: CommentsUiState,
     suggestions: List<Video>,
+    listState: LazyListState,
     player: @Composable () -> Unit,
     onChannelClick: () -> Unit,
     onFollowClick: () -> Unit,
@@ -328,10 +514,11 @@ private fun WatchContent(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        // Lecteur collé en haut, toujours visible pendant le défilement. En plein écran, il est seul,
-        // au même endroit : sa vue n'est pas recréée, la lecture continue sans à-coup.
+        // Place du lecteur, collée en haut, toujours visible pendant le défilement. En plein écran,
+        // il est seul : sa vue (à la racine de la couche) n'est pas recréée, la lecture continue.
         player()
         if (!fullscreen) LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -363,11 +550,15 @@ private fun WatchContent(
     }
 }
 
+// Vue vidéo unique (ADR-024) : plein lecteur en haut de l'écran de lecture, plein écran, ou vignette
+// du mini-lecteur ([compact]). Elle porte aussi les boutons et surcouches du lecteur. [detail] est
+// null pendant le chargement : la vue reste en place, noire, pour ne pas être recréée.
 @Composable
-private fun PlayerArea(
+private fun PlayerSurface(
+    compact: Boolean,
     fullscreen: Boolean,
     onFullscreenToggle: (Boolean) -> Unit,
-    detail: VideoDetail,
+    detail: VideoDetail?,
     player: Player,
     showThumbnail: Boolean,
     adState: AdPlaybackState?,
@@ -378,29 +569,44 @@ private fun PlayerArea(
     autoplay: AutoplayCountdown?,
     onCancelAutoplay: () -> Unit,
     onBack: () -> Unit,
+    onExpand: () -> Unit,
+    onClose: () -> Unit,
     onMenuClick: () -> Unit,
     subtitlesEnabled: Boolean,
     onSubtitlesClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     // Surcouche de nos boutons : en plein écran, elle suit la barre de contrôle de Media3, affichée
-    // d'un appui et masquée au second ou après 3 secondes ; en portrait, toujours visible.
+    // d'un appui et masquée au second ou après 3 secondes ; en portrait, toujours visible. Aucune
+    // en mini-lecteur.
     var controlsVisible by remember { mutableStateOf(false) }
-    val showOverlay = !fullscreen || controlsVisible
+    val showOverlay = !compact && (!fullscreen || controlsVisible)
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (fullscreen) Modifier.fillMaxSize() else Modifier.aspectRatio(16f / 9f))
-            .background(Color.Black),
+        // Glissement vers le bas : sort du plein écran, sinon réduit (jamais pendant une annonce,
+        // ADR-021). En mini-lecteur, un glissement latéral ferme.
+        modifier = modifier
+            .background(Color.Black)
+            .swipeToDismiss(
+                onSwipeDown = if (!compact && adState == null) {
+                    { if (fullscreen) onFullscreenToggle(false) else onBack() }
+                } else {
+                    null
+                },
+                onSwipeSideways = if (compact) onClose else null,
+            ),
         contentAlignment = Alignment.Center,
     ) {
-        if (detail.videoUrl != null) {
+        if (detail == null || detail.videoUrl != null) {
             VideoPlayer(
                 player = player,
                 fullscreen = fullscreen,
+                compact = compact,
                 onFullscreenToggle = onFullscreenToggle,
                 onControlsVisibilityChange = { controlsVisible = it },
                 modifier = Modifier.fillMaxSize(),
             )
+        }
+        if (detail != null && detail.videoUrl != null) {
             // Miniature par-dessus le lecteur tant que la première image n'est pas affichée : au
             // lancement, et au retour d'une autre application, pendant que la vidéo se recharge.
             // Un écran noir ferait croire à un plantage.
@@ -413,15 +619,15 @@ private fun PlayerArea(
                 )
             }
             // Publicité avant la vidéo (ADR-021), en plein lecteur et sans contrôle de lecture.
-            if (adState != null) {
+            if (adState != null && !compact) {
                 AdPlaybackOverlay(adState, adPlayer, onSkipAd, onRemoveAdsClick, onVisitAdSite, Modifier.fillMaxSize())
             }
-            if (autoplay != null) {
+            if (autoplay != null && !compact) {
                 AutoplayOverlay(autoplay, onCancelAutoplay, Modifier.fillMaxSize())
             }
-            // Pendant l'annonce en plein écran, rien d'autre qu'« Ignorer » et la bande de l'annonce.
-            if (showOverlay && (!fullscreen || adState == null)) {
-                // En plein écran, la flèche sort du plein écran avant de quitter la vidéo, comme Retour.
+            // Pendant une annonce, ni flèche ni glissement : elle ne se réduit jamais (ADR-021).
+            if (showOverlay && adState == null) {
+                // En plein écran, la flèche sort du plein écran avant de réduire, comme Retour.
                 BackTopBar(
                     title = "",
                     onBack = if (fullscreen) ({ onFullscreenToggle(false) }) else onBack,
@@ -454,7 +660,7 @@ private fun PlayerArea(
                     )
                 }
             }
-        } else {
+        } else if (detail != null && !compact) {
             // Le serveur n'a pas donné l'URL : accès refusé, par exemple vidéo Premium.
             Text(
                 text = stringResource(R.string.watch_premium_only),
@@ -463,6 +669,10 @@ private fun PlayerArea(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(24.dp),
             )
+        }
+        // Mini-lecteur : un appui sur la vignette rouvre l'écran de lecture.
+        if (compact) {
+            Box(Modifier.fillMaxSize().clickable(onClick = onExpand))
         }
     }
 }
@@ -510,6 +720,7 @@ private fun AutoplayOverlay(countdown: AutoplayCountdown, onCancel: () -> Unit, 
 private fun VideoPlayer(
     player: Player,
     fullscreen: Boolean,
+    compact: Boolean,
     onFullscreenToggle: (Boolean) -> Unit,
     onControlsVisibilityChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -537,8 +748,12 @@ private fun VideoPlayer(
                 findViewById<View>(androidx.media3.ui.R.id.exo_settings)?.visibility = View.GONE
             }
         },
-        update = { view -> view.setFullscreenButtonState(fullscreen) },
-        // La vue est détachée du lecteur quand elle quitte l'écran ; le lecteur, lui, reste au ViewModel.
+        update = { view ->
+            view.setFullscreenButtonState(fullscreen)
+            // Mini-lecteur : pas de barre de contrôle, la vue ne fait qu'afficher l'image.
+            view.useController = !compact
+        },
+        // La vue est détachée du lecteur à la fermeture ; le lecteur, lui, reste au ViewModel.
         onRelease = { view -> view.player = null },
         modifier = modifier,
     )
@@ -557,17 +772,18 @@ private class FullscreenState(val isOn: Boolean, private val onSet: (Boolean) ->
  * téléphone soit de nouveau tenu droit : sinon, tenu à l'horizontale, il repasserait aussitôt en
  * paysage. De même, le bouton d'entrée verrouille le paysage jusqu'à ce que le téléphone soit
  * tourné de côté. Barres du système masquées en plein écran ; tout est rétabli en quittant l'écran.
+ * [enabled] faux (mini-lecteur) : jamais de plein écran, quelle que soit l'orientation.
  */
 @Composable
-private fun rememberFullscreen(): FullscreenState {
+private fun rememberFullscreen(enabled: Boolean): FullscreenState {
     val activity = LocalActivity.current
-    val isOn = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isOn = enabled && LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val set: (Boolean) -> Unit = { on ->
         activity?.requestedOrientation =
             if (on) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     }
     BackHandler(enabled = isOn) { set(false) }
-    if (activity != null) {
+    if (activity != null && enabled) {
         LaunchedEffect(isOn) {
             val controller = WindowCompat.getInsetsController(activity.window, activity.window.decorView)
             if (isOn) {
@@ -943,6 +1159,7 @@ private fun WatchContentPreview() {
                 previewVideo("2", "Le ballet des méduses", "Studio Libre", 2_300, 7),
                 previewVideo("3", "Une demi-minute en ville", "Carnet de Route", 980, 12),
             ),
+            listState = rememberLazyListState(),
             player = { Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black)) },
             onChannelClick = {},
             onFollowClick = {},

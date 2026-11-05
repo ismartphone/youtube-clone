@@ -81,6 +81,12 @@ class FollowController(
         _state.value = FollowUiState(status.followerCount, status.isFollowing, canFollow, notificationLevel = status.notificationLevel)
     }
 
+    /** Oublie la chaîne affichée (l'écran de lecture passe à une autre vidéo). */
+    fun clear() {
+        channelId = null
+        _state.value = null
+    }
+
     /** À n'appeler qu'avec une session ouverte : sinon l'écran redirige vers la connexion. */
     fun toggle() {
         val id = channelId ?: return

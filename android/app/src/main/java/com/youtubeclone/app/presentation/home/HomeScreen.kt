@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
@@ -62,6 +64,7 @@ import com.youtubeclone.app.presentation.ads.SponsoredAdCard
 import com.youtubeclone.app.presentation.channel.PostCard
 import com.youtubeclone.app.presentation.common.AppLogo
 import com.youtubeclone.app.presentation.common.ErrorState
+import com.youtubeclone.app.presentation.common.LocalNowPlayingActive
 import com.youtubeclone.app.presentation.common.MessageState
 import com.youtubeclone.app.presentation.common.VideoListSkeleton
 import com.youtubeclone.app.presentation.common.rememberStaggeredAppearance
@@ -116,7 +119,14 @@ fun HomeScreen(
     val adMuted by viewModel.adPreview.muted.collectAsStateWithLifecycle()
     val adFirstFrameShown by viewModel.adPreview.firstFrameShown.collectAsStateWithLifecycle()
     // Fil quitté (autre onglet, autre écran, arrière-plan) : la vidéo du bandeau s'arrête.
-    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onFeedShown(true) }
+    // Un lecteur ouvert (écran de lecture ou mini-lecteur, ADR-024) suspend aussi le bandeau : deux
+    // vidéos en même temps, c'est deux décodeurs.
+    val nowPlaying by rememberUpdatedState(LocalNowPlayingActive.current)
+    LifecycleEventEffect(Lifecycle.Event.ON_START) { viewModel.onFeedShown(!nowPlaying) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(nowPlaying) {
+        viewModel.onFeedShown(!nowPlaying && lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED))
+    }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onFeedShown(false) }
     val filters by viewModel.filters.collectAsStateWithLifecycle()
     val account by viewModel.account.collectAsStateWithLifecycle()

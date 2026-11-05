@@ -81,6 +81,12 @@ private val TOPICS = listOf(
             Faq(R.string.help_subtitles_missing_q, R.string.help_subtitles_missing_a),
         ),
     ),
+    HelpTopic(
+        R.string.help_topic_player,
+        listOf(
+            Faq(R.string.help_mini_player_q, R.string.help_mini_player_a),
+        ),
+    ),
 )
 
 /** Aide, ouverte depuis Vous : questions fréquentes par sujet, la réponse se déplie au toucher. */
