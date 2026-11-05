@@ -29,14 +29,14 @@ docs/adr/     décisions d'architecture
 
 **Android** — Kotlin, Jetpack Compose, Media3 ExoPlayer (lecture vidéo), Room (cache local),
 Retrofit (API), OkHttp WebSocket (temps réel), Coil (images), Hilt (injection), Navigation Compose, DataStore,
-Firebase Cloud Messaging (notifications de publication, ADR-020).
+Firebase Cloud Messaging (notifications de publication, ADR-020), Stripe PaymentSheet (paiement Premium, ADR-014 ; achats du live shopping, ADR-029).
 Architecture **MVVM + Clean Architecture** : `presentation/` · `domain/` · `data/`.
 minSdk 26.
 
 **Backend** — NestJS (TypeScript), PostgreSQL, Prisma, Redis (cache, sessions, compteurs),
-passerelle WebSocket NestJS, firebase-admin (envoi des notifications FCM). Stockage vidéo : dossier local en développement, Cloudflare R2 + CDN au déploiement.
+passerelle WebSocket NestJS, firebase-admin (envoi des notifications FCM), Stripe en mode test (Premium, ADR-014 ; achats du live shopping, ADR-029). Stockage vidéo : dossier local en développement, Cloudflare R2 + CDN au déploiement.
 Architecture **hexagonale, monolithe modulaire** : `domain/` · `application/` · `infrastructure/` · `interfaces/`.
-Modules : auth, channels (dont les abonnements), videos, comments, premium, realtime, playlists, notifications, ads, messaging.
+Modules : auth, channels (dont les abonnements), videos, comments, premium, realtime, playlists, notifications, ads, messaging, lives, products (les deux derniers : ADR-029).
 
 **Back-office** — Next.js (TypeScript), Tailwind CSS.
 Architecture **MVC** : `app/` · `controllers/` · `models/` · `views/` · `services/`.
@@ -47,7 +47,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 ## Modèle de données
 
-`USER` · `CHANNEL` · `VIDEO` · `CATEGORY` · `COMMENT` · `LIKE` · `FOLLOW` · `PREMIUM_SUBSCRIPTION` · `WATCH_HISTORY` · `POST` · `PLAYLIST` · `PLAYLIST_ITEM` · `DEVICE_TOKEN` · `AD` · `COMMENT_LIKE` · `CONVERSATION` · `MESSAGE`
+`USER` · `CHANNEL` · `VIDEO` · `CATEGORY` · `COMMENT` · `LIKE` · `FOLLOW` · `PREMIUM_SUBSCRIPTION` · `WATCH_HISTORY` · `POST` · `PLAYLIST` · `PLAYLIST_ITEM` · `DEVICE_TOKEN` · `AD` · `COMMENT_LIKE` · `CONVERSATION` · `MESSAGE` · `LIVE` · `PRODUCT` · `LIVE_MESSAGE` · `LIVE_PURCHASE` · `LIVE_RESTRICTION` (les cinq dernières : ADR-029 ; `LIVE_RESTRICTION` n'est créée qu'à l'étape 4)
 
 - `LIKE.type` vaut `LIKE` ou `DISLIKE` : « J'aime » et « Je n'aime pas » s'excluent (ADR-019).
 - `FOLLOW` = abonnement **gratuit** à une chaîne. `PREMIUM_SUBSCRIPTION` = abonnement **payant**. Ne jamais confondre les deux.
@@ -58,6 +58,7 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 - `COMMENT.parentId` porte les réponses, sur un seul niveau : une réponse à une réponse est rangée sous le commentaire de premier niveau. `COMMENT_LIKE` = avis sur un commentaire (`LIKE` ou `DISLIKE`, un par utilisateur) ; seuls les « j'aime » sont comptés, dans `COMMENT.likeCount`. `COMMENT.creatorHeartedAt` = cœur du propriétaire de la chaîne (ADR-023).
 - `CONVERSATION` = conversation à deux, une seule par paire (identifiants rangés dans l'ordre) ; `MESSAGE` = message de 2000 caractères au plus, ni modifié ni supprimé ; `MESSAGE.videoId` = vidéo partagée, sans clé étrangère (supprimée, elle s'affiche « indisponible »), sa carte construite à chaque lecture pour celui qui lit. Lu / non lu par une date de lecture par participant sur `CONVERSATION`. `USER.messageNotificationsEnabled` = réglage « Notifications de messages » (ADR-025).
 - Préférences de l'appareil (DataStore `preferences` de l'application, hors base) ajoutées par l'ADR-028 : `preferred_format` (`LONG` ou `SHORT`, absent sans choix) décide de l'onglet d'arrivée à chaque ouverture, choisi à l'étape 5 de l'onboarding et modifiable dans Paramètres ; `onboarding_feedback` = réglage « Sons et vibrations ».
+- Live shopping (ADR-029) : `LIVE` = live d'une chaîne (titre, `videoId` = vidéo du catalogue utilisée comme flux, état `LIVE` ou `ENDED`, début, produit épinglé) ; un seul live en cours par chaîne, démarrage gardé côté serveur à 50 abonnés (`FOLLOW`). `PRODUCT` = produit rattaché à une chaîne (nom, prix en centimes, image en chemin relatif, description), géré depuis le back-office. `LIVE_MESSAGE` = message du chat d'un live (`CHAT`) ou annonce d'achat écrite par le serveur (`PURCHASE`), jamais le montant ni le moyen de paiement ; distinct de `COMMENT` et de `MESSAGE`. `LIVE_PURCHASE` = achat pendant un live, nom du produit et montant recopiés, référence du paiement unique (usage unique, vérifiée côté serveur comme `PREMIUM_SUBSCRIPTION.purchaseToken`). `LIVE_RESTRICTION` = bannissement ou masquage d'une personne dans un live (étape 4, migration Prisma de l'étape 4 seulement). Les spectateurs ne sont pas stockés : ils sont comptés d'après la salle WebSocket du live.
 - `VIDEO.isPremium` marque les vidéos exclusives. L'accès est **toujours vérifié côté serveur**, jamais seulement dans l'application.
 - La base ne stocke que l'URL ou le chemin relatif des fichiers, jamais les fichiers eux-mêmes.
 
@@ -67,7 +68,9 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 **Ensuite** — « j'aime », commentaires en temps réel, offre payante, mesures et test A/B, recherche, historique.
 
-**Hors périmètre** — version iOS, live, monétisation des créateurs, mot de passe oublié, tendances, signalement, « à regarder plus tard ».
+**Live shopping (ADR-029)** — entre dans le périmètre et lève l'ancienne exclusion du « live ». Démarrer un live depuis l'onglet « En direct » (chaîne de 50 abonnés au moins), le regarder avec chat, compteur de spectateurs et réactions, produit épinglé et achat Stripe en mode test, modération par le diffuseur (bonus), pages Produits et Lives du back-office. Plan en quatre étapes, un commit par étape : 1) démarrer et regarder avec chat et compteur ; 2) réactions ; 3) produit épinglé et achat ; 4) modération (saute si le temps manque). Le flux d'un live est un fichier existant du catalogue, lu en boucle et présenté comme un direct ; tout le reste est réel et tourne sur notre serveur.
+
+**Hors périmètre** — version iOS, capture caméra et diffusion réelle d'un live (le live shopping, lui, est dans le périmètre : ADR-029), monétisation des créateurs, mot de passe oublié, tendances, signalement, « à regarder plus tard ».
 
 ## Conventions
 

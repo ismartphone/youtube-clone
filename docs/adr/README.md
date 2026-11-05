@@ -32,3 +32,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-026](ADR-026-miniatures-floutees-premium.md) | Miniatures floutées des vidéos Premium pour les comptes sans abonnement | Accepté |
 | [ADR-027](ADR-027-adresse-serveur-configurable.md) | Adresse du serveur configurable dans l'application Android (version debug) | Accepté |
 | [ADR-028](ADR-028-onboarding-parcours-etapes.md) | Onboarding : parcours d'accueil en étapes décrites par des données | Accepté |
+| [ADR-029](ADR-029-live-shopping.md) | Live shopping : direct simulé sur un fichier du catalogue, chat, produit épinglé et achat en direct (lève l'exclusion du « live » de CLAUDE.md et de l'ADR-015) | Accepté |
