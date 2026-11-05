@@ -258,6 +258,9 @@
     <string name="help_subtitles_how_q">Comment afficher les sous-titres ?</string>
     <string name="help_subtitles_how_a">Pendant la lecture d\'une vidéo, appuyez sur le bouton CC en haut du lecteur, ou ouvrez le menu du lecteur. Les sous-titres sont générés automatiquement à partir de la parole.</string>
     <string name="help_subtitles_missing_q">Pourquoi certaines vidéos n\'ont-elles pas de sous-titres ?</string>
+    <string name="help_topic_player">Lecture</string>
+    <string name="help_mini_player_q">Comment continuer à regarder une vidéo en naviguant ?</string>
+    <string name="help_mini_player_a">Pendant la lecture, faites glisser la vidéo vers le bas, ou appuyez sur Retour : elle se réduit en bas de l\'écran, au-dessus des onglets, sans s\'interrompre. Naviguez ensuite normalement. Appuyez sur le mini-lecteur pour rouvrir la vidéo à l\'endroit exact ; la croix, ou un glissement sur le côté, l\'arrête. Une annonce ne peut pas être réduite. Le mini-lecteur s\'efface dans les Shorts, pendant une publication et sur l\'offre Premium : la vidéo est alors mise en pause, puis reprend à votre retour.</string>
     <string name="help_subtitles_missing_a">Les sous-titres sont préparés quelques instants après la publication. Les vidéos sans parole, les chansons et certaines langues n\'en reçoivent pas. Ils ne s\'affichent pas dans les Shorts.</string>
     <string name="you_history_empty_title">Aucune vidéo regardée</string>
     <string name="you_history_empty_message">Les vidéos que vous regardez apparaîtront ici.</string>
@@ -403,6 +406,9 @@
 
     <!-- Menu du lecteur (ADR-017) -->
     <string name="player_menu">Menu du lecteur</string>
+    <string name="mini_player_play">Lecture</string>
+    <string name="mini_player_pause">Pause</string>
+    <string name="mini_player_close">Fermer le lecteur</string>
     <string name="player_menu_quality">Qualité</string>
     <string name="player_menu_quality_auto">Auto</string>
     <string name="player_menu_quality_value">%1$dp</string>

@@ -7,6 +7,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -33,6 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,7 +84,9 @@ import com.youtubeclone.app.presentation.shorts.ShortsScreen
 import com.youtubeclone.app.presentation.subscriptions.SubscriptionsScreen
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
-import com.youtubeclone.app.presentation.watch.WatchScreen
+import com.youtubeclone.app.presentation.watch.MiniPlayerHeight
+import com.youtubeclone.app.presentation.watch.NowPlayingLayer
+import com.youtubeclone.app.presentation.watch.WatchViewModel
 import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
 
@@ -94,7 +101,6 @@ import kotlinx.serialization.Serializable
 @Serializable data object SubscriptionsRoute
 @Serializable data object SettingsRoute
 @Serializable data object SearchRoute
-@Serializable data class WatchRoute(val videoId: String)
 // Publicité du bandeau sponsorisé, lue en plein lecteur (ADR-021).
 @Serializable data class AdPlayerRoute(
     val adId: String,
@@ -141,7 +147,6 @@ private val FULL_SCREEN_ROUTES = listOf(
     ConversationsRoute::class,
     NewConversationRoute::class,
     ConversationRoute::class,
-    WatchRoute::class,
     AdPlayerRoute::class,
     ShortsPlayerRoute::class,
     PaywallRoute::class,
@@ -153,6 +158,16 @@ private val FULL_SCREEN_ROUTES = listOf(
     CreateChannelRoute::class,
     CustomizeChannelRoute::class,
     ComposePostRoute::class,
+)
+
+// Écrans qui prennent la place du mini-lecteur : il s'efface et la lecture se met en pause (ADR-024).
+private val PLAYER_HIDDEN_ROUTES = listOf(
+    ShortsRoute::class,
+    ShortsPlayerRoute::class,
+    PublishVideoRoute::class,
+    PaywallRoute::class,
+    AdPlayerRoute::class,
+    OfflinePlayerRoute::class,
 )
 
 private enum class Tab(
@@ -179,16 +194,37 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
     TrackScreens(navController)
+    // Lecteur en cours (ADR-024) : lié à l'activité, partagé par l'écran de lecture et le mini-lecteur.
+    val watchViewModel: WatchViewModel = hiltViewModel()
+    val nowPlayingId by watchViewModel.currentVideoId.collectAsStateWithLifecycle()
+    val nowExpanded by watchViewModel.expanded.collectAsStateWithLifecycle()
+    val screenTracking: ScreenTrackingViewModel = hiltViewModel()
+    LaunchedEffect(nowPlayingId) { if (nowPlayingId != null) screenTracking.onScreen("Watch") }
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    // Ouvrir une vidéo : l'écran de lecture se déploie par-dessus la navigation, qui reste en place.
+    // Le clavier d'une recherche est fermé, sinon il resterait ouvert sous l'écran de lecture.
+    val openVideo = { videoId: String ->
+        focusManager.clearFocus()
+        keyboard?.hide()
+        watchViewModel.open(videoId)
+    }
     LaunchedEffect(openLoginAtStart) {
         if (openLoginAtStart) {
             navController.navigate(LoginRoute())
             onLoginOpened()
         }
     }
-    // Appui sur une notification de publication : la vidéo s'ouvre par-dessus l'écran courant.
+    // Appui sur une notification de publication : la vidéo s'ouvre par-dessus l'écran courant. Depuis
+    // un écran plein espace (Shorts, publication, paywall...), on revient d'abord au fil : sinon ses
+    // vidéos continueraient de jouer sous l'écran de lecture.
     LaunchedEffect(notifiedVideoId) {
         if (notifiedVideoId != null) {
-            navController.navigate(WatchRoute(notifiedVideoId))
+            val destination = navController.currentDestination
+            if (destination != null && PLAYER_HIDDEN_ROUTES.any { destination.hasRoute(it) }) {
+                navController.navigate(HomeRoute) { popUpTo(navController.graph.id) { inclusive = true } }
+            }
+            openVideo(notifiedVideoId)
             onNotifiedVideoOpened()
         }
     }
@@ -201,8 +237,25 @@ fun AppNavigation(
     }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
-    // L'écran de lecture et les formulaires de compte occupent tout l'écran, sans barre d'onglets.
-    val showBottomBar = FULL_SCREEN_ROUTES.none { currentDestination?.hasRoute(it) == true }
+    // L'écran de lecture déployé et les formulaires de compte occupent tout l'écran, sans barre d'onglets.
+    val showBottomBar = FULL_SCREEN_ROUTES.none { currentDestination?.hasRoute(it) == true } &&
+        !(nowPlayingId != null && nowExpanded)
+    // Écran plein espace (Shorts, publication, paywall, annonce du bandeau, hors ligne) : le
+    // mini-lecteur s'efface, et la lecture se met en pause. Le lecteur hors ligne le ferme.
+    val onHiddenRoute = PLAYER_HIDDEN_ROUTES.any { currentDestination?.hasRoute(it) == true }
+    val onOfflineRoute = currentDestination?.hasRoute(OfflinePlayerRoute::class) == true
+    LaunchedEffect(onHiddenRoute, nowExpanded) { watchViewModel.setSuppressed(onHiddenRoute && !nowExpanded) }
+    LaunchedEffect(onOfflineRoute) { if (onOfflineRoute) watchViewModel.close() }
+    // Le clavier ouvert (recherche, conversation) masque aussi le mini-lecteur : il couvrirait le champ.
+    val imeOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val miniVisible = !onHiddenRoute && !imeOpen
+    val miniInset = if (nowPlayingId != null && !nowExpanded && miniVisible) MiniPlayerHeight else 0.dp
+    // Actions de l'écran de lecture et des écrans, partagées hors du graphe de navigation.
+    val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
+    val openLogin = { navController.navigate(LoginRoute()) }
+    val openPaywall = { navController.navigate(PaywallRoute()) }
+    // « Envoyer à », puis « Rechercher quelqu'un d'autre » (ADR-025, étape 2).
+    val shareToSomeone = { videoId: String -> navController.navigate(NewConversationRoute(shareVideoId = videoId)) }
     val reduceMotion = LocalReduceMotion.current
     val transitions = remember(reduceMotion) {
         NavTransitions(tabRoutes = Tab.entries.map { it.routeClass }, reduceMotion = reduceMotion)
@@ -223,6 +276,7 @@ fun AppNavigation(
     LaunchedEffect(accountsViewModel) {
         accountsViewModel.accountChanged.collect {
             showAccountSheet = false
+            watchViewModel.close()
             navController.navigate(HomeRoute) { popUpTo(navController.graph.id) { inclusive = true } }
             listOf(ShortsRoute, SubscriptionsRoute, YouRoute).forEach { navController.clearBackStack(it) }
         }
@@ -286,19 +340,13 @@ fun AppNavigation(
         NavHost(
             navController = navController,
             startDestination = HomeRoute,
-            modifier = Modifier.padding(innerPadding),
+            modifier = Modifier.padding(innerPadding).padding(bottom = miniInset),
             enterTransition = transitions.enter,
             exitTransition = transitions.exit,
             popEnterTransition = transitions.popEnter,
             popExitTransition = transitions.popExit,
         ) {
-            val openVideo = { videoId: String -> navController.navigate(WatchRoute(videoId)) }
-            val openChannel = { channelId: String -> navController.navigate(ChannelRoute(channelId)) }
             val openChannelPosts = { channelId: String -> navController.navigate(ChannelRoute(channelId, tab = "Posts")) }
-            val openLogin = { navController.navigate(LoginRoute()) }
-            val openPaywall = { navController.navigate(PaywallRoute()) }
-            // « Envoyer à », puis « Rechercher quelqu'un d'autre » (ADR-025, étape 2).
-            val shareToSomeone = { videoId: String -> navController.navigate(NewConversationRoute(shareVideoId = videoId)) }
 
             composable<HomeRoute> {
                 HomeScreen(
@@ -347,7 +395,7 @@ fun AppNavigation(
                     onBack = { navController.popBackStack() },
                     // Un Short partagé s'ouvre dans le lecteur des Shorts.
                     onOpenVideo = { video ->
-                        navController.navigate(if (video.isShort) ShortsPlayerRoute(video.id) else WatchRoute(video.id))
+                        if (video.isShort) navController.navigate(ShortsPlayerRoute(video.id)) else openVideo(video.id)
                     },
                 )
             }
@@ -378,11 +426,8 @@ fun AppNavigation(
                     onLoginRequired = openLogin,
                     // Achat ouvert par une vidéo exclusive : elle est rouverte à la place du paywall.
                     onPurchased = {
-                        if (videoId != null) {
-                            navController.navigate(WatchRoute(videoId)) { popUpTo<PaywallRoute> { inclusive = true } }
-                        } else {
-                            navController.popBackStack()
-                        }
+                        navController.popBackStack()
+                        if (videoId != null) openVideo(videoId)
                     },
                 )
             }
@@ -392,21 +437,6 @@ fun AppNavigation(
                     onChannelClick = openChannel,
                     onPostClick = openChannelPosts,
                     onLoginClick = openLogin,
-                )
-            }
-            composable<WatchRoute> {
-                WatchScreen(
-                    onBack = { navController.popBackStack() },
-                    onVideoClick = openVideo,
-                    onChannelClick = openChannel,
-                    onLoginRequired = openLogin,
-                    // Vidéo exclusive refusée par le serveur : le paywall prend la place de l'écran.
-                    onPremiumRequired = { videoId ->
-                        navController.navigate(PaywallRoute(videoId)) { popUpTo<WatchRoute> { inclusive = true } }
-                    },
-                    onRemoveAdsClick = openPaywall,
-                    onOpenDownloads = { navController.navigate(DownloadsRoute) },
-                    onShareToSomeone = shareToSomeone,
                 )
             }
             composable<ChannelRoute> {
@@ -515,6 +545,19 @@ fun AppNavigation(
                 )
             }
         }
+        // Écran de lecture et mini-lecteur (ADR-024) : une couche au-dessus de la navigation.
+        NowPlayingLayer(
+            miniVisible = miniVisible,
+            onChannelClick = openChannel,
+            onLoginRequired = openLogin,
+            // Vidéo exclusive refusée par le serveur : la vidéo est fermée, le paywall la remplace.
+            onPremiumRequired = { videoId -> navController.navigate(PaywallRoute(videoId)) },
+            onRemoveAdsClick = openPaywall,
+            onOpenDownloads = { navController.navigate(DownloadsRoute) },
+            onShareToSomeone = shareToSomeone,
+            modifier = Modifier.padding(innerPadding),
+            viewModel = watchViewModel,
+        )
         // Confirmation d'une publication, par-dessus l'écran d'où le créateur était parti.
         Box(
             modifier = Modifier
