@@ -37,10 +37,13 @@ Rendre l'adresse du serveur réglable dans l'application, en version debug uniqu
 - **Stockage :** l'adresse saisie est écrite dans le DataStore `preferences` (réglage de l'appareil, non secret), pas dans `session`. Elle est partagée par tous les comptes de l'appareil, comme les autres préférences (ADR-022).
 - **Une seule source de vérité :** un fournisseur d'adresse unique remplace les cinq lectures directes de `BuildConfig.API_BASE_URL` (trois Retrofit, `RealtimeSocket`, `resolveMediaUrl`). En release, il renvoie toujours la constante de compilation, sans lire de DataStore ; l'entrée de Paramètres, le lien depuis l'erreur et l'écriture de l'adresse n'existent qu'en debug.
 - **Validation de la saisie :** adresse `http://` ou `https://` avec hôte, terminée par `/` (ajoutée si absente) ; sinon refus avec un message.
-- **Réseau debug :** le HTTP doit être autorisé vers l'adresse saisie (question 3).
-- **Hors périmètre :** back-office, backend, release, liste de serveurs mémorisés, découverte automatique du serveur.
-
-Le mécanisme d'application d'un changement (à chaud ou au redémarrage), le sort de la session et l'ouverture du HTTP dépendent des questions ci-dessous.
+- **Application du changement :** au redémarrage de l'application, sans changement à chaud (décision 1 du lead).
+- **Session :** chaque changement enregistré déconnecte tous les comptes et vide la liste des comptes ; les téléchargements sont conservés (décision 2 du lead).
+- **Réseau debug :** le HTTP est autorisé vers toute adresse, en debug uniquement ; la release garde le HTTP interdit (décision 3 du lead).
+- **Contrôle des URL localhost (demande complémentaire du lead, 5 novembre) :**
+  - (a) vérifier que le catalogue (vidéos, miniatures, bannières, publicités) ne contient aucune URL absolue vers `localhost`, et convertir en chemins relatifs le cas échéant ;
+  - (b) le back-office refuse à la saisie une URL absolue vers `localhost`, avec un message clair.
+- **Hors périmètre :** backend (hors point (a) ci-dessus), release, liste de serveurs mémorisés, découverte automatique du serveur. Le back-office n'est modifié que pour le point (b).
 
 ## Alternatives
 - **Reconstruire Retrofit et OkHttp à chaud** (les API deviennent des fournisseurs qui se recréent à chaque changement) :
@@ -67,15 +70,19 @@ Le mécanisme d'application d'un changement (à chaud ou au redémarrage), le so
 ### Négatives
 - Les cinq points de lecture doivent tous passer par le fournisseur ; un oubli laisserait une partie de l'application sur l'ancien serveur.
 - Les URL absolues déjà résolues (listes en mémoire, adresse des avatars de la liste des comptes de l'ADR-022) sont périmées après un changement ; il faut recharger les écrans ou redémarrer.
-- La session émise par un serveur n'est pas valable sur un autre ; le jeton FCM n'est enregistré que sur le serveur contacté (question 2).
-- Les médias enregistrés en base avec une URL absolue `localhost` (back-office) restent injoignables depuis un téléphone.
-- Le HTTP en clair vers une adresse saisie élargit la configuration réseau debug (question 3).
+- La session émise par un serveur n'est pas valable sur un autre ; le jeton FCM n'est enregistré que sur le serveur contacté (décision 2 du lead : déconnexion de tous les comptes à chaque changement).
+- Un changement d'adresse demande un redémarrage de l'application (décision 1 du lead).
+- Les médias enregistrés en base avec une URL absolue `localhost` (back-office) restent injoignables depuis un téléphone ; d'où le contrôle du catalogue et le refus à la saisie dans le back-office (demande complémentaire du lead), qui ajoutent un travail hors de l'application Android.
+- Le HTTP en clair vers une adresse saisie élargit la configuration réseau debug (décision 3 du lead).
 - Un risque de fuite dans la release si le code n'est pas bien isolé : à vérifier en compilant la variante `release`.
 
-## Questions pour le lead
-1. **Application à chaud ou au redémarrage ?** Recommandation : au redémarrage. L'adresse est lue une fois au démarrage, ce qui couvre Retrofit, WebSocket, médias et session d'un coup, sans recréer de singleton. Le test de connexion, lui, répond immédiatement sans redémarrer. L'application à chaud demande de reconstruire les clients (alternative 1) et reste fragile pour `RealtimeSocket`.
-2. **Au changement d'adresse, déconnecter et vider ?** Recommandation : oui. Un changement d'adresse enregistré (y compris le retour à l'adresse par défaut) déconnecte tous les comptes de l'appareil (jetons et clés Keystore, comme le retrait d'un compte de l'ADR-022) et vide la liste des comptes, dont les avatars sont périmés, puis redémarre. Les téléchargements (fichiers locaux) sont conservés. Sans cela, la session paraît valide dans l'application mais est refusée par le nouveau serveur, et les comptes affichés viennent de l'ancien.
-3. **HTTP autorisé vers toute adresse en debug ?** Recommandation : oui, en debug uniquement. `network_security_config` ne sait pas autoriser « tout le réseau local » sans liste d'hôtes ; couvrir une IP locale inconnue demande `cleartextTrafficPermitted="true"` par défaut dans la config debug. La release garde le HTTP interdit. L'autre option, n'autoriser que `10.0.2.2` et une IP écrite à la compilation, annule l'intérêt de la demande.
+## Décisions du lead développeur (5 novembre 2026)
+Pour les trois points, la recommandation a été suivie.
+1. **Application au redémarrage de l'application**, sans changement à chaud. L'adresse est lue une fois au démarrage, ce qui couvre Retrofit, WebSocket, médias et session d'un coup, sans recréer de singleton. Le test de connexion, lui, répond immédiatement sans redémarrer.
+2. **Déconnexion de tous les comptes et vidage de la liste des comptes à chaque changement enregistré** (y compris le retour à l'adresse par défaut) : jetons et clés Keystore effacés, comme le retrait d'un compte de l'ADR-022, puis redémarrage. Les téléchargements (fichiers locaux) sont conservés.
+3. **HTTP autorisé vers toute adresse en debug uniquement** : `cleartextTrafficPermitted="true"` par défaut dans la config réseau debug. La release garde le HTTP interdit.
+
+Demande complémentaire du lead, le 5 novembre : (a) vérifier que le catalogue (vidéos, miniatures, bannières, publicités) ne contient aucune URL absolue vers `localhost` et convertir en chemins relatifs le cas échéant ; (b) le back-office refuse à la saisie une URL absolue vers `localhost`, avec un message clair. Voir la section « Décision ».
 
 ## Liens
 - [ADR-008](ADR-008-authentification-jwt.md) : jetons émis par un serveur précis ; session refusée par un autre.
@@ -85,3 +92,5 @@ Le mécanisme d'application d'un changement (à chaud ou au redémarrage), le so
 - [ADR-010](ADR-010-websocket-salles-compteurs.md), [ADR-004](ADR-004-temps-reel-websocket.md) : WebSocket construit sur la même adresse.
 - [ADR-002](ADR-002-hebergement-videos.md), [ADR-011](ADR-011-ffmpeg-chemins-medias.md) : chemins relatifs des médias, résolus avec l'adresse.
 - [ADR-001](ADR-001-android-natif.md) : application Android native.
+
+Amendé le 5 novembre : décisions du lead consignées ; ajout du contrôle des URL localhost (catalogue et saisie du back-office).

@@ -30,4 +30,4 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-024](ADR-024-mini-lecteur.md) | Mini-lecteur : lecteur unique remonté au niveau de l'ossature de l'application | Accepté |
 | [ADR-025](ADR-025-messagerie-utilisateurs.md) | Messagerie entre utilisateurs : conversations à deux, partage de vidéos, notifications | Accepté |
 | [ADR-026](ADR-026-miniatures-floutees-premium.md) | Miniatures floutées des vidéos Premium pour les comptes sans abonnement | Accepté |
-| [ADR-027](ADR-027-adresse-serveur-configurable.md) | Adresse du serveur configurable dans l'application Android (version debug) | Proposé |
+| [ADR-027](ADR-027-adresse-serveur-configurable.md) | Adresse du serveur configurable dans l'application Android (version debug) | Accepté |
