@@ -68,6 +68,13 @@ data class StartLiveRequestDto(val title: String, val videoId: String)
 @Serializable
 data class LiveMessageRequestDto(val content: String)
 
+@Serializable
+data class LiveReactionRequestDto(val emoji: String)
+
+/** Événement `live:reaction`. */
+@Serializable
+data class LiveReactionDto(val liveId: String, val emoji: String)
+
 /** Événement `live:viewers`. */
 @Serializable
 data class LiveViewersDto(val liveId: String, val viewerCount: Int)

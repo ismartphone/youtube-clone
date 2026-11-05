@@ -121,7 +121,13 @@ fun LiveScreen(
             is LiveUiState.Ready -> {
                 LiveVideo(current, viewModel, onBack)
                 LiveInfo(current, onEnd = { confirmEnd = true })
-                Chat(current, Modifier.weight(1f))
+                // Les émojis des réactions remontent par-dessus le chat, sans le masquer ni capter les appuis.
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    Chat(current, Modifier.fillMaxSize())
+                    if (!current.isEnded) {
+                        FloatingReactions(viewModel.reactions, Modifier.matchParentSize())
+                    }
+                }
                 if (current.isEnded) {
                     Text(
                         text = stringResource(R.string.live_chat_closed),
@@ -136,6 +142,7 @@ fun LiveScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     ) { Text(stringResource(R.string.live_chat_login)) }
                 } else {
+                    ReactionBar(onReact = viewModel::react)
                     ChatInput(draft, isSending, viewModel::onDraftChange, viewModel::send)
                 }
             }

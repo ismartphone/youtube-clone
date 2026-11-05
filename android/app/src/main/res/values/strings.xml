@@ -49,6 +49,7 @@
     <string name="live_chat_closed">Le chat est fermé : le live est terminé.</string>
     <string name="live_chat_empty">Aucun message pour l\'instant. Lancez la discussion !</string>
     <string name="live_chat_placeholder">Écrire dans le chat</string>
+    <string name="live_react">Envoyer cette réaction</string>
     <string name="live_chat_login">Se connecter pour écrire</string>
     <string name="live_end_button">Terminer</string>
     <string name="live_end_title">Terminer le live ?</string>

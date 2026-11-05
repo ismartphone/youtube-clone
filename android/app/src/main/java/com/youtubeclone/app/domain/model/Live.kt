@@ -76,6 +76,15 @@ sealed interface LiveRoomEvent {
     data class MessageReceived(val message: LiveChatMessage) : LiveRoomEvent
     data class ViewersChanged(val viewerCount: Int) : LiveRoomEvent
 
+    /** Un spectateur a réagi : [emoji] remonte à l'écran. Jamais stockée, donc jamais rejouée. */
+    data class ReactionReceived(val emoji: String) : LiveRoomEvent
+
     /** Le diffuseur a terminé le live. */
     data object Ended : LiveRoomEvent
 }
+
+/** Réactions proposées (ADR-029, D6) : la même liste fixe que celle du serveur, qui refuse tout autre émoji. */
+val LIVE_REACTIONS = listOf("❤️", "👏", "😂", "😮", "🔥", "👍")
+
+/** Plafond d'émojis affichés en même temps : au-delà, les plus anciens disparaissent. */
+const val LIVE_REACTIONS_MAX_ON_SCREEN = 12

@@ -24,6 +24,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -75,6 +76,13 @@ class LiveViewModel @Inject constructor(
 
     private val _errors = MutableSharedFlow<UiError>(extraBufferCapacity = 1)
     val errors: SharedFlow<UiError> = _errors.asSharedFlow()
+
+    /**
+     * Réactions reçues de la salle, une par émoji à faire remonter à l'écran. Rien n'est gardé :
+     * une rafale qui dépasse le tampon perd ses plus anciennes (un écran saturé n'aide personne).
+     */
+    private val _reactions = MutableSharedFlow<String>(extraBufferCapacity = 32, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    val reactions: SharedFlow<String> = _reactions.asSharedFlow()
 
     /** Lecteur du flux, propre à cet écran : le même fichier en boucle, comme un direct. */
     val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
@@ -170,6 +178,22 @@ class LiveViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Envoie une réaction : elle revient par la salle, pour tous, auteur compris (pas d'écho local,
+     * sinon elle monterait deux fois). Un refus (débit, live terminé) est ignoré en silence : un
+     * message d'erreur par émoji serait plus gênant que la réaction perdue.
+     */
+    fun react(emoji: String) {
+        viewModelScope.launch {
+            try {
+                lives.repository.sendReaction(liveId, emoji)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+        }
+    }
+
     /** Le diffuseur termine le live : la salle est prévenue, l'écran passe à « terminé ». */
     fun endLive() {
         viewModelScope.launch {
@@ -194,6 +218,7 @@ class LiveViewModel @Inject constructor(
                     hasConnectedOnce = true
                 }
                 is LiveRoomEvent.MessageReceived -> add(event.message)
+                is LiveRoomEvent.ReactionReceived -> _reactions.tryEmit(event.emoji)
                 is LiveRoomEvent.ViewersChanged -> {
                     socketViewers = event.viewerCount
                     updateReady { it.copy(viewerCount = event.viewerCount) }

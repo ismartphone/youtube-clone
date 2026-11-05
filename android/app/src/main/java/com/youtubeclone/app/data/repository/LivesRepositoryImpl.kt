@@ -5,6 +5,8 @@ import com.youtubeclone.app.data.remote.LivesApi
 import com.youtubeclone.app.data.remote.apiCall
 import com.youtubeclone.app.data.remote.dto.LiveMessageDto
 import com.youtubeclone.app.data.remote.dto.LiveMessageRequestDto
+import com.youtubeclone.app.data.remote.dto.LiveReactionDto
+import com.youtubeclone.app.data.remote.dto.LiveReactionRequestDto
 import com.youtubeclone.app.data.remote.dto.LiveViewersDto
 import com.youtubeclone.app.data.remote.dto.StartLiveRequestDto
 import com.youtubeclone.app.data.remote.dto.toDomain
@@ -40,12 +42,17 @@ class LivesRepositoryImpl @Inject constructor(
     override suspend fun sendMessage(liveId: String, content: String): LiveChatMessage =
         apiCall(json) { api.sendMessage(liveId, LiveMessageRequestDto(content)) }.toDomain()
 
+    override suspend fun sendReaction(liveId: String, emoji: String) {
+        apiCall(json) { api.sendReaction(liveId, LiveReactionRequestDto(emoji)) }
+    }
+
     override fun liveEvents(liveId: String): Flow<LiveRoomEvent> =
         socket.events("liveId" to liveId, LiveRoomEvent.Connected, ::parse)
 
     private fun parse(event: String, data: JsonObject): LiveRoomEvent? = when (event) {
         "live:message" -> LiveRoomEvent.MessageReceived(json.decodeFromJsonElement(LiveMessageDto.serializer(), data).toDomain())
         "live:viewers" -> LiveRoomEvent.ViewersChanged(json.decodeFromJsonElement(LiveViewersDto.serializer(), data).viewerCount)
+        "live:reaction" -> LiveRoomEvent.ReactionReceived(json.decodeFromJsonElement(LiveReactionDto.serializer(), data).emoji)
         "live:ended" -> LiveRoomEvent.Ended
         else -> null
     }

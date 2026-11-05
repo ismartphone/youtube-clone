@@ -5,6 +5,7 @@ import com.youtubeclone.app.data.remote.dto.LiveListDto
 import com.youtubeclone.app.data.remote.dto.LiveMessageDto
 import com.youtubeclone.app.data.remote.dto.LiveMessageListDto
 import com.youtubeclone.app.data.remote.dto.LiveMessageRequestDto
+import com.youtubeclone.app.data.remote.dto.LiveReactionRequestDto
 import com.youtubeclone.app.data.remote.dto.StartLiveRequestDto
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -31,4 +32,8 @@ interface LivesApi {
 
     @POST("lives/{id}/messages")
     suspend fun sendMessage(@Path("id") id: String, @Body body: LiveMessageRequestDto): LiveMessageDto
+
+    // Réponse 204 : la réaction n'est ni stockée ni renvoyée, elle n'arrive que par la salle.
+    @POST("lives/{id}/reactions")
+    suspend fun sendReaction(@Path("id") id: String, @Body body: LiveReactionRequestDto)
 }

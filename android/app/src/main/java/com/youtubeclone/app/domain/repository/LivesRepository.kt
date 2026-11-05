@@ -25,6 +25,9 @@ interface LivesRepository {
     /** Écrit dans le chat ; le serveur diffuse ensuite le message à la salle, auteur compris. */
     suspend fun sendMessage(liveId: String, content: String): LiveChatMessage
 
+    /** Envoie une réaction à la salle (compte connecté) ; elle revient par [liveEvents], pour tous, auteur compris. */
+    suspend fun sendReaction(liveId: String, emoji: String)
+
     /** Événements de la salle du live, tant que le flux est collecté ; sa fermeture quitte la salle. */
     fun liveEvents(liveId: String): Flow<LiveRoomEvent>
 }
