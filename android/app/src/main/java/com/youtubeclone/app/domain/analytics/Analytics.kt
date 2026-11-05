@@ -67,12 +67,27 @@ sealed class AnalyticsEvent(val name: String, val properties: Map<String, Any> =
     class CommentPosted(videoId: String) : AnalyticsEvent("comment_posted", mapOf("video_id" to videoId))
     class ChannelFollowed(channelId: String) : AnalyticsEvent("channel_followed", mapOf("channel_id" to channelId))
 
+    // Parcours d'accueil (ADR-028) : entonnoir PostHog. Seuls le numéro et le nom stable de l'étape
+    // partent, jamais les choix de l'utilisateur.
+    data object OnboardingStarted : AnalyticsEvent("onboarding_started")
+    class OnboardingStepViewed(number: Int, stepName: String) :
+        AnalyticsEvent("onboarding_step_viewed", stepProperties(number, stepName))
+    class OnboardingStepSkipped(number: Int, stepName: String) :
+        AnalyticsEvent("onboarding_step_skipped", stepProperties(number, stepName))
+    data object OnboardingCompleted : AnalyticsEvent("onboarding_completed")
+    class OnboardingAbandoned(lastNumber: Int, lastStepName: String) :
+        AnalyticsEvent("onboarding_abandoned", stepProperties(lastNumber, lastStepName))
+
     // Parcours du paywall : affiché, achat lancé, achat confirmé ou abandon. Chacun porte la
     // variante affichée, pour comparer les taux de conversion du test A/B.
-    class PaywallViewed(variant: PaywallVariant) : AnalyticsEvent("paywall_viewed", variant.toProperties())
-    class PurchaseStarted(variant: PaywallVariant) : AnalyticsEvent("purchase_started", variant.toProperties())
-    class PurchaseConfirmed(variant: PaywallVariant) : AnalyticsEvent("purchase_confirmed", variant.toProperties())
-    class PaywallDismissed(variant: PaywallVariant) : AnalyticsEvent("paywall_dismissed", variant.toProperties())
+    class PaywallViewed(variant: PaywallVariant, source: PaywallSource = PaywallSource.App) :
+        AnalyticsEvent("paywall_viewed", variant.toProperties(source))
+    class PurchaseStarted(variant: PaywallVariant, source: PaywallSource = PaywallSource.App) :
+        AnalyticsEvent("purchase_started", variant.toProperties(source))
+    class PurchaseConfirmed(variant: PaywallVariant, source: PaywallSource = PaywallSource.App) :
+        AnalyticsEvent("purchase_confirmed", variant.toProperties(source))
+    class PaywallDismissed(variant: PaywallVariant, source: PaywallSource = PaywallSource.App) :
+        AnalyticsEvent("paywall_dismissed", variant.toProperties(source))
 
     // Publicités (ADR-021) : chaque événement porte l'identifiant de la publicité. Le lien
     // « Supprimer les publicités » a un nom par emplacement, pour comparer leur conversion.
@@ -101,4 +116,17 @@ enum class AdPlacement(val key: String) {
     HomeBanner("home_banner"),
 }
 
-private fun PaywallVariant.toProperties(): Map<String, Any> = mapOf("paywall_variant" to key)
+private fun PaywallVariant.toProperties(source: PaywallSource): Map<String, Any> =
+    mapOf("paywall_variant" to key, "source" to source.key)
+
+private fun stepProperties(number: Int, stepName: String): Map<String, Any> =
+    mapOf("step_number" to number, "step_name" to stepName)
+
+/**
+ * D'où vient le paywall (ADR-028, D7) : le parcours d'accueil le montre à presque tout le monde,
+ * ce qui fausserait le taux de conversion du test A/B sans ce filtre.
+ */
+enum class PaywallSource(val key: String) {
+    App("app"),
+    Onboarding("onboarding"),
+}

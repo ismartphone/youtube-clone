@@ -46,6 +46,7 @@ import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.youtubeclone.app.R
+import com.youtubeclone.app.domain.analytics.PaywallSource
 import com.youtubeclone.app.domain.analytics.PaywallVariant
 import com.youtubeclone.app.domain.model.PaymentMode
 import com.youtubeclone.app.presentation.common.BackTopBar
@@ -65,11 +66,14 @@ fun PaywallScreen(
     onLoginRequired: () -> Unit,
     onPurchased: () -> Unit,
     modifier: Modifier = Modifier,
+    source: PaywallSource = PaywallSource.App,
+    embedded: Boolean = false,
     viewModel: PaywallViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     ErrorToast(viewModel.errors)
+    LaunchedEffect(source) { viewModel.onShown(source) }
 
     LaunchedEffect(state.isPurchased) {
         if (state.isPurchased) {
@@ -82,6 +86,7 @@ fun PaywallScreen(
         state = state,
         onSubscribeClick = { if (state.isLoggedIn) viewModel.startPurchase() else onLoginRequired() },
         onClose = onClose,
+        embedded = embedded,
         modifier = modifier,
     )
     // Mode Stripe (ADR-014) : la PaymentSheet du SDK Stripe encaisse avec la clé publiable
@@ -121,13 +126,15 @@ private fun PaywallContent(
     onSubscribeClick: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    embedded: Boolean = false,
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
-        BackTopBar(title = stringResource(R.string.premium_screen_title), onBack = onClose)
+        // Dans le parcours d'accueil, la barre de progression remplace la barre de titre (ADR-028).
+        if (!embedded) BackTopBar(title = stringResource(R.string.premium_screen_title), onBack = onClose)
         Column(
             modifier = Modifier
                 .weight(1f)

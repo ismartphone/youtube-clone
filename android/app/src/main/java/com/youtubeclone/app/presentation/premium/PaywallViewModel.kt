@@ -6,6 +6,7 @@ import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.analytics.Analytics
 import com.youtubeclone.app.domain.analytics.AnalyticsEvent
 import com.youtubeclone.app.domain.analytics.Experiments
+import com.youtubeclone.app.domain.analytics.PaywallSource
 import com.youtubeclone.app.domain.analytics.PaywallVariant
 import com.youtubeclone.app.domain.model.DataError
 import com.youtubeclone.app.domain.model.PaymentConfig
@@ -84,11 +85,14 @@ class PaywallViewModel @Inject constructor(
 
     private var paymentConfig: PaymentConfig? = null
 
+    // Origine du paywall, connue à l'affichage (onShown) ; null tant que l'écran n'est pas affiché.
+    private var source: PaywallSource? = null
+    private var dismissSent = false
+
     // Référence du paiement Stripe en cours, renvoyée au serveur une fois la PaymentSheet réglée.
     private var pendingStripeToken: String? = null
 
     init {
-        analytics.track(AnalyticsEvent.PaywallViewed(variant))
         viewModelScope.launch {
             observeSession().collect { loggedIn ->
                 _uiState.update { it.copy(isLoggedIn = loggedIn) }
@@ -113,7 +117,7 @@ class PaywallViewModel @Inject constructor(
     fun startPurchase() {
         if (_uiState.value.isBusy) return
         _uiState.update { it.copy(isBusy = true) }
-        analytics.track(AnalyticsEvent.PurchaseStarted(variant))
+        analytics.track(AnalyticsEvent.PurchaseStarted(variant, source ?: PaywallSource.App))
         viewModelScope.launch {
             try {
                 val checkout = startCheckout()
@@ -188,7 +192,7 @@ class PaywallViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val status: PremiumStatus = confirmPurchase(token)
-                if (status.isPremium) analytics.track(AnalyticsEvent.PurchaseConfirmed(variant))
+                if (status.isPremium) analytics.track(AnalyticsEvent.PurchaseConfirmed(variant, source ?: PaywallSource.App))
                 _uiState.update {
                     it.copy(isBusy = false, checkoutToken = null, isPurchased = status.isPremium)
                 }
@@ -227,11 +231,31 @@ class PaywallViewModel @Inject constructor(
         }
     }
 
-    // Écran quitté sans achat confirmé : abandon du paywall. Un membre déjà Premium n'est pas compté.
-    override fun onCleared() {
-        val state = _uiState.value
-        if (!state.isPurchased && !state.isAlreadyPremium) analytics.track(AnalyticsEvent.PaywallDismissed(variant))
+    /**
+     * L'écran est affiché : `paywall_viewed` part, une seule fois. [source] distingue le paywall du
+     * parcours d'accueil de celui de l'application (ADR-028, D7).
+     */
+    fun onShown(source: PaywallSource) {
+        if (this.source != null) return
+        this.source = source
+        analytics.track(AnalyticsEvent.PaywallViewed(variant, source))
     }
+
+    /**
+     * Écran quitté sans achat confirmé : abandon du paywall. Un membre déjà Premium n'est pas compté.
+     * Appelé explicitement à la sortie de l'écran, quel que soit le chemin (ADR-028, D5), et par
+     * [onCleared] en filet de sécurité. Idempotent : un `paywall_dismissed` au plus par affichage.
+     */
+    fun onLeft() {
+        val shownSource = source ?: return
+        if (dismissSent) return
+        val state = _uiState.value
+        if (state.isPurchased || state.isAlreadyPremium) return
+        dismissSent = true
+        analytics.track(AnalyticsEvent.PaywallDismissed(variant, shownSource))
+    }
+
+    override fun onCleared() = onLeft()
 
     private companion object {
         const val HTTP_CONFLICT = 409
