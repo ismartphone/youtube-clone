@@ -42,6 +42,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.domain.model.MAX_POST_IMAGE_BYTES
 import com.youtubeclone.app.domain.model.POST_TEXT_MAX_LENGTH
 import com.youtubeclone.app.domain.model.PostImageProblem
@@ -135,6 +136,7 @@ fun ComposePostScreen(
             }
             Button(
                 onClick = viewModel::publish,
+                colors = redButtonColors(),
                 enabled = state.canPublish,
                 modifier = Modifier.fillMaxWidth(),
             ) {

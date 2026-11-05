@@ -39,6 +39,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.YoutubeRedFill
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.domain.model.Account
 import com.youtubeclone.app.domain.model.MAX_ACCOUNTS
 
@@ -66,14 +68,14 @@ fun AccountSheet(
             title = { Text(stringResource(R.string.accounts_remove_title)) },
             text = { Text(stringResource(R.string.accounts_remove_text, account.displayName.ifBlank { account.email })) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(colors = redTextButtonColors(), onClick = {
                     onRemove(account)
                     toRemove = null
                     // Le compte actif retiré, c'est une déconnexion : la feuille se ferme.
                     if (account.isActive || accounts.size <= 1) onDismiss()
                 }) { Text(stringResource(R.string.accounts_remove)) }
             },
-            dismissButton = { TextButton(onClick = { toRemove = null }) { Text(stringResource(R.string.accounts_cancel)) } },
+            dismissButton = { TextButton(colors = redTextButtonColors(), onClick = { toRemove = null }) { Text(stringResource(R.string.accounts_cancel)) } },
         )
     }
 
@@ -94,7 +96,7 @@ fun AccountSheet(
                     modifier = Modifier.weight(1f).padding(vertical = 8.dp),
                 )
                 if (managing) {
-                    TextButton(onClick = { managing = false }) { Text(stringResource(R.string.accounts_manage_done)) }
+                    TextButton(colors = redTextButtonColors(), onClick = { managing = false }) { Text(stringResource(R.string.accounts_manage_done)) }
                 }
             }
             accounts.forEach { account ->
@@ -170,7 +172,7 @@ private fun AccountRow(account: Account, managing: Boolean, onClick: () -> Unit,
             }
         }
         when {
-            managing -> TextButton(onClick = onRemove) { Text(stringResource(R.string.accounts_remove)) }
+            managing -> TextButton(colors = redTextButtonColors(), onClick = onRemove) { Text(stringResource(R.string.accounts_remove)) }
             account.isActive -> Icon(
                 painter = painterResource(R.drawable.ic_check),
                 contentDescription = stringResource(R.string.accounts_active),
@@ -193,7 +195,7 @@ private fun AccountAvatar(account: Account) {
             modifier = modifier.background(MaterialTheme.colorScheme.surface),
         )
     } else {
-        Box(modifier = modifier.background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
+        Box(modifier = modifier.background(YoutubeRedFill), contentAlignment = Alignment.Center) {
             Text(
                 text = account.displayName.ifBlank { account.email }.take(1).uppercase(),
                 style = MaterialTheme.typography.titleMedium,

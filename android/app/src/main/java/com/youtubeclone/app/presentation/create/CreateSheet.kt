@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.domain.model.LIVE_MIN_FOLLOWERS
 import com.youtubeclone.app.domain.model.LIVE_TITLE_MAX_LENGTH
 import com.youtubeclone.app.domain.model.MAX_UPLOAD_BYTES
@@ -122,7 +124,7 @@ fun CreateSheet(
             title = { Text(stringResource(R.string.create_live_rule_title)) },
             text = { Text(stringResource(R.string.create_live_rule_message, LIVE_MIN_FOLLOWERS)) },
             confirmButton = {
-                TextButton(onClick = { showLiveRule = false }) { Text(stringResource(R.string.create_live_rule_ok)) }
+                TextButton(colors = redTextButtonColors(), onClick = { showLiveRule = false }) { Text(stringResource(R.string.create_live_rule_ok)) }
             },
         )
     }
@@ -256,7 +258,7 @@ private fun SheetMessage(
         if (isBusy) {
             CircularProgressIndicator(modifier = Modifier.size(32.dp))
         } else if (action != null) {
-            Button(onClick = onAction) { Text(action) }
+            Button(onClick = onAction, colors = redButtonColors()) { Text(action) }
         }
         if (problem != null) {
             Text(
@@ -433,6 +435,7 @@ private fun StartLiveForm(
         }
         Button(
             onClick = { onStartLive(title, selected.id) },
+            colors = redButtonColors(),
             enabled = title.isNotBlank() && !isStarting,
             modifier = Modifier.fillMaxWidth(),
         ) {

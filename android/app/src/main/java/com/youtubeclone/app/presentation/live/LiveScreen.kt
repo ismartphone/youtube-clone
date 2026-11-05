@@ -72,6 +72,10 @@ import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.YoutubeRedText
+import com.youtubeclone.app.presentation.theme.YoutubeRedFill
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.domain.model.LiveAuthor
 import com.youtubeclone.app.domain.model.LiveChatMessage
 import com.youtubeclone.app.presentation.common.ChannelAvatar
@@ -154,12 +158,12 @@ fun LiveScreen(
             title = { Text(stringResource(R.string.live_end_title)) },
             text = { Text(stringResource(R.string.live_end_message)) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(colors = redTextButtonColors(), onClick = {
                     confirmEnd = false
                     viewModel.endLive()
                 }) { Text(stringResource(R.string.live_end_confirm)) }
             },
-            dismissButton = { TextButton(onClick = { confirmEnd = false }) { Text(stringResource(R.string.live_end_cancel)) } },
+            dismissButton = { TextButton(colors = redTextButtonColors(), onClick = { confirmEnd = false }) { Text(stringResource(R.string.live_end_cancel)) } },
         )
     }
 
@@ -317,7 +321,7 @@ private fun LiveInfo(state: LiveUiState.Ready, onEnd: () -> Unit) {
             )
         }
         if (state.isBroadcaster && !state.isEnded) {
-            Button(onClick = onEnd) { Text(stringResource(R.string.live_end_button)) }
+            Button(onClick = onEnd, colors = redButtonColors()) { Text(stringResource(R.string.live_end_button)) }
         }
     }
 }
@@ -358,7 +362,7 @@ private fun ChatLine(message: LiveChatMessage) {
         Text(
             text = "\uD83D\uDED2  " + message.content,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.primary,
+            color = YoutubeRedText,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
@@ -395,7 +399,7 @@ private fun ChatAvatar(author: LiveAuthor) {
         AsyncImage(author.avatarUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier)
     } else {
         // L'initiale est décorative : le nom de l'auteur est dans le texte du message.
-        Box(modifier.background(MaterialTheme.colorScheme.primary).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
+        Box(modifier.background(YoutubeRedFill).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
             Text(
                 text = author.displayName.take(1).uppercase(),
                 style = MaterialTheme.typography.labelMedium,

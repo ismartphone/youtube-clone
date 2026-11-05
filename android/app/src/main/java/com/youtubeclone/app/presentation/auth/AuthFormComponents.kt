@@ -37,6 +37,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.presentation.common.AppLogo
 import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.UiError
@@ -163,14 +164,14 @@ internal fun AuthFooterLinks(
     onSwitchClick: () -> Unit,
     onContinueAsVisitor: () -> Unit,
 ) {
-    TextButton(onClick = onSwitchClick) {
+    TextButton(colors = redTextButtonColors(), onClick = onSwitchClick) {
         Text(
             text = stringResource(switchLabel),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    TextButton(onClick = onContinueAsVisitor) {
+    TextButton(colors = redTextButtonColors(), onClick = onContinueAsVisitor) {
         Text(
             text = stringResource(R.string.auth_continue_as_visitor),
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),

@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.domain.model.NotificationLevel
 import kotlinx.coroutines.flow.Flow
 
@@ -181,13 +182,13 @@ internal fun NotificationPermissionRequest(activations: Flow<Unit>) {
             title = { Text(stringResource(R.string.notifications_denied_title)) },
             text = { Text(stringResource(R.string.notifications_denied_message)) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(colors = redTextButtonColors(), onClick = {
                     showDenied = false
                     openNotificationSettings(context)
                 }) { Text(stringResource(R.string.notifications_open_settings)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDenied = false }) { Text(stringResource(R.string.notifications_later)) }
+                TextButton(colors = redTextButtonColors(), onClick = { showDenied = false }) { Text(stringResource(R.string.notifications_later)) }
             },
         )
     }

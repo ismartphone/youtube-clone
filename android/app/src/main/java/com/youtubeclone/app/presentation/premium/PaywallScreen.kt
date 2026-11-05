@@ -46,6 +46,7 @@ import com.stripe.android.paymentsheet.PaymentSheet
 import com.stripe.android.paymentsheet.PaymentSheetResult
 import com.stripe.android.paymentsheet.rememberPaymentSheet
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.domain.analytics.PaywallSource
 import com.youtubeclone.app.domain.analytics.PaywallVariant
 import com.youtubeclone.app.domain.model.PaymentMode
@@ -212,7 +213,7 @@ private fun PaywallContent(
                     isBusy = state.isBusy,
                     onClick = onSubscribeClick,
                 )
-                TextButton(onClick = onClose) {
+                TextButton(colors = redTextButtonColors(), onClick = onClose) {
                     Text(
                         text = stringResource(R.string.premium_later),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -337,7 +338,7 @@ private fun PaymentSheetContent(isConfirming: Boolean, onConfirm: () -> Unit, on
         )
         Spacer(Modifier.height(4.dp))
         PrimaryButton(text = stringResource(R.string.premium_sheet_confirm), isBusy = isConfirming, onClick = onConfirm)
-        TextButton(onClick = onDismiss, enabled = !isConfirming, modifier = Modifier.fillMaxWidth()) {
+        TextButton(colors = redTextButtonColors(), onClick = onDismiss, enabled = !isConfirming, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.premium_sheet_cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

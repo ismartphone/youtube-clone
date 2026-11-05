@@ -41,6 +41,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.domain.model.ChannelImageKind
 import com.youtubeclone.app.domain.model.HANDLE_MAX_LENGTH
 import com.youtubeclone.app.domain.model.HANDLE_MIN_LENGTH
@@ -181,6 +183,7 @@ fun CustomizeChannelScreen(
                     }
                     Button(
                         onClick = viewModel::save,
+                        colors = redButtonColors(),
                         enabled = form.canSave,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -240,7 +243,7 @@ private fun ImageActions(
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         OutlinedButton(onClick = onChange, enabled = enabled) { Text(changeLabel) }
         if (canRemove) {
-            TextButton(onClick = onRemove, enabled = enabled) { Text(stringResource(R.string.customize_channel_remove)) }
+            TextButton(colors = redTextButtonColors(), onClick = onRemove, enabled = enabled) { Text(stringResource(R.string.customize_channel_remove)) }
         }
     }
 }

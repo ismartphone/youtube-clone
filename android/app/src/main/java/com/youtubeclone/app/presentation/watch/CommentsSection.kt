@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.Comment
 import com.youtubeclone.app.domain.model.CommentAuthor
@@ -172,7 +173,7 @@ fun CommentsSection(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = actions.onRetry) { Text(stringResource(R.string.retry)) }
+                TextButton(colors = redTextButtonColors(), onClick = actions.onRetry) { Text(stringResource(R.string.retry)) }
             }
             state.comments.isEmpty() -> Text(
                 text = stringResource(R.string.comments_empty),
@@ -189,7 +190,7 @@ fun CommentsSection(
                     }
                 }
                 if (state.hasMore) {
-                    TextButton(onClick = actions.onLoadMore, enabled = !state.isLoadingMore) {
+                    TextButton(colors = redTextButtonColors(), onClick = actions.onLoadMore, enabled = !state.isLoadingMore) {
                         Text(stringResource(R.string.comments_load_more))
                     }
                 }
@@ -245,7 +246,7 @@ private fun CommentThread(
                 }
                 when {
                     thread.isLoading -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    thread.hasMore -> TextButton(onClick = { actions.onLoadMoreReplies(comment.id) }) {
+                    thread.hasMore -> TextButton(colors = redTextButtonColors(), onClick = { actions.onLoadMoreReplies(comment.id) }) {
                         Text(stringResource(R.string.comments_more_replies))
                     }
                 }
@@ -356,7 +357,7 @@ private fun CommentActionsRow(
                 )
             }
         }
-        TextButton(onClick = { requireLogin { actions.onReply(comment) } }) {
+        TextButton(colors = redTextButtonColors(), onClick = { requireLogin { actions.onReply(comment) } }) {
             Text(
                 text = stringResource(R.string.comments_reply),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -423,9 +424,9 @@ private fun CommentComposer(
         )
         Row {
             if (onCancel != null) {
-                TextButton(onClick = onCancel) { Text(stringResource(R.string.comments_reply_cancel)) }
+                TextButton(colors = redTextButtonColors(), onClick = onCancel) { Text(stringResource(R.string.comments_reply_cancel)) }
             }
-            TextButton(onClick = onSend, enabled = canSend) { Text(sendLabel) }
+            TextButton(colors = redTextButtonColors(), onClick = onSend, enabled = canSend) { Text(sendLabel) }
         }
     }
 }

@@ -62,6 +62,8 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.model.VideoVisibility
 import com.youtubeclone.app.presentation.common.BackTopBar
@@ -157,7 +159,7 @@ private fun PublishVideoContent(
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = onRetryCategories) { Text(stringResource(R.string.retry)) }
+                    TextButton(colors = redTextButtonColors(), onClick = onRetryCategories) { Text(stringResource(R.string.retry)) }
                 }
             }
             PublishSettings(
@@ -179,6 +181,7 @@ private fun PublishVideoContent(
             } else {
                 Button(
                     onClick = onPublish,
+                    colors = redButtonColors(),
                     enabled = state.canPublish,
                     modifier = Modifier.fillMaxWidth(),
                 ) {

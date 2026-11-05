@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.YoutubeRedFill
 import com.youtubeclone.app.domain.model.Conversation
 import com.youtubeclone.app.domain.model.Person
 import com.youtubeclone.app.presentation.common.BackTopBar
@@ -148,7 +149,7 @@ internal fun UnreadBadge(count: Int, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(YoutubeRedFill)
             .padding(horizontal = 6.dp, vertical = 1.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -172,7 +173,7 @@ internal fun PersonAvatar(person: Person, size: Dp) {
             modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),
         )
     } else {
-        Box(modifier = modifier.background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
+        Box(modifier = modifier.background(YoutubeRedFill), contentAlignment = Alignment.Center) {
             Text(
                 text = person.displayName.take(1).uppercase(),
                 style = MaterialTheme.typography.titleMedium,

@@ -16,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.presentation.settings.ServerAddressLink
 
 // États communs aux écrans qui chargent des données : chargement, message, erreur.
@@ -40,7 +41,7 @@ fun ErrorState(error: UiError, onRetry: () -> Unit, modifier: Modifier = Modifie
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             MessageText(error.asText())
-            Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+            Button(onClick = onRetry, colors = redButtonColors()) { Text(stringResource(R.string.retry)) }
             // Debug seulement (ADR-027) : lien vers le réglage de l'adresse du serveur.
             ServerAddressLink(error)
         }

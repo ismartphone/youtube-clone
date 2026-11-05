@@ -13,6 +13,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import coil3.compose.AsyncImage
+import com.youtubeclone.app.presentation.theme.YoutubeRedFill
 import com.youtubeclone.app.domain.model.Channel
 
 /** Avatar de la chaîne, ou à défaut un cercle avec l'initiale de son nom. La taille vient de [modifier]. */
@@ -33,7 +34,7 @@ fun ChannelAvatar(
     } else {
         Box(
             // L'initiale est décorative : TalkBack ne doit pas la lire (« capital T »).
-            modifier = modifier.background(MaterialTheme.colorScheme.primary, CircleShape).clearAndSetSemantics {},
+            modifier = modifier.background(YoutubeRedFill, CircleShape).clearAndSetSemantics {},
             contentAlignment = Alignment.Center,
         ) {
             Text(

@@ -19,7 +19,8 @@ private val YoutubeColorScheme = darkColorScheme(
     surfaceContainer = DarkBackground,
     secondaryContainer = DarkSurfaceVariant,
     onSecondaryContainer = TextPrimary,
-    error = YoutubeRed,
+    // Texte d'erreur (ADR-030, D1) : la variante lisible sur gris, le rouge de marque ne porte pas de texte ici.
+    error = YoutubeRedText,
 )
 
 @Composable

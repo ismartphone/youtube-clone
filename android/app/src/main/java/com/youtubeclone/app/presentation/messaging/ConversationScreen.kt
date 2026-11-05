@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.YoutubeRedFill
 import com.youtubeclone.app.domain.model.Message
 import com.youtubeclone.app.domain.model.SharedVideo
 import com.youtubeclone.app.notifications.VisibleConversation
@@ -230,7 +231,7 @@ private fun Bubble(message: Message, mine: Boolean) {
             modifier = Modifier
                 .widthIn(max = 280.dp)
                 .clip(BubbleShape)
-                .background(if (mine) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                .background(if (mine) YoutubeRedFill else MaterialTheme.colorScheme.surfaceVariant)
                 .padding(horizontal = 14.dp, vertical = 9.dp),
         )
     }

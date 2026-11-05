@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.domain.model.SubscriptionFeedItem
 import com.youtubeclone.app.presentation.channel.PostCard
 import com.youtubeclone.app.presentation.common.ErrorState
@@ -78,6 +79,6 @@ private fun LoggedOutContent(onLoginClick: () -> Unit, modifier: Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onLoginClick) { Text(stringResource(R.string.login_submit)) }
+        Button(onClick = onLoginClick, colors = redButtonColors()) { Text(stringResource(R.string.login_submit)) }
     }
 }

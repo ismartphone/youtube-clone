@@ -52,6 +52,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.domain.model.Channel
 import com.youtubeclone.app.domain.model.PlaylistSummary
 import com.youtubeclone.app.domain.model.PremiumStatus
@@ -540,7 +541,7 @@ private fun SignInPrompt(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) 
         ) {
             Text(stringResource(R.string.login_submit), fontWeight = FontWeight.Bold)
         }
-        TextButton(onClick = onRegisterClick) {
+        TextButton(colors = redTextButtonColors(), onClick = onRegisterClick) {
             Text(stringResource(R.string.you_create_account), color = MaterialTheme.colorScheme.onBackground)
         }
     }
@@ -704,13 +705,13 @@ private fun PremiumCard(premium: PremiumStatus?, onPremiumClick: () -> Unit, onC
             title = { Text(stringResource(R.string.premium_cancel_confirm_title)) },
             text = { Text(stringResource(R.string.premium_cancel_confirm_message)) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(colors = redTextButtonColors(), onClick = {
                     confirmCancel = false
                     onCancelPremium()
                 }) { Text(stringResource(R.string.premium_cancel_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmCancel = false }) { Text(stringResource(R.string.premium_cancel_keep)) }
+                TextButton(colors = redTextButtonColors(), onClick = { confirmCancel = false }) { Text(stringResource(R.string.premium_cancel_keep)) }
             },
         )
     }

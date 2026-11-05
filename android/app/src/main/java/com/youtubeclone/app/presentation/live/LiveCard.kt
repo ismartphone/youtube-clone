@@ -32,7 +32,7 @@ import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.presentation.common.ChannelAvatar
-import com.youtubeclone.app.presentation.theme.YoutubeRed
+import com.youtubeclone.app.presentation.theme.YoutubeRedFill
 
 /** Pastille rouge « EN DIRECT » (ADR-029), sur la miniature d'un live et sur son écran. */
 @Composable
@@ -42,7 +42,7 @@ fun LiveBadge(modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
         color = Color.White,
         modifier = modifier
-            .background(YoutubeRed, RoundedCornerShape(4.dp))
+            .background(YoutubeRedFill, RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }

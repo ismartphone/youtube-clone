@@ -58,6 +58,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.YoutubeRedFill
 import com.youtubeclone.app.domain.model.Category
 import com.youtubeclone.app.domain.model.Live
 import com.youtubeclone.app.domain.model.Post
@@ -372,7 +373,7 @@ private fun AccountAvatar(account: User?) {
             modifier = avatarModifier.background(MaterialTheme.colorScheme.surfaceVariant),
         )
         else -> Box(
-            modifier = avatarModifier.background(MaterialTheme.colorScheme.primary),
+            modifier = avatarModifier.background(YoutubeRedFill),
             contentAlignment = Alignment.Center,
         ) {
             Text(

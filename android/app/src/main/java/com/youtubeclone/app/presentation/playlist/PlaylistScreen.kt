@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.domain.model.PlaylistDetail
 import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.EmptyStateMessage
@@ -84,12 +85,12 @@ fun PlaylistScreen(
             title = { Text(stringResource(R.string.playlist_delete_title)) },
             text = { Text(stringResource(R.string.playlist_delete_message, playlist.title)) },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(colors = redTextButtonColors(), onClick = {
                     showDelete = false
                     viewModel.delete()
                 }) { Text(stringResource(R.string.playlist_delete)) }
             },
-            dismissButton = { TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.playlist_cancel)) } },
+            dismissButton = { TextButton(colors = redTextButtonColors(), onClick = { showDelete = false }) { Text(stringResource(R.string.playlist_cancel)) } },
         )
     }
 

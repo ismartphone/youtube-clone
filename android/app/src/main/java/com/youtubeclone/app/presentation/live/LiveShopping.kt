@@ -35,6 +35,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.domain.model.LiveProduct
 import java.text.NumberFormat
 import java.util.Currency
@@ -115,7 +117,7 @@ fun PinnedProductCard(
             if (isBroadcaster) {
                 OutlinedButton(onClick = onUnpin) { Text(stringResource(R.string.live_product_unpin)) }
             } else {
-                Button(onClick = if (isLoggedIn) onBuy else onLoginRequired, enabled = !isBuying) {
+                Button(onClick = if (isLoggedIn) onBuy else onLoginRequired, enabled = !isBuying, colors = redButtonColors()) {
                     if (isBuying) {
                         CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                     } else {
@@ -185,7 +187,7 @@ fun ProductPickerDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.live_end_cancel)) } },
+        dismissButton = { TextButton(colors = redTextButtonColors(), onClick = onDismiss) { Text(stringResource(R.string.live_end_cancel)) } },
     )
 }
 
@@ -222,7 +224,7 @@ fun SimulatedPurchaseDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm, enabled = !isConfirming) {
+            Button(onClick = onConfirm, enabled = !isConfirming, colors = redButtonColors()) {
                 if (isConfirming) {
                     CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                 } else {
@@ -231,7 +233,7 @@ fun SimulatedPurchaseDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isConfirming) { Text(stringResource(R.string.live_end_cancel)) }
+            TextButton(colors = redTextButtonColors(), onClick = onDismiss, enabled = !isConfirming) { Text(stringResource(R.string.live_end_cancel)) }
         },
     )
 }

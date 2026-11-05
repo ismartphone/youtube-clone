@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.domain.model.PLAYLIST_TITLE_MAX_LENGTH
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
@@ -128,7 +129,7 @@ fun SaveToPlaylistSheet(
                         }
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    TextButton(onClick = { showCreate = true }, modifier = Modifier.padding(horizontal = 12.dp)) {
+                    TextButton(colors = redTextButtonColors(), onClick = { showCreate = true }, modifier = Modifier.padding(horizontal = 12.dp)) {
                         Icon(painterResource(R.drawable.ic_add), contentDescription = null, modifier = Modifier.size(20.dp))
                         Text(stringResource(R.string.playlist_new), modifier = Modifier.padding(start = 8.dp))
                     }
@@ -161,8 +162,8 @@ internal fun PlaylistTitleDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(value) }, enabled = value.isNotBlank()) { Text(confirmLabel) }
+            TextButton(colors = redTextButtonColors(), onClick = { onConfirm(value) }, enabled = value.isNotBlank()) { Text(confirmLabel) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.playlist_cancel)) } },
+        dismissButton = { TextButton(colors = redTextButtonColors(), onClick = onDismiss) { Text(stringResource(R.string.playlist_cancel)) } },
     )
 }

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.theme.redButtonColors
 import com.youtubeclone.app.domain.model.HANDLE_MAX_LENGTH
 import com.youtubeclone.app.domain.model.HANDLE_MIN_LENGTH
 import com.youtubeclone.app.presentation.common.BackTopBar
@@ -116,6 +117,7 @@ fun CreateChannelScreen(
             }
             Button(
                 onClick = viewModel::create,
+                colors = redButtonColors(),
                 enabled = state.canCreate,
                 modifier = Modifier.fillMaxWidth(),
             ) {
