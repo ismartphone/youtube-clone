@@ -2,6 +2,7 @@ package com.youtubeclone.app
 
 import android.app.Application
 import com.youtubeclone.app.data.analytics.PostHogAnalytics
+import com.youtubeclone.app.data.server.ServerAddress
 import com.youtubeclone.app.domain.usecase.UnreadMessages
 import com.youtubeclone.app.notifications.PushTokenSync
 import com.youtubeclone.app.playback.download.DownloadsSync
@@ -17,6 +18,8 @@ class YoutubeCloneApp : Application() {
     @Inject lateinit var unreadMessages: UnreadMessages
 
     override fun onCreate() {
+        // Avant super.onCreate() : Hilt y crée les singletons réseau, qui lisent l'adresse du serveur (ADR-027).
+        ServerAddress.initialize(this)
         super.onCreate()
         analytics.start()
         downloadsSync.start()

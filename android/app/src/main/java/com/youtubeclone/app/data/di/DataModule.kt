@@ -1,6 +1,6 @@
 package com.youtubeclone.app.data.di
 
-import com.youtubeclone.app.BuildConfig
+import com.youtubeclone.app.data.server.ServerAddress
 import com.youtubeclone.app.data.analytics.PostHogAnalytics
 import com.youtubeclone.app.data.realtime.LiveVideoClient
 import com.youtubeclone.app.data.remote.AuthApi
@@ -89,7 +89,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(json: Json, client: OkHttpClient): Retrofit = Retrofit.Builder()
-        .baseUrl(BuildConfig.API_BASE_URL)
+        .baseUrl(ServerAddress.baseUrl)
         .client(client)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
@@ -147,7 +147,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideUploadApi(json: Json, client: OkHttpClient): UploadApi = Retrofit.Builder()
-        .baseUrl(BuildConfig.API_BASE_URL)
+        .baseUrl(ServerAddress.baseUrl)
         .client(client.newBuilder().readTimeout(UPLOAD_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS).build())
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
@@ -159,7 +159,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRefreshApi(json: Json): RefreshApi = Retrofit.Builder()
-        .baseUrl(BuildConfig.API_BASE_URL)
+        .baseUrl(ServerAddress.baseUrl)
         .client(OkHttpClient())
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()

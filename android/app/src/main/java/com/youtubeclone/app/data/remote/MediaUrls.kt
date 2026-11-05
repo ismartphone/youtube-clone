@@ -1,6 +1,6 @@
 package com.youtubeclone.app.data.remote
 
-import com.youtubeclone.app.BuildConfig
+import com.youtubeclone.app.data.server.ServerAddress
 
 /**
  * Les fichiers stockés chez nous (vidéos, miniatures générées) sont enregistrés avec un chemin relatif,
@@ -8,4 +8,4 @@ import com.youtubeclone.app.BuildConfig
  * celle utilisée par l'application (10.0.2.2 sur l'émulateur). Une URL complète est gardée telle quelle.
  */
 internal fun resolveMediaUrl(url: String): String =
-    if (url.startsWith("/")) BuildConfig.API_BASE_URL.trimEnd('/') + url else url
+    if (url.startsWith("/")) ServerAddress.baseUrl.trimEnd('/') + url else url

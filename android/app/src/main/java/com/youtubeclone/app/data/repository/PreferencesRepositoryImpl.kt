@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.map
 
 // Fichier distinct de la session (TokenStore) : ces préférences ne sont pas secrètes
 // et n'ont pas besoin d'être chiffrées.
-private val Context.preferencesDataStore by preferencesDataStore(name = "preferences")
+internal val Context.preferencesDataStore by preferencesDataStore(name = "preferences")
 
 class PreferencesRepositoryImpl @Inject constructor(
     @ApplicationContext context: Context,

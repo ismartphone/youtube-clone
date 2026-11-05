@@ -1,6 +1,6 @@
 package com.youtubeclone.app.data.realtime
 
-import com.youtubeclone.app.BuildConfig
+import com.youtubeclone.app.data.server.ServerAddress
 import com.youtubeclone.app.data.local.TokenStore
 import com.youtubeclone.app.data.remote.TokenAuthenticator
 import java.util.concurrent.TimeUnit
@@ -50,7 +50,7 @@ class RealtimeSocket @Inject constructor(
         .build()
 
     // OkHttp accepte une URL http(s) pour un WebSocket et la convertit en ws(s).
-    private val url = BuildConfig.API_BASE_URL + "realtime"
+    private val url = ServerAddress.baseUrl + "realtime"
 
     /**
      * Événements de la salle [room] (par exemple "videoId" to l'identifiant), tant que le flux est
