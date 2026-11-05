@@ -37,7 +37,11 @@ Remonter le lecteur au niveau de l'ossature de l'application, au-dessus de la na
 
 ### Cas particuliers
 - Pas de mini-lecteur pour les Shorts.
-- **Annonce (ADR-021) :** pas de réduction pendant une annonce, jamais, même une fois « Ignorer » disponible. Glissement et Retour sont ignorés pendant toute l'annonce (décision du lead).
+- **Annonce (ADR-021) :** pas de réduction pendant une annonce, jamais, même une fois « Ignorer » disponible. Glissement et Retour sont ignorés pendant toute l'annonce (décision du lead). La flèche de retour de l'écran de lecture est masquée pendant l'annonce, puisque la réduction y est refusée (validé par le lead le 5 novembre).
+- **Navigation sortante depuis l'écran de lecture :** ouvrir une chaîne, la connexion, le paywall, les téléchargements ou « Envoyer à » réduit d'abord le lecteur en mini-lecteur, sinon l'écran cible serait caché sous la couche (validé par le lead le 5 novembre). Si une annonce est en cours, elle attend alors en pause et reprend quand on touche le mini-lecteur.
+- **Notification de publication (ADR-020) :** reçue depuis un écran plein espace, elle renvoie d'abord au fil (constaté à l'implémentation).
+- **Clavier :** le mini-lecteur est masqué quand le clavier est ouvert (constaté à l'implémentation).
+- **Transition :** pas d'animation entre plein lecteur et mini-lecteur. La vue vidéo unique change de taille instantanément ; animer risquerait de recréer la surface (animation abandonnée à l'implémentation).
 - **Plein écran paysage :** le glissement vers le bas sort d'abord du plein écran, comme Retour aujourd'hui.
 - **Écrans plein espace :** le mini-lecteur est masqué sur l'onglet Shorts, la publication, le paywall et en plein écran.
 - **Premium :** il garde le son en arrière-plan comme aujourd'hui ; le mini-lecteur n'y change rien.
@@ -130,4 +134,4 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
 - [ADR-022](ADR-022-plusieurs-comptes-appareil.md) : une bascule de compte ferme le mini-lecteur.
 - [ADR-001](ADR-001-android-natif.md) : Media3 ExoPlayer et Jetpack Compose.
 
-Amendé le 5 novembre : réponses du lead aux six questions (autoplay sans enchaînement en mini-lecteur, bandeau sponsorisé suspendu) ; renvois « question N » changés en « décision N ».
+Amendé le 5 novembre : réponses du lead aux six questions (autoplay sans enchaînement en mini-lecteur, bandeau sponsorisé suspendu) ; renvois « question N » changés en « décision N » ; flèche de retour masquée pendant une annonce, navigation sortante de l'écran de lecture qui réduit d'abord en mini-lecteur (annonce en pause jusqu'à l'appui sur le mini), validées par le lead, et constats d'implémentation (notification renvoyée d'abord au fil, pas de transition animée, mini masqué avec le clavier) : précisions de comportement, la décision de fond reste inchangée.
