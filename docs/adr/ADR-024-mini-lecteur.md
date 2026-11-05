@@ -74,7 +74,7 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
   - Avantage : il ne meurt pas en réduction, donc les commentaires et l'état restent.
   - Inconvénient : les ouvertures par `WatchRoute` (notification de l'ADR-020, paywall) sont à adapter.
 - **Recommandation : option b.**
-- Dans les deux cas, la pile actuelle de vidéos (A, puis suggestion B, puis Retour vers A) disparaît : Retour réduit (question 1).
+- Dans les deux cas, la pile actuelle de vidéos (A, puis suggestion B, puis Retour vers A) disparaît : Retour réduit (décision 1).
 
 ### Ce qui change de cycle de vie
 - **Compteur de vues et historique :** enregistrés par le propriétaire du lecteur, une fois par vidéo, quel que soit l'affichage.
@@ -83,8 +83,8 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
 - **Publicité pré-roll :** l'annonce se joue dans l'écran de lecture, sans réduction possible. Son ExoPlayer distinct (`AdPlaybackController`) peut rester lié à l'écran de lecture : il est terminé avant toute réduction.
 - **Salle WebSocket :** recommandation, la fermer à la réduction et la rouvrir à la réouverture. Commentaires et compteurs ne s'affichent que dans l'écran de lecture.
 - **Libération du décodeur en arrière-plan :** elle ne dépend plus de l'écran de lecture, mais de l'activité (`ON_STOP`) dès qu'une vidéo est en cours, en plein écran comme en mini-lecteur. Les parades actuelles s'appliquent toujours à la sortie de l'application.
-- **Lecteur hors ligne (ADR-019) :** pas de mini-lecteur (question 3). L'ouvrir ferme le mini-lecteur.
-- **Écrans masqués :** quand le mini-lecteur est masqué (Shorts, publication, paywall), la lecture est mise en pause (question 4), sinon deux sons se superposent avec les Shorts.
+- **Lecteur hors ligne (ADR-019) :** pas de mini-lecteur (décision 3). L'ouvrir ferme le mini-lecteur.
+- **Écrans masqués :** quand le mini-lecteur est masqué (Shorts, publication, paywall), la lecture est mise en pause (décision 4), sinon deux sons se superposent avec les Shorts.
 
 ### Mise en œuvre
 - Ordre retenu par le lead : ADR-022 (comptes), puis ADR-023 (commentaires), puis cet ADR. Le changement de compte et les commentaires restent sur `main`.
@@ -114,7 +114,7 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
 ### Négatives
 - Refonte profonde : `WatchViewModel` est découpé entre le propriétaire du lecteur (activité) et l'écran de lecture. Vues, historique, qualité, sous-titres, lecture automatique et libération du décodeur changent de place.
 - La vue unique à la racine doit suivre exactement la zone de l'écran de lecture, y compris pendant les animations et le plein écran paysage.
-- La pile de vidéos change de comportement (question 1).
+- La pile de vidéos change de comportement (décision 1).
 - Plus de lecteurs simultanés possibles (mini-lecteur, bandeau sponsorisé, annonce) : charge sur les décodeurs, à surveiller sur l'émulateur.
 - Risque sur tous les lecteurs existants, d'où la branche dédiée et la liste de tests avant fusion.
 - L'aide (ADR-019) doit décrire le mini-lecteur.
@@ -122,7 +122,7 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
 
 ## Liens
 - [ADR-007](ADR-007-offre-premium.md) : lecture en arrière-plan Premium, conservée avec le nouveau propriétaire du lecteur.
-- [ADR-021](ADR-021-publicites-preroll-bandeau.md) : pré-roll jamais réductible ; bandeau sponsorisé à lecture automatique (question 5).
+- [ADR-021](ADR-021-publicites-preroll-bandeau.md) : pré-roll jamais réductible ; bandeau sponsorisé à lecture automatique (décision 5).
 - [ADR-010](ADR-010-websocket-salles-compteurs.md) : salle WebSocket de la vidéo, liée à l'écran de lecture visible.
 - [ADR-017](ADR-017-hls-multi-qualites-sous-titres.md) : qualités et sous-titres, réglages du lecteur partagé.
 - [ADR-019](ADR-019-je-naime-pas-telechargements-playlists-aide.md) : lecteur hors ligne, sans mini-lecteur.
@@ -130,4 +130,4 @@ Option C, `MediaSessionService` de Media3 qui possède le lecteur, et `MediaCont
 - [ADR-022](ADR-022-plusieurs-comptes-appareil.md) : une bascule de compte ferme le mini-lecteur.
 - [ADR-001](ADR-001-android-natif.md) : Media3 ExoPlayer et Jetpack Compose.
 
-Amendé le 5 novembre : réponses du lead aux six questions (autoplay sans enchaînement en mini-lecteur, bandeau sponsorisé suspendu).
+Amendé le 5 novembre : réponses du lead aux six questions (autoplay sans enchaînement en mini-lecteur, bandeau sponsorisé suspendu) ; renvois « question N » changés en « décision N ».
