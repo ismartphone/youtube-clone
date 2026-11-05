@@ -81,6 +81,8 @@ class LiveViewModel @Inject constructor(
         repeatMode = Player.REPEAT_MODE_ALL
     }
 
+    // Dernier nombre reçu par la salle : plus récent que celui d'une lecture REST partie avant notre entrée.
+    private var socketViewers: Int? = null
     private var streamLoaded = false
     private var shown = false
     private var hasConnectedOnce = false
@@ -101,7 +103,7 @@ class LiveViewModel @Inject constructor(
                     myId = myId,
                     isBroadcaster = isBroadcaster,
                     messages = messages,
-                    viewerCount = live.viewerCount,
+                    viewerCount = if (live.isLive) socketViewers ?: live.viewerCount else 0,
                     isEnded = !live.isLive,
                 )
                 if (live.isLive) startPlayback(live) else player.stop()
@@ -192,13 +194,17 @@ class LiveViewModel @Inject constructor(
                     hasConnectedOnce = true
                 }
                 is LiveRoomEvent.MessageReceived -> add(event.message)
-                is LiveRoomEvent.ViewersChanged -> updateReady { it.copy(viewerCount = event.viewerCount) }
+                is LiveRoomEvent.ViewersChanged -> {
+                    socketViewers = event.viewerCount
+                    updateReady { it.copy(viewerCount = event.viewerCount) }
+                }
                 LiveRoomEvent.Ended -> markEnded()
             }
         }
     }
 
     private fun markEnded() {
+        socketViewers = 0
         player.stop()
         updateReady { it.copy(isEnded = true, viewerCount = 0) }
     }
