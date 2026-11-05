@@ -81,7 +81,8 @@ fun SponsoredAdCard(
                 .background(Color.Black),
         ) {
             PreviewPlayer(player, Modifier.fillMaxSize())
-            // La vue vidéo est noire avant la première image : la miniature la recouvre jusque-là.
+            // La vue vidéo est noire avant la première image : la miniature la recouvre jusque-là,
+            // et pour de bon si la vidéo est abandonnée (erreur de lecture, aucune image à temps).
             if (coverWithThumbnail) {
                 AsyncImage(
                     model = ad.thumbnailUrl,

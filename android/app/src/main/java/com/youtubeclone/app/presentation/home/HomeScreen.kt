@@ -118,6 +118,7 @@ fun HomeScreen(
     val sponsoredAd by viewModel.sponsoredAd.collectAsStateWithLifecycle()
     val adMuted by viewModel.adPreview.muted.collectAsStateWithLifecycle()
     val adFirstFrameShown by viewModel.adPreview.firstFrameShown.collectAsStateWithLifecycle()
+    val adFailed by viewModel.adPreview.failed.collectAsStateWithLifecycle()
     // Fil quitté (autre onglet, autre écran, arrière-plan) : la vidéo du bandeau s'arrête.
     // Un lecteur ouvert (écran de lecture ou mini-lecteur, ADR-024) suspend aussi le bandeau : deux
     // vidéos en même temps, c'est deux décodeurs.
@@ -142,7 +143,7 @@ fun HomeScreen(
         onSearchClick = onSearchClick,
         modifier = modifier,
         sponsoredAd = sponsoredAd,
-        sponsoredAdPreview = SponsoredAdPreviewState(viewModel.adPreview.player, adMuted, !adFirstFrameShown),
+        sponsoredAdPreview = SponsoredAdPreviewState(viewModel.adPreview.player, adMuted, !adFirstFrameShown || adFailed),
         onSponsoredAdClick = viewModel::onSponsoredAdClicked,
         onSponsoredAdPlay = {
             viewModel.onSponsoredAdWatchClicked(it)

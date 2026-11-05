@@ -1,9 +1,12 @@
 package com.youtubeclone.app.presentation.ads
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.youtubeclone.app.domain.model.VideoAd
@@ -17,6 +20,11 @@ import kotlinx.coroutines.flow.asStateFlow
  * ramer le défilement. Fil quitté (autre onglet, autre écran, arrière-plan) : retour en sourdine et
  * piste vidéo coupée, ce qui libère son décodeur ; gardé pendant que la surface d'affichage est
  * détruite puis recréée, il afficherait une image corrompue au retour.
+ * Repli : si le lecteur signale une erreur, ou si aucune première image n'est rendue dans les
+ * [FIRST_FRAME_TIMEOUT_MS] qui suivent le début de la lecture, la vidéo est abandonnée et la
+ * miniature de l'annonce reste affichée ([failed]). Une image fixe vaut mieux qu'un cadre noir ou
+ * cassé en haut du fil. Cela ne détecte PAS une image corrompue produite par le décodeur : il la
+ * rend sans erreur et ce serait, pour le lecteur, une première image comme une autre.
  * Créé par un ViewModel ; [release] dans onCleared.
  */
 class SponsoredAdPreview(context: Context) {
@@ -32,13 +40,25 @@ class SponsoredAdPreview(context: Context) {
     private val _firstFrameShown = MutableStateFlow(false)
     val firstFrameShown: StateFlow<Boolean> = _firstFrameShown.asStateFlow()
 
+    // Vidéo abandonnée (erreur de lecture, ou aucune image à temps) : la miniature reste affichée.
+    private val _failed = MutableStateFlow(false)
+    val failed: StateFlow<Boolean> = _failed.asStateFlow()
+
     private var loadedAdId: String? = null
     private var visible = false
     private var feedShown = true
 
+    private val handler = Handler(Looper.getMainLooper())
+    private val firstFrameTimeout = Runnable { giveUp() }
+
     private val listener = object : Player.Listener {
         override fun onRenderedFirstFrame() {
+            handler.removeCallbacks(firstFrameTimeout)
             _firstFrameShown.value = true
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            giveUp()
         }
     }
 
@@ -50,12 +70,16 @@ class SponsoredAdPreview(context: Context) {
     fun show(ad: VideoAd?) {
         if (ad == null) {
             loadedAdId = null
+            handler.removeCallbacks(firstFrameTimeout)
+            _failed.value = false
             player.stop()
             player.clearMediaItems()
             return
         }
-        if (ad.id == loadedAdId) return
+        // Une annonce abandonnée est retentée quand le bandeau est rechargé, pas avant.
+        if (ad.id == loadedAdId && !_failed.value) return
         loadedAdId = ad.id
+        _failed.value = false
         _firstFrameShown.value = false
         player.setMediaItem(
             MediaItem.Builder()
@@ -94,8 +118,26 @@ class SponsoredAdPreview(context: Context) {
     }
 
     fun release() {
+        handler.removeCallbacks(firstFrameTimeout)
         player.removeListener(listener)
         player.release()
+    }
+
+    // Abandon de la vidéo : lecture arrêtée et décodeur libéré, la miniature reste affichée.
+    private fun giveUp() {
+        handler.removeCallbacks(firstFrameTimeout)
+        if (loadedAdId == null || _failed.value) return
+        _failed.value = true
+        player.stop()
+        player.clearMediaItems()
+    }
+
+    // Le compte à rebours ne court que pendant une lecture voulue (carte visible, fil affiché) qui
+    // n'a pas encore rendu d'image : hors de vue, la piste vidéo est coupée et aucune image ne vient.
+    private fun updateFirstFrameTimeout() {
+        handler.removeCallbacks(firstFrameTimeout)
+        val waiting = loadedAdId != null && visible && feedShown && !_firstFrameShown.value && !_failed.value
+        if (waiting) handler.postDelayed(firstFrameTimeout, FIRST_FRAME_TIMEOUT_MS)
     }
 
     private fun setMuted(muted: Boolean) {
@@ -114,6 +156,13 @@ class SponsoredAdPreview(context: Context) {
     }
 
     private fun updatePlayback() {
-        player.playWhenReady = loadedAdId != null && visible && feedShown
+        player.playWhenReady = loadedAdId != null && visible && feedShown && !_failed.value
+        updateFirstFrameTimeout()
+    }
+
+    private companion object {
+        // Une première image HLS arrive en quelques secondes. 8 s laissent de la marge à un réseau
+        // lent, et l'attente ne coûte rien à l'écran : la miniature recouvre déjà le cadre.
+        const val FIRST_FRAME_TIMEOUT_MS = 8_000L
     }
 }
