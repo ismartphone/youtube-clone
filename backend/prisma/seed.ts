@@ -18,6 +18,7 @@ import {
   ccVideoUrl,
 } from './cc-videos.js';
 import { seedLiveFans } from './live-fans.js';
+import { seedLiveProducts } from './live-products.js';
 import { seedBannerUrl } from './seed-banners.js';
 import { LOCAL_SEED_VIDEOS, localVideoUrl } from './seed-videos.js';
 
@@ -140,6 +141,8 @@ async function main() {
   // 49 abonnés fictifs de plus : avec Camille, Studio Libre atteint les 50 abonnés qui permettent
   // de démarrer un live (ADR-029).
   const fans = await seedLiveFans(prisma, studioChannelId);
+  // Quelques produits à épingler pendant un live (ADR-029).
+  await seedLiveProducts(prisma, studioChannelId);
 
   const videos = [
     {

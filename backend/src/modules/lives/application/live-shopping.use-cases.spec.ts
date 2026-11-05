@@ -315,7 +315,9 @@ describe('LiveShoppingUseCases.confirmPurchase', () => {
     expect(JSON.stringify(announce?.data)).toContain(
       "Camille vient d'acheter Casque audio",
     );
-    expect(JSON.stringify(announce?.data)).not.toMatch(/4990|49,90|"amount"|"currency"/);
+    expect(JSON.stringify(announce?.data)).not.toMatch(
+      /4990|49,90|"amount"|"currency"/,
+    );
   });
 
   it('refuse un paiement non accepté, sans rien enregistrer', async () => {

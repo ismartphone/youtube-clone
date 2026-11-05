@@ -29,6 +29,7 @@
     "seed:banners": "tsx prisma/generate-seed-banners.ts",
     "seed:cc-videos": "tsx prisma/import-cc-videos.ts",
     "seed:live-fans": "tsx prisma/seed-live-fans.ts",
+    "seed:live-products": "tsx prisma/seed-live-products.ts",
     "ads:import": "tsx src/scripts/import-ads.ts"
   },
   "dependencies": {
