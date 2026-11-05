@@ -152,6 +152,10 @@ Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateu
 - Avec plusieurs comptes (ADR-022), un compte inactif ne reçoit aucune notification.
 - Les salles restent en mémoire : un seul processus backend (limite déjà présente pour les vidéos).
 - L'aide (ADR-019) doit décrire la messagerie.
+- **Limite connue (décidée par le lead le 5 novembre 2026) : le propriétaire qui partage sa propre vidéo privée voit « Vidéo indisponible » chez lui.**
+  - Cause : le serveur construit le `message:new` avec la vue du destinataire (`messaging.use-cases.ts`, `send`, vers les lignes 93-98) et le diffuse tel quel dans toute la salle de la conversation, expéditeur compris. La vidéo privée n'étant pas visible du destinataire, la carte est « Vidéo indisponible ». L'application garde la première version reçue d'un message (`ConversationViewModel.kt`, `add`, vers les lignes 154-163, qui ignore un message dont l'identifiant est déjà connu) : la version du POST, correcte pour l'expéditeur, est donc écartée.
+  - Effet : l'expéditeur voit la carte « Vidéo indisponible » jusqu'au rechargement de la conversation. Seul le propriétaire d'une vidéo privée est concerné, et le défaut disparaît au rechargement.
+  - Le lead le laisse tel quel, aucun correctif prévu : le corriger demanderait des vues différentes par destinataire dans la salle.
 
 ## Liens
 - [ADR-004](ADR-004-temps-reel-websocket.md), [ADR-010](ADR-010-websocket-salles-compteurs.md) : passerelle WebSocket, salles, envoi par REST ; généralisées à une salle par conversation.
@@ -161,3 +165,6 @@ Le 4 novembre 2026, le lead développeur demande une messagerie entre utilisateu
 - [ADR-022](ADR-022-plusieurs-comptes-appareil.md) : seul le compte actif reçoit les notifications.
 - [ADR-008](ADR-008-authentification-jwt.md) : access token vérifié au handshake WebSocket ; à reconsidérer en cas de connexion longue.
 - [ADR-003](ADR-003-backend-nestjs.md) : nouveau module `messaging`, architecture hexagonale.
+
+---
+Amendé le 5 novembre : ajout de la limite connue « vidéo privée partagée par son propriétaire » (Conséquences négatives), décidée par le lead développeur. Précision de périmètre, la décision ne change pas ; l'ADR reste Accepté.
