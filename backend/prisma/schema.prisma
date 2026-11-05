@@ -66,6 +66,7 @@ model User {
   playlists                   Playlist[]
   deviceTokens                DeviceToken[]
   liveMessages                LiveMessage[]
+  livePurchases               LivePurchase[]
 
   @@map("users")
 }
@@ -95,11 +96,12 @@ model Channel {
   bannerUrl   String?
   createdAt   DateTime @default(now())
 
-  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   videos    Video[]
   followers Follow[]
   posts     Post[]
   lives     Live[]
+  products  Product[]
 
   @@map("channels")
 }
@@ -389,19 +391,23 @@ enum LiveMessageKind {
 // Live shopping (ADR-029) : direct simulé, dont le flux est une vidéo du catalogue lue en boucle.
 // Un seul live en cours par chaîne (vérifié par le cas d'usage, dans une transaction).
 model Live {
-  id        String     @id @default(uuid()) @db.Uuid
-  channelId String     @db.Uuid
-  title     String
+  id              String     @id @default(uuid()) @db.Uuid
+  channelId       String     @db.Uuid
+  title           String
   // Vidéo du catalogue utilisée comme flux. Supprimée depuis : la ligne du live est conservée,
   // videoId devient vide (le live terminé reste lisible dans le back-office).
-  videoId   String?    @db.Uuid
-  status    LiveStatus @default(LIVE)
-  startedAt DateTime   @default(now())
-  endedAt   DateTime?
+  videoId         String?    @db.Uuid
+  status          LiveStatus @default(LIVE)
+  startedAt       DateTime   @default(now())
+  endedAt         DateTime?
+  // Produit épinglé pendant le live (ADR-029). Produit supprimé : il est retiré du live.
+  pinnedProductId String?    @db.Uuid
 
-  channel  Channel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  video    Video?        @relation(fields: [videoId], references: [id], onDelete: SetNull)
-  messages LiveMessage[]
+  channel       Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  video         Video?         @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  pinnedProduct Product?       @relation("PinnedProduct", fields: [pinnedProductId], references: [id], onDelete: SetNull)
+  messages      LiveMessage[]
+  purchases     LivePurchase[]
 
   @@index([status, startedAt(sort: Desc)]) // lives en cours, accueil
   @@index([channelId, status])
@@ -422,4 +428,46 @@ model LiveMessage {
 
   @@index([liveId, createdAt(sort: Desc)])
   @@map("live_messages")
+}
+
+// Produit d’une chaîne, vendu pendant ses lives (ADR-029). Géré par le back-office (D11).
+// Prix en centimes ; l’image est un chemin relatif /media/product-images/... (ADR-011).
+model Product {
+  id          String   @id @default(uuid()) @db.Uuid
+  channelId   String   @db.Uuid
+  name        String
+  price       Int
+  currency    String   @default("eur")
+  imageUrl    String
+  description String
+  createdAt   DateTime @default(now())
+
+  channel   Channel        @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  pinnedIn  Live[]         @relation("PinnedProduct")
+  purchases LivePurchase[]
+
+  @@index([channelId, createdAt(sort: Desc)])
+  @@map("products")
+}
+
+// Achat d’un produit pendant un live (ADR-029). Le nom et le montant sont recopiés à l’achat :
+// l’historique reste juste si le produit change ou disparaît. paymentReference est unique : un
+// même paiement ne sert qu’une fois (ADR-014).
+model LivePurchase {
+  id               String   @id @default(uuid()) @db.Uuid
+  liveId           String   @db.Uuid
+  buyerId          String   @db.Uuid
+  productId        String?  @db.Uuid
+  productName      String
+  amount           Int
+  currency         String
+  paymentReference String   @unique
+  createdAt        DateTime @default(now())
+
+  live    Live     @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  buyer   User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([liveId, createdAt(sort: Desc)])
+  @@map("live_purchases")
 }
