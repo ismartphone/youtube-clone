@@ -64,6 +64,8 @@ import com.youtubeclone.app.domain.model.CommentSort
 import com.youtubeclone.app.presentation.common.ChannelAvatar
 import com.youtubeclone.app.presentation.common.asText
 import com.youtubeclone.app.presentation.common.formatCompactCount
+import com.youtubeclone.app.presentation.common.MinTouchTarget
+import com.youtubeclone.app.presentation.common.minTouchTarget
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
 import com.youtubeclone.app.presentation.theme.Motion
@@ -217,6 +219,7 @@ private fun CommentThread(
                 Row(
                     modifier = Modifier
                         .clip(MaterialTheme.shapes.small)
+                        .minTouchTarget()
                         .clickable(role = Role.Button) { actions.onToggleReplies(comment) }
                         .padding(vertical = 6.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -308,7 +311,7 @@ private fun CommentActionsRow(
         IconButton(
             onClick = { requireLogin { actions.onReact(comment, CommentReaction.Like) } },
             enabled = !pending,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier.size(MinTouchTarget),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_like),
@@ -327,7 +330,7 @@ private fun CommentActionsRow(
         IconButton(
             onClick = { requireLogin { actions.onReact(comment, CommentReaction.Dislike) } },
             enabled = !pending,
-            modifier = Modifier.padding(start = 8.dp).size(36.dp),
+            modifier = Modifier.size(MinTouchTarget),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_dislike),
@@ -347,7 +350,7 @@ private fun CommentActionsRow(
             state.canHeart -> IconButton(
                 onClick = { actions.onToggleHeart(comment) },
                 enabled = !pending,
-                modifier = Modifier.size(36.dp),
+                modifier = Modifier.size(MinTouchTarget),
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_heart_outline),
@@ -377,7 +380,7 @@ private fun CreatorHeart(creator: Channel, onClick: (() -> Unit)?, modifier: Mod
     }
     Box(
         modifier = modifier
-            .size(28.dp)
+            .size(if (onClick != null) MinTouchTarget else 28.dp)
             .then(if (onClick != null) Modifier.clip(CircleShape).clickable(role = Role.Button, onClick = onClick) else Modifier),
         contentAlignment = Alignment.Center,
     ) {

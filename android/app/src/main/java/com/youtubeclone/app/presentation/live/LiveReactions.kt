@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.common.MinTouchTarget
 import com.youtubeclone.app.domain.model.LIVE_REACTIONS
 import com.youtubeclone.app.domain.model.LIVE_REACTIONS_MAX_ON_SCREEN
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
@@ -60,7 +61,7 @@ fun ReactionBar(onReact: (String) -> Unit, modifier: Modifier = Modifier) {
         LIVE_REACTIONS.forEach { emoji ->
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(MinTouchTarget)
                     .clip(CircleShape)
                     .clickable(role = Role.Button, onClickLabel = description) { onReact(emoji) },
                 contentAlignment = Alignment.Center,

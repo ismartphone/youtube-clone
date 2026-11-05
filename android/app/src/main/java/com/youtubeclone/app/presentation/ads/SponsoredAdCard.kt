@@ -40,6 +40,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.common.MinTouchTarget
 import com.youtubeclone.app.domain.model.VideoAd
 
 // Carte sur fond clair, comme la maquette (android/maquettes/publicité.home.jpeg).
@@ -93,22 +94,27 @@ fun SponsoredAdCard(
                     modifier = Modifier.fillMaxSize(),
                 )
             }
+            // Zone cliquable de 48 dp (ADR-030) ; le disque garde ses 40 dp, au même endroit qu'avant.
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(40.dp)
+                    .padding(4.dp)
+                    .size(MinTouchTarget)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.5f))
                     .clickable(onClick = onToggleMute, role = Role.Button),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    painter = painterResource(if (muted) R.drawable.ic_volume_off else R.drawable.ic_volume_up),
-                    contentDescription = stringResource(if (muted) R.string.ad_unmute else R.string.ad_mute),
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp),
-                )
+                Box(
+                    modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(if (muted) R.drawable.ic_volume_off else R.drawable.ic_volume_up),
+                        contentDescription = stringResource(if (muted) R.string.ad_unmute else R.string.ad_mute),
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
             }
         }
         Column(

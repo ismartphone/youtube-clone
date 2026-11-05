@@ -71,6 +71,7 @@ import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.LocalNowPlayingActive
 import com.youtubeclone.app.presentation.common.MessageState
 import com.youtubeclone.app.presentation.common.VideoListSkeleton
+import com.youtubeclone.app.presentation.common.minTouchTarget
 import com.youtubeclone.app.presentation.common.rememberStaggeredAppearance
 import com.youtubeclone.app.presentation.common.staggeredAppearance
 import com.youtubeclone.app.presentation.live.LiveCard
@@ -390,7 +391,8 @@ private fun AccountAvatar(account: User?) {
 private fun CategoryFilters(filters: HomeFilters, onSelect: (categoryId: String?) -> Unit) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+        // Pas de marge verticale : chaque pastille occupe déjà 48 dp (ADR-030), soit la même hauteur qu'avant.
+        contentPadding = PaddingValues(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "all") {
@@ -423,16 +425,24 @@ private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
         animationSpec = tween(duration, easing = Motion.Easing),
         label = "chipContent",
     )
+    // Zone cliquable de 48 dp (ADR-030) ; la pastille garde ses 32 dp, centrée dedans.
     Box(
         modifier = Modifier
-            .height(ChipHeight)
+            .minTouchTarget()
             .clip(RoundedCornerShape(8.dp))
-            .background(container)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = label, style = MaterialTheme.typography.labelLarge, color = content)
+        Box(
+            modifier = Modifier
+                .height(ChipHeight)
+                .clip(RoundedCornerShape(8.dp))
+                .background(container)
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = label, style = MaterialTheme.typography.labelLarge, color = content)
+        }
     }
 }
 

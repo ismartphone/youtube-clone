@@ -44,6 +44,7 @@ import com.youtubeclone.app.presentation.common.VideoThumbnailImage
 import com.youtubeclone.app.presentation.common.formatDuration
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.common.minTouchTarget
 import com.youtubeclone.app.presentation.common.videoAccessibilityLabel
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import java.time.Instant
@@ -78,16 +79,20 @@ fun VideoCard(
         VideoThumbnail(video, Modifier.fillMaxWidth().clearAndSetSemantics {})
         Row(
             modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp).clearAndSetSemantics {},
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             if (showChannelAvatar) {
-                ChannelAvatar(
-                    channel = video.channel,
+                // Zone cliquable de 48 dp (ADR-030) : l'avatar garde ses 36 dp en haut à gauche, et le
+                // texte reste au même endroit (48 dp de zone, sans écart, au lieu de 36 dp + 12 dp d'écart).
+                Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .minTouchTarget()
                         .clip(CircleShape)
                         .then(if (onChannelClick != null) Modifier.clickable(onClick = onChannelClick) else Modifier),
-                )
+                    contentAlignment = Alignment.TopStart,
+                ) {
+                    ChannelAvatar(channel = video.channel, modifier = Modifier.size(36.dp).clip(CircleShape))
+                }
             }
             val metaColor = MaterialTheme.colorScheme.onSurfaceVariant
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

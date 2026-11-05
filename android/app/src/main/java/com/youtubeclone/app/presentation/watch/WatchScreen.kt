@@ -132,6 +132,9 @@ import com.youtubeclone.app.presentation.common.formatCompactCount
 import com.youtubeclone.app.presentation.common.formatFollowerCount
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.common.MinTouchTarget
+import com.youtubeclone.app.presentation.common.minTouchTarget
+import com.youtubeclone.app.presentation.common.pillBackground
 import com.youtubeclone.app.presentation.home.VideoCard
 import com.youtubeclone.app.presentation.home.previewVideo
 import com.youtubeclone.app.presentation.messaging.rememberVideoSharing
@@ -900,6 +903,7 @@ private fun ChannelRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .weight(1f)
+                .minTouchTarget()
                 .clickable(role = Role.Button, onClick = onChannelClick),
         ) {
             ChannelAvatar(channel, Modifier.size(32.dp))
@@ -963,11 +967,12 @@ private fun ActionsRow(
 
 @Composable
 private fun ActionChip(@DrawableRes icon: Int, label: String, onClick: () -> Unit) {
+    // Zone cliquable de 48 dp (ADR-030) ; la pastille dessinée garde ses 36 dp, centrée.
     Row(
         modifier = Modifier
-            .height(ActionChipHeight)
+            .height(MinTouchTarget)
+            .pillBackground(MaterialTheme.colorScheme.surfaceVariant, ActionChipHeight)
             .clip(PillShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1006,11 +1011,12 @@ private fun LikeDislikeChip(stats: LiveStats, onLikeClick: () -> Unit, onDislike
         label = "likeTint",
     )
 
+    // Zones cliquables de 48 dp (ADR-030) ; la pastille dessinée garde ses 36 dp, centrée.
     Row(
         modifier = Modifier
-            .height(ActionChipHeight)
-            .clip(PillShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .height(MinTouchTarget)
+            .pillBackground(MaterialTheme.colorScheme.surfaceVariant, ActionChipHeight)
+            .clip(PillShape),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(

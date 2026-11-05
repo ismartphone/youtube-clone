@@ -80,6 +80,7 @@ import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.MessageState
 import com.youtubeclone.app.presentation.common.formatCompactCount
+import com.youtubeclone.app.presentation.common.minTouchTarget
 import com.youtubeclone.app.presentation.home.previewVideo
 import com.youtubeclone.app.presentation.messaging.rememberVideoSharing
 import com.youtubeclone.app.presentation.theme.LocalReduceMotion
@@ -347,15 +348,18 @@ private fun ShortInfo(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ChannelAvatar(
-                channel = video.channel,
+            // Zone cliquable de 48 dp (ADR-030) ; l'avatar garde ses 32 dp, centré.
+            Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .minTouchTarget()
                     .clip(CircleShape)
                     .clickable(onClick = onChannelClick, role = Role.Button)
                     // Même action que le nom de la chaîne juste à côté : l'avatar seul était lu « Button » (ADR-030).
                     .semantics { hideFromAccessibility() },
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                ChannelAvatar(channel = video.channel, modifier = Modifier.size(32.dp).clip(CircleShape))
+            }
             Text(
                 text = video.channel.name,
                 style = OverlayTextStyle.merge(MaterialTheme.typography.titleSmall).copy(fontWeight = FontWeight.Bold),
