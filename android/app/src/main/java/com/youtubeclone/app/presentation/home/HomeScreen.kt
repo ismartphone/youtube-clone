@@ -44,6 +44,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -312,6 +314,8 @@ private fun HomeTopBar(
                 letterSpacing = (-0.5).sp,
             ),
             color = MaterialTheme.colorScheme.onBackground,
+            // Titre de l'écran pour TalkBack (ADR-030) : annoncé comme un titre.
+            modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onSearchClick) {

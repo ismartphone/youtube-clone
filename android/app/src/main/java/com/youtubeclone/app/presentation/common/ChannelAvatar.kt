@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.domain.model.Channel
 
@@ -24,13 +25,15 @@ fun ChannelAvatar(
     if (channel.avatarUrl != null) {
         AsyncImage(
             model = channel.avatarUrl,
+            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier.clip(CircleShape),
         )
     } else {
         Box(
-            modifier = modifier.background(MaterialTheme.colorScheme.primary, CircleShape),
+            // L'initiale est décorative : TalkBack ne doit pas la lire (« capital T »).
+            modifier = modifier.background(MaterialTheme.colorScheme.primary, CircleShape).clearAndSetSemantics {},
             contentAlignment = Alignment.Center,
         ) {
             Text(

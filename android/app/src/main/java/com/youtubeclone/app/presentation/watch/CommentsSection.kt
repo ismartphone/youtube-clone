@@ -52,6 +52,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Channel
@@ -222,6 +223,7 @@ private fun CommentThread(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_expand_more),
+                        // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp).rotate(if (expanded) 180f else 0f),
@@ -438,12 +440,14 @@ internal fun AuthorAvatar(author: CommentAuthor, size: Dp = 32.dp) {
     if (author.avatarUrl != null) {
         AsyncImage(
             model = author.avatarUrl,
+            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier,
         )
     } else {
-        Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        // L'initiale est décorative : le nom de l'auteur est lu avec le commentaire.
+        Box(modifier = modifier.clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
             Text(
                 text = author.displayName.take(1).uppercase(),
                 style = MaterialTheme.typography.labelLarge,

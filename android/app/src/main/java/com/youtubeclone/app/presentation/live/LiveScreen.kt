@@ -51,6 +51,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleStartEffect
@@ -229,7 +235,16 @@ private fun BackButton(onBack: () -> Unit, tint: Color = MaterialTheme.colorSche
 @OptIn(UnstableApi::class)
 @Composable
 private fun LiveVideo(state: LiveUiState.Ready, viewModel: LiveViewModel, onBack: () -> Unit) {
-    Box(Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black)) {
+    // Pour TalkBack (ADR-030, D7) : la zone vidéo s'annonce comme un direct, avec sa chaîne et son titre,
+    // et non comme un lecteur manipulable (aucun contrôle de lecture n'existe).
+    val streamDescription = stringResource(R.string.a11y_live_stream, state.live.title, state.live.channel.name)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .background(Color.Black)
+            .then(if (state.isEnded) Modifier else Modifier.semantics { contentDescription = streamDescription; role = Role.Image }),
+    ) {
         AndroidView(
             factory = { context ->
                 PlayerView(context).apply {
@@ -249,6 +264,7 @@ private fun LiveVideo(state: LiveUiState.Ready, viewModel: LiveViewModel, onBack
             ) {
                 AsyncImage(
                     model = state.live.stream?.thumbnailUrl,
+                    // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     alpha = 0.25f,
@@ -290,6 +306,7 @@ private fun LiveInfo(state: LiveUiState.Ready, onEnd: () -> Unit) {
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { heading() },
             )
             Text(
                 text = state.live.channel.name,
@@ -346,7 +363,9 @@ private fun ChatLine(message: LiveChatMessage) {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                .padding(horizontal = 10.dp, vertical = 8.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp)
+                // L'emoji du panier est décoratif : TalkBack lit seulement l'annonce.
+                .semantics { contentDescription = message.content },
         )
         return
     }
@@ -362,6 +381,8 @@ private fun ChatLine(message: LiveChatMessage) {
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground,
+            // Lu « auteur : message » (le texte affiché sépare les deux par des espaces).
+            modifier = Modifier.semantics { contentDescription = message.author.displayName + " : " + message.content },
         )
     }
 }
@@ -370,9 +391,11 @@ private fun ChatLine(message: LiveChatMessage) {
 private fun ChatAvatar(author: LiveAuthor) {
     val modifier = Modifier.size(28.dp).clip(CircleShape)
     if (author.avatarUrl != null) {
+        // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
         AsyncImage(author.avatarUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier)
     } else {
-        Box(modifier.background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
+        // L'initiale est décorative : le nom de l'auteur est dans le texte du message.
+        Box(modifier.background(MaterialTheme.colorScheme.primary).clearAndSetSemantics {}, contentAlignment = Alignment.Center) {
             Text(
                 text = author.displayName.take(1).uppercase(),
                 style = MaterialTheme.typography.labelMedium,

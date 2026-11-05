@@ -45,6 +45,7 @@ fun VideoThumbnailImage(url: String?, isPremiumVideo: Boolean, modifier: Modifie
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         AsyncImage(
             model = url,
+            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -86,6 +87,7 @@ fun PremiumBadge(modifier: Modifier = Modifier) {
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_premium),
+            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
             contentDescription = null,
             tint = Color(0xFFFFC107),
             modifier = Modifier.size(12.dp),

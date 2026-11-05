@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.youtubeclone.app.R
@@ -153,6 +154,7 @@ fun AdPlaybackOverlay(
                         )
                         Icon(
                             painter = painterResource(R.drawable.ic_skip_next),
+                            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(18.dp),
@@ -205,7 +207,9 @@ private fun VisitSiteBand(advertiser: String, label: String, onClick: () -> Unit
         Box(
             modifier = Modifier
                 .size(28.dp)
-                .background(Color.White, CircleShape),
+                .background(Color.White, CircleShape)
+                // L'initiale est décorative : TalkBack la lisait « capital V ».
+                .clearAndSetSemantics {},
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -231,6 +235,7 @@ private fun VisitSiteBand(advertiser: String, label: String, onClick: () -> Unit
         }
         Icon(
             painter = painterResource(R.drawable.ic_open_in_new),
+            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
             contentDescription = null,
             tint = Color.White,
             modifier = Modifier.size(16.dp),

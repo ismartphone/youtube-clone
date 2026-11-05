@@ -84,6 +84,7 @@ fun PinnedProductCard(
         ) {
             AsyncImage(
                 model = shown.imageUrl,
+                // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)),
@@ -159,6 +160,7 @@ fun ProductPickerDialog(
                         ) {
                             AsyncImage(
                                 model = product.imageUrl,
+                                // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                                 contentDescription = null,
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.size(48.dp).clip(RoundedCornerShape(8.dp)),

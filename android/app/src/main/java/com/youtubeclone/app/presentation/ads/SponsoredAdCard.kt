@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -86,6 +87,7 @@ fun SponsoredAdCard(
             if (coverWithThumbnail) {
                 AsyncImage(
                     model = ad.thumbnailUrl,
+                    // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -185,6 +187,7 @@ private fun AdvertiserLogo(ad: VideoAd) {
     if (logo != null) {
         AsyncImage(
             model = logo,
+            // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.size(48.dp).clip(shape).background(Color.White),
@@ -195,7 +198,9 @@ private fun AdvertiserLogo(ad: VideoAd) {
             modifier = Modifier
                 .size(48.dp)
                 .clip(shape)
-                .background(InitialBackgrounds[Math.floorMod(name.hashCode(), InitialBackgrounds.size)]),
+                .background(InitialBackgrounds[Math.floorMod(name.hashCode(), InitialBackgrounds.size)])
+                // L'initiale est décorative : le nom de l'annonceur est lu à côté.
+                .clearAndSetSemantics {},
             contentAlignment = Alignment.Center,
         ) {
             Text(

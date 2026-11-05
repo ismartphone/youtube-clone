@@ -81,6 +81,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -409,6 +411,7 @@ private fun MiniPlayerBar(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val expandLabel = stringResource(R.string.a11y_mini_player_expand)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -422,7 +425,7 @@ private fun MiniPlayerBar(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
-                .clickable(onClick = onExpand)
+                .clickable(onClickLabel = expandLabel, role = Role.Button, onClick = onExpand)
                 .padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.Center,
         ) {
@@ -613,6 +616,7 @@ private fun PlayerSurface(
             if (showThumbnail) {
                 AsyncImage(
                     model = detail.video.thumbnailUrl,
+                    // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
@@ -672,7 +676,8 @@ private fun PlayerSurface(
         }
         // Mini-lecteur : un appui sur la vignette rouvre l'écran de lecture.
         if (compact) {
-            Box(Modifier.fillMaxSize().clickable(onClick = onExpand))
+            // Même action que le titre du mini-lecteur, déjà annoncé : cette zone est cachée à TalkBack.
+            Box(Modifier.fillMaxSize().clickable(onClick = onExpand).semantics { hideFromAccessibility() })
         }
     }
 }
@@ -841,6 +846,8 @@ private fun TitleBlock(detail: VideoDetail, viewCount: Int) {
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            // Titre de la vidéo : annoncé comme un titre (ADR-030).
+            modifier = Modifier.semantics { heading() },
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -854,7 +861,7 @@ private fun TitleBlock(detail: VideoDetail, viewCount: Int) {
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier
-                        .clickable { expanded = !expanded }
+                        .clickable(role = Role.Button) { expanded = !expanded }
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                 )
             }
@@ -893,7 +900,7 @@ private fun ChannelRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .weight(1f)
-                .clickable(onClick = onChannelClick),
+                .clickable(role = Role.Button, onClick = onChannelClick),
         ) {
             ChannelAvatar(channel, Modifier.size(32.dp))
             Text(
@@ -961,11 +968,12 @@ private fun ActionChip(@DrawableRes icon: Int, label: String, onClick: () -> Uni
             .height(ActionChipHeight)
             .clip(PillShape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // Décoratif (ADR-030) : le sens est porté par le texte voisin, TalkBack ignore l'image.
         Icon(painterResource(icon), contentDescription = null, tint = MaterialTheme.colorScheme.onBackground, modifier = Modifier.size(20.dp))
         Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onBackground)
     }
@@ -1087,7 +1095,7 @@ private fun CommentsTeaser(state: CommentsUiState, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
