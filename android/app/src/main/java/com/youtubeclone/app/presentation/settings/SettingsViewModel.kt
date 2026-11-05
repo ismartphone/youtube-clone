@@ -2,13 +2,16 @@ package com.youtubeclone.app.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.youtubeclone.app.domain.model.VideoFormat
 import com.youtubeclone.app.domain.repository.MessagingRepository
 import com.youtubeclone.app.domain.usecase.ObserveAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.ObserveOnboardingFeedbackUseCase
+import com.youtubeclone.app.domain.usecase.ObservePreferredFormatUseCase
 import com.youtubeclone.app.domain.usecase.ObserveSessionUseCase
 import com.youtubeclone.app.domain.usecase.ObserveShareUsageStatsUseCase
 import com.youtubeclone.app.domain.usecase.SetAutoplayUseCase
 import com.youtubeclone.app.domain.usecase.SetOnboardingFeedbackUseCase
+import com.youtubeclone.app.domain.usecase.SetPreferredFormatUseCase
 import com.youtubeclone.app.domain.usecase.SetShareUsageStatsUseCase
 import com.youtubeclone.app.presentation.common.UiError
 import com.youtubeclone.app.presentation.common.toUiError
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -33,6 +37,8 @@ class SettingsViewModel @Inject constructor(
     private val setAutoplay: SetAutoplayUseCase,
     observeOnboardingFeedback: ObserveOnboardingFeedbackUseCase,
     private val setOnboardingFeedback: SetOnboardingFeedbackUseCase,
+    observePreferredFormat: ObservePreferredFormatUseCase,
+    private val setPreferredFormat: SetPreferredFormatUseCase,
     observeSession: ObserveSessionUseCase,
     private val messaging: MessagingRepository,
 ) : ViewModel() {
@@ -86,6 +92,18 @@ class SettingsViewModel @Inject constructor(
 
     fun onOnboardingFeedbackChange(enabled: Boolean) {
         viewModelScope.launch { setOnboardingFeedback(enabled) }
+    }
+
+    /**
+     * « Format préféré » (ADR-028) : décide de l'onglet d'arrivée à l'ouverture. Sans choix
+     * enregistré, l'application s'ouvre sur l'accueil, donc « vidéos » ; null tant que non lu.
+     */
+    val preferredFormat: StateFlow<VideoFormat?> = observePreferredFormat()
+        .map { it ?: VideoFormat.LONG }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun onPreferredFormatChange(format: VideoFormat) {
+        viewModelScope.launch { setPreferredFormat(format) }
     }
 
     /** null tant que la préférence n'est pas lue : l'interrupteur n'est pas encore affiché. */

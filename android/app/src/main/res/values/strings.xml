@@ -392,6 +392,8 @@
     <string name="onboarding_notifications_text">Recevez une notification quand une chaîne que vous suivez publie une vidéo. Vous réglez chaque chaîne avec la cloche, et vous pouvez tout couper depuis les réglages du téléphone.</string>
     <string name="onboarding_account_title">Créer un compte</string>
     <string name="onboarding_paywall_title">Premium</string>
+    <string name="settings_preferred_format">Format préféré</string>
+    <string name="settings_preferred_format_detail">Décide de l\'onglet affiché à l\'ouverture : accueil ou Shorts. Pris en compte à la prochaine ouverture.</string>
     <string name="settings_onboarding_feedback">Sons et vibrations</string>
     <string name="settings_onboarding_feedback_detail">Accompagnent le parcours d\'accueil par de courts sons et de légères vibrations. Rien n\'est joué en mode silencieux.</string>
     <string name="interests_title">Centres d\'intérêt</string>
