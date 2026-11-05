@@ -17,6 +17,7 @@ import {
   type NotificationLevel,
   normalizeHandle,
 } from '../../domain/channel.js';
+import { IsNotLocalUrl } from '../../../../shared/interfaces/http/local-url.js';
 
 // Bannière de notre stockage : chemin relatif servi sous /media (ADR-011).
 const LOCAL_BANNER = /^\/media\/banners\/[\w.-]+\.(jpg|jpeg|png|webp)$/;
@@ -50,6 +51,7 @@ export class UpdateChannelBody {
         'La bannière doit être une URL http(s) ou un chemin /media/banners/...',
     },
   )
+  @IsNotLocalUrl()
   bannerUrl: string | null;
 }
 

@@ -13,6 +13,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
+import { IsNotLocalUrl } from '../../../../shared/interfaces/http/local-url.js';
 import { VIDEO_FORMATS, type VideoFormat } from '../../domain/video.js';
 import {
   VIDEO_VISIBILITIES,
@@ -102,12 +103,14 @@ export class CreateVideoBody {
   @Transform(trim)
   @ValidateIf(isExternalVideo)
   @IsUrl(URL_OPTIONS)
+  @IsNotLocalUrl()
   videoUrl: string;
 
   // Facultative : absente ou vide, le serveur génère une image extraite de la vidéo.
   @Transform(trimOrNull)
   @ValidateIf(isExternalThumbnail)
   @IsUrl(URL_OPTIONS)
+  @IsNotLocalUrl()
   thumbnailUrl: string | null = null;
 
   @IsInt()
@@ -161,12 +164,14 @@ export class UpdateVideoBody {
       body.videoUrl !== undefined && isExternalVideo(body),
   )
   @IsUrl(URL_OPTIONS)
+  @IsNotLocalUrl()
   videoUrl?: string;
 
   // Absente : inchangée. Vide ou null : le serveur génère une nouvelle image.
   @Transform(trimOrNull)
   @ValidateIf(isExternalThumbnail)
   @IsUrl(URL_OPTIONS)
+  @IsNotLocalUrl()
   thumbnailUrl?: string | null;
 
   @IsOptional()

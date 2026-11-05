@@ -40,6 +40,7 @@ import {
   RemoveTempFileInterceptor,
   type ReceivedFile,
 } from '../../../../shared/interfaces/http/file-upload.js';
+import { IsNotLocalUrl } from '../../../../shared/interfaces/http/local-url.js';
 import {
   ChannelImageUnavailableError,
   InvalidChannelImageError,
@@ -64,6 +65,8 @@ const TITLE_MESSAGE = `Le titre doit faire entre 1 et ${AD_TITLE_MAX_LENGTH} car
 const URL_MESSAGE =
   "Saisissez l'adresse complète du site, par exemple https://www.exemple.fr.";
 const URL_OPTIONS = { protocols: ['http', 'https'], require_protocol: true };
+const LOCAL_DESTINATION_MESSAGE =
+  "L'adresse du site ne peut pas pointer vers localhost : saisissez son adresse publique.";
 const ADVERTISER_MESSAGE = `Le nom de l'annonceur doit faire entre 1 et ${AD_ADVERTISER_MAX_LENGTH} caractères.`;
 const DESCRIPTION_MESSAGE = `La description doit faire entre 1 et ${AD_DESCRIPTION_MAX_LENGTH} caractères.`;
 const CTA_MESSAGE = `Le libellé du bouton doit faire entre 1 et ${AD_CTA_MAX_LENGTH} caractères.`;
@@ -77,6 +80,7 @@ export class ImportAdBody {
 
   @Transform(trim)
   @IsUrl(URL_OPTIONS, { message: URL_MESSAGE })
+  @IsNotLocalUrl({ message: LOCAL_DESTINATION_MESSAGE })
   @MaxLength(AD_URL_MAX_LENGTH)
   destinationUrl: string;
 
@@ -113,6 +117,7 @@ export class UpdateAdBody {
   @IsOptional()
   @Transform(trim)
   @IsUrl(URL_OPTIONS, { message: URL_MESSAGE })
+  @IsNotLocalUrl({ message: LOCAL_DESTINATION_MESSAGE })
   @MaxLength(AD_URL_MAX_LENGTH)
   destinationUrl?: string;
 
