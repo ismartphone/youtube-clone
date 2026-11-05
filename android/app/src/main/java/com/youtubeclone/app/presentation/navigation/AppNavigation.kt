@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -359,7 +360,12 @@ fun AppNavigation(
             NavHost(
                 navController = navController,
                 startDestination = HomeRoute,
-                modifier = Modifier.padding(innerPadding).padding(bottom = miniInset),
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(bottom = miniInset)
+                    // Écran de lecture déployé (ADR-030) : l'écran dessous est entièrement recouvert, TalkBack
+                    // ne doit pas pouvoir y aller. Sémantique seulement, rien ne change à l'affichage ni au toucher.
+                    .then(if (nowPlayingId != null && nowExpanded) Modifier.clearAndSetSemantics {} else Modifier),
                 enterTransition = transitions.enter,
                 exitTransition = transitions.exit,
                 popEnterTransition = transitions.popEnter,

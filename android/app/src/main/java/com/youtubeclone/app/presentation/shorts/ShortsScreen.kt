@@ -49,6 +49,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -346,7 +348,9 @@ private fun ShortInfo(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .clickable(onClick = onChannelClick, role = Role.Button),
+                    .clickable(onClick = onChannelClick, role = Role.Button)
+                    // Même action que le nom de la chaîne juste à côté : l'avatar seul était lu « Button » (ADR-030).
+                    .semantics { hideFromAccessibility() },
             )
             Text(
                 text = video.channel.name,
