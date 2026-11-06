@@ -223,6 +223,7 @@ private fun BannerPreview(bannerUrl: String?, isBusy: Boolean) {
         if (bannerUrl != null) {
             AsyncImage(
                 model = bannerUrl,
+                // Décoratif (ADR-030) : la bannière n'a pas de texte alternatif ; les champs voisins sont libellés.
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.matchParentSize(),

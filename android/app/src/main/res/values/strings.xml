@@ -511,4 +511,6 @@
     <string name="a11y_action_with_count">%1$s, %2$s</string>
     <string name="a11y_mini_player_expand">Rouvrir la vidéo</string>
     <string name="a11y_player_progress">Position dans la vidéo</string>
+    <string name="a11y_state_expanded">Développé</string>
+    <string name="a11y_state_collapsed">Réduit</string>
 </resources>

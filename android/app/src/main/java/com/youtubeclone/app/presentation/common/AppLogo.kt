@@ -29,6 +29,7 @@ fun AppLogo(modifier: Modifier = Modifier, height: Dp = 56.dp) {
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_play),
+            // Décoratif (ADR-030) : lettre du logo : le nom de l'application est lu, jamais la lettre.
             contentDescription = null,
             tint = Color.White,
             modifier = Modifier.size(height * 36 / 56),

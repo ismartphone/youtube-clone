@@ -31,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -123,7 +124,7 @@ fun PlaylistScreen(
                     // La croix a sa propre place à droite : elle ne recouvre jamais le titre.
                     Row(modifier = Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.Top) {
                         Box(modifier = Modifier.weight(1f)) {
-                            SuggestedVideoCard(video = video, modifier = Modifier.clickable { onVideoClick(video.id) })
+                            SuggestedVideoCard(video = video, modifier = Modifier.clickable(role = Role.Button) { onVideoClick(video.id) })
                         }
                         IconButton(onClick = { viewModel.removeVideo(video.id) }) {
                             Icon(
@@ -163,6 +164,7 @@ private fun PlaylistHeader(playlist: PlaylistDetail, onRename: () -> Unit, onDel
             } else {
                 Icon(
                     painter = painterResource(R.drawable.ic_save),
+                    // Décoratif (ADR-030) : icône de repli d'une playlist sans miniature : le titre est lu.
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(40.dp),

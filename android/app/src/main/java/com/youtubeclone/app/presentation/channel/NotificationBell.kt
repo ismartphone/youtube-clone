@@ -129,6 +129,7 @@ private fun SheetRow(@DrawableRes icon: Int, label: String, caption: String?, se
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
+        // Décoratif (ADR-030) : icône de la ligne : le libellé de la ligne est lu.
         Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(24.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = label, style = MaterialTheme.typography.bodyLarge)
@@ -143,6 +144,7 @@ private fun SheetRow(@DrawableRes icon: Int, label: String, caption: String?, se
         if (selected) {
             Icon(
                 painter = painterResource(R.drawable.ic_check),
+                // Décoratif (ADR-030) : coche redondante : l'état sélectionné est porté par selectable (bouton radio).
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),

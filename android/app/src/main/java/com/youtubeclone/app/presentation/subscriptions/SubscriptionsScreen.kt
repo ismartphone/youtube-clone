@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,7 +56,7 @@ fun SubscriptionsScreen(
                     is SubscriptionFeedItem.OfVideo -> VideoCard(
                         video = item.video,
                         onChannelClick = { onChannelClick(item.video.channel.id) },
-                        modifier = Modifier.clickable { onVideoClick(item.video.id) },
+                        modifier = Modifier.clickable(role = Role.Button) { onVideoClick(item.video.id) },
                     )
                     is SubscriptionFeedItem.OfPost -> PostCard(item.post, onClick = { onPostClick(item.post.channel.id) })
                 }

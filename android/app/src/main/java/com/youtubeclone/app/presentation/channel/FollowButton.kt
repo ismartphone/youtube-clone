@@ -94,6 +94,7 @@ fun FollowButton(
         if (withBell) {
             Icon(
                 painter = painterResource((state.notificationLevel ?: NotificationLevel.Personalized).icon),
+                // Décoratif (ADR-030) : cloche à l'intérieur du bouton : l'état et le libellé du bouton sont lus.
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
             )
@@ -105,6 +106,7 @@ fun FollowButton(
         )
         if (withBell) {
             Spacer(Modifier.width(4.dp))
+            // Décoratif (ADR-030) : flèche à l'intérieur du bouton : le libellé du bouton porte le sens.
             Icon(painterResource(R.drawable.ic_expand_more), contentDescription = null, modifier = Modifier.size(20.dp))
         }
     }

@@ -2,7 +2,7 @@ package com.youtubeclone.app.presentation.common
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -34,7 +36,7 @@ fun BackTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .heightIn(min = 56.dp) // grandit avec la police du système (ADR-030)
             .padding(end = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -49,8 +51,9 @@ fun BackTopBar(
             text = title,
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             color = contentColor,
-            maxLines = 1,
+            maxLines = if (isLargeText()) 3 else 1,
             overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.semantics { heading() }, // titre de l'écran pour TalkBack (ADR-030)
         )
     }
 }

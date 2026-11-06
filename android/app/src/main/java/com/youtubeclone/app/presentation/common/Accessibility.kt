@@ -1,6 +1,7 @@
 package com.youtubeclone.app.presentation.common
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Video
@@ -28,3 +29,7 @@ fun videoAccessibilityLabel(video: Video): String {
         else -> stringResource(R.string.a11y_video_card_locked, base)
     }
 }
+
+/** Police du système très agrandie (ADR-030) : les écrans laissent alors plus de lignes aux textes. */
+@Composable
+fun isLargeText(): Boolean = LocalDensity.current.fontScale > 1.3f

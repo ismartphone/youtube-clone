@@ -41,6 +41,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -71,6 +73,7 @@ import com.youtubeclone.app.presentation.common.PremiumBadge
 import com.youtubeclone.app.presentation.common.VideoThumbnailImage
 import com.youtubeclone.app.presentation.common.VisibilityBadge
 import com.youtubeclone.app.presentation.common.formatFollowerCount
+import com.youtubeclone.app.presentation.common.isLargeText
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatVideoCount
 import com.youtubeclone.app.presentation.common.formatViewCount
@@ -204,13 +207,13 @@ private fun ChannelContent(
                 SuggestedVideoCard(
                     video = video,
                     modifier = Modifier
-                        .clickable { onVideoClick(video.id) }
+                        .clickable(role = Role.Button) { onVideoClick(video.id) }
                         .padding(vertical = 6.dp),
                 )
             }
             // Un Short s'ouvre dans le lecteur vertical plein écran, sur ce Short.
             else -> items(items = tabVideos, key = { it.id }) { video ->
-                ShortTile(video, Modifier.clickable { onShortClick(video.id) })
+                ShortTile(video, Modifier.clickable(role = Role.Button) { onShortClick(video.id) })
             }
         }
     }
@@ -253,8 +256,9 @@ private fun ChannelHeader(
                     text = channel.name,
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground,
-                    maxLines = 2,
+                    maxLines = if (isLargeText()) 4 else 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { heading() }, // titre de la page pour TalkBack (ADR-030)
                 )
                 Text(
                     text = "@${channel.handle} · ${formatFollowerCount(followerCount)} · ${formatVideoCount(page.videos.size)}",
@@ -294,6 +298,7 @@ private fun Banner(bannerUrl: String?) {
         if (bannerUrl != null) {
             AsyncImage(
                 model = bannerUrl,
+                // Décoratif (ADR-030) : la bannière n'a pas de texte alternatif ; le nom de la chaîne est lu juste après.
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.matchParentSize(),
@@ -371,6 +376,7 @@ private fun ChannelTabs(selected: ChannelTab, onSelect: (ChannelTab) -> Unit) {
 private fun ShortTile(video: Video, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
+            .semantics(mergeDescendants = true) {} // une seule annonce : titre, vues, badges (ADR-030)
             .aspectRatio(9f / 16f)
             .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {
@@ -412,9 +418,10 @@ internal fun PostCard(post: Post, modifier: Modifier = Modifier, onClick: (() ->
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .semantics(mergeDescendants = true) {} // nom, date et texte lus ensemble (ADR-030)
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(12.dp))
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -443,6 +450,7 @@ internal fun PostCard(post: Post, modifier: Modifier = Modifier, onClick: (() ->
         post.imageUrl?.let { url ->
             AsyncImage(
                 model = url,
+                // Décoratif (ADR-030) : l'image du message n'a pas de texte alternatif dans les données ; le texte du message est lu.
                 contentDescription = null,
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier

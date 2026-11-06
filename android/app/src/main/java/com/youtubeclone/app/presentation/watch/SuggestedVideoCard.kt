@@ -22,6 +22,7 @@ import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.presentation.common.VisibilityBadge
 import com.youtubeclone.app.presentation.common.formatRelativeDate
 import com.youtubeclone.app.presentation.common.formatViewCount
+import com.youtubeclone.app.presentation.common.isLargeText
 import com.youtubeclone.app.presentation.common.videoAccessibilityLabel
 import com.youtubeclone.app.presentation.home.VideoThumbnail
 import com.youtubeclone.app.presentation.home.previewVideo
@@ -34,6 +35,7 @@ import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 @Composable
 fun SuggestedVideoCard(video: Video, modifier: Modifier = Modifier) {
     val label = videoAccessibilityLabel(video)
+    val largeText = isLargeText()
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -55,21 +57,21 @@ fun SuggestedVideoCard(video: Video, modifier: Modifier = Modifier) {
                 text = video.title,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 2,
+                maxLines = if (largeText) 4 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = video.channel.name,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = if (largeText) 3 else 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "${formatViewCount(video.viewCount)} · ${formatRelativeDate(video.publishedAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = if (largeText) 3 else 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }

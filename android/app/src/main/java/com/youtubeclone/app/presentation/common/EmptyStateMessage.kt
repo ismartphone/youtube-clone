@@ -31,6 +31,7 @@ fun EmptyStateMessage(
     ) {
         Icon(
             painter = painterResource(icon),
+            // Décoratif (ADR-030) : illustration : le titre et le texte du message sont lus.
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier
