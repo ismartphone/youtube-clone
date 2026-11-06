@@ -1,7 +1,7 @@
 # ADR-031 — Live partagé entre les applications de la classe : intégration du SDK commun (Crosslive)
 
 ## Statut
-Proposé
+Accepté
 
 ## Contexte
 Le 6 novembre 2026, jour du rendu, le lead développeur demande d'intégrer le SDK de live commun aux applications de la classe (dépôt `echimine/live-sdk`, public). Une fois intégré, nos utilisateurs voient les Lives de toutes les App membres, les rejoignent, discutent, réagissent, achètent le Produit épinglé et montent à l'écran comme Co-hôte ; ils peuvent aussi lancer leur propre Live, filmé par la caméra du téléphone.
@@ -73,7 +73,7 @@ La capture caméra et la diffusion réelle **entrent dans le périmètre, unique
 - **Visiteur** (D4) : l'icône « Crosslive » ouvre la connexion, comme l'achat Premium ; `LiveListScreen` n'est jamais ouvert sans compte.
 - **Comptes multiples (ADR-022)** : le jeton suit le compte actif à chaque connexion. Une bascule de compte vide déjà la pile de navigation : un Live ouvert est fermé.
 - **Permissions** : rien au démarrage. `LiveLaunchScreen` explique puis demande caméra et micro ; un Spectateur les autorise au moment de demander à monter. Textes : ceux de `LivePermissionTexts`, repris tels quels, aussi pour la fiche Play Store.
-- **Thème** : `LiveSdkTheme(LiveTheme(accent = notre rouge, cornerRadius = celui de nos boutons, fontFamily = notre police (par défaut aujourd'hui), label = D6))` autour des trois écrans. Clair ou sombre suit le système.
+- **Thème** : `LiveSdkTheme(LiveTheme(accent = notre rouge, cornerRadius = celui de nos boutons, fontFamily = notre police (par défaut aujourd'hui), label = D6))` autour des trois écrans. Clair ou sombre suit le système : `LiveSdkTheme` suit le mode clair ou sombre du téléphone, alors que notre application est toujours sombre. Sur un téléphone en mode clair, les écrans Crosslive s'affichent donc clairs. **Limite acceptée par le lead développeur le 6 novembre** : elle relève du SDK, aucun contournement n'est fait chez nous (ni copie du thème, ni modification des sources du SDK).
 
 ### Produits : notre catalogue comme Source de produits
 - `ProductSource` branchée sur `GET /me/products` (ADR-029), filtrée **localement** par la requête (minuscules, sans accents, comme la source factice du SDK). Un compte sans chaîne reçoit une liste vide (pas une exception : « Catalogue indisponible » serait faux).
@@ -134,9 +134,11 @@ Un commit par étape : (1) cet ADR ; (2) route backend et `.env.example` ; (3) d
 - Les écrans du SDK ne suivent pas notre travail TalkBack (ADR-030) : leur accessibilité dépend du SDK, et nous ne modifions pas ses sources.
 - Les textes du SDK et la valeur affichée de `iss` échappent à notre `strings.xml` : la règle de rédaction s'applique au choix de `iss` et du libellé (D3, D6).
 - Nouvelles permissions caméra et micro dans le manifeste fusionné de l'application.
+- Thème clair possible dans une application sombre : `LiveSdkTheme` suit le mode clair ou sombre du système, notre application est toujours sombre ; sur un téléphone en mode clair, les écrans Crosslive s'affichent clairs. Accepté comme limite par le lead développeur : c'est le comportement du SDK, et nous ne le contournons pas (ni copie du thème, ni modification du SDK).
+- Compilation dépendante d'un clone externe : `gradlew.bat assembleDebug` exige le clone du SDK à côté du projet (dossier `live-sdk`, commit `9b2f639`, chemin réglé par la propriété Gradle `liveSdkDir`). Cette étape est documentée dans la section d'installation du README (étape 2), et Gradle s'arrête avec la marche à suivre si le clone manque.
 
 ## Effet sur les autres ADR
-Appliqué par un humain à l'acceptation, pas avant.
+Appliqué le 6 novembre, à l'acceptation de cet ADR.
 
 ### Effet sur l'ADR-029 (amendement sur place, il reste Accepté)
 « Amendé le 6 novembre : la capture caméra et la diffusion réelle entrent dans le périmètre, uniquement par le SDK du live partagé et le serveur commun (ADR-031), jamais par notre serveur. Le live shopping de cet ADR est inchangé : flux = fichier du catalogue lu en boucle, paiement Stripe vérifié, seuil de 50 abonnés. La section « Serveur partagé entre plusieurs applications d'étudiants » et l'alternative « Serveur temps réel partagé comme serveur principal du live » restent vraies pour notre live shopping ; le serveur commun est intégré à côté, avec son propre protocole et ses propres écrans (ADR-031). Raison : ajustement de périmètre demandé par le lead développeur. »
@@ -147,24 +149,27 @@ Appliqué par un humain à l'acceptation, pas avant.
 ### Sans effet
 ADR-013 (le flux vers le serveur commun est documenté ici, ses règles PostHog ne changent pas), ADR-020, ADR-022, ADR-027 (l'adresse configurable reste celle de notre serveur), ADR-030.
 
-### CLAUDE.md (mis à jour par un humain à l'acceptation)
+### CLAUDE.md (mis à jour le 6 novembre, à l'acceptation)
 « Hors périmètre » (la capture caméra et la diffusion réelle passent par le SDK), Stack Android (SDK du live partagé, LiveKit), Backend (route `POST /live/participant-token`, variables `LIVE_SDK_SERVER_URL` (référence, non lue par la route), `LIVE_SDK_APP_ID`, `LIVE_SDK_SECRET`), Android (propriété Gradle `liveServerUrl`), Structure (`android/live-sdk-core`, `android/live-sdk-ui`, compilés depuis le clone `live-sdk` par `liveSdkDir`), section live (icône « Crosslive » de l'Accueil).
 
-## Décisions ouvertes
-- **D1 — Emplacement de l'entrée. Tranché par le lead** : icône « Crosslive » dans la barre du haut de l'Accueil, à côté de la recherche, pour tout compte connecté ; elle ouvre `LiveListScreen`.
-- **D2 — Mode d'inclusion. Tranché par la compilation** : modules locaux pointant sur le clone (`assembleDebug` et `assembleRelease` passent) ; JitPack sur `9b2f639` reste le repli.
-- **D3 — Valeur définitive de `iss`, à obtenir d'echimine.** Provisoirement `demo-android`, par décision du lead. La valeur est affichée à côté du pseudo (« Léa · <iss> ») chez tous les Participants. Proposition maintenue pour la valeur définitive : `clone`, qui reprend le nom affiché de l'application (« Clone ») et le format en minuscules des autres App membres, sans dire « YouTube ». Inconvénient : toutes les App membres sont des clones. Le passage à la valeur définitive est un simple changement de `LIVE_SDK_APP_ID` et `LIVE_SDK_SECRET` dans `backend/.env`, sans code.
-- **D4 — Visiteur non connecté. Tranché par le lead** : l'icône ouvre la connexion ; aucune liste sans compte (pas de jeton possible).
-- **D5 — Avatar (`picture`).** `USER.avatarUrl` est un chemin relatif : le backend ne connaît pas d'adresse publique pour le rendre absolu. Recommandation : envoyer `picture` seulement si `avatarUrl` est déjà une URL absolue en https, sinon l'omettre (l'initiale s'affiche), sans nouvelle variable d'environnement. Variante : une adresse publique des médias dans `.env` pour l'envoyer en déploiement.
-- **D6 — Libellé du Live (`LiveTheme.label`) et nom de l'entrée.** Recommandation : garder « Crosslive », nom commun à toutes les App membres, et nommer l'entrée de la même façon : l'utilisateur distingue ainsi le Live partagé de notre « EN DIRECT ».
-- **D7 — Seuil de 50 abonnés pour lancer un Live partagé.** Le serveur commun ne le connaît pas ; nous ne pourrions le vérifier que dans l'application (`onLaunch = null` sous 50), contre le principe « le serveur décide ». Recommandation : pas de seuil pour les Lives partagés. L'entrée étant dans le fil et non dans l'onglet « En direct », le texte « En savoir plus » de cet onglet reste exact et n'est pas modifié.
-- **D8 — Emplacement de la route backend.** Recommandation : module `lives`, interface à part. Variante : un petit module dédié, plus net mais qui allonge la liste des modules de CLAUDE.md.
-- **D9 — Caméra de l'émulateur.** Lancer un Live demande une caméra. L'émulateur Android propose une caméra virtuelle (scène virtuelle) ou la webcam de l'ordinateur. **À vérifier**, sans conclure ici : l'aperçu et la diffusion de `LiveLaunchScreen` fonctionnent-ils avec l'une ou l'autre ? Sinon, la démonstration du lancement se fait sur un téléphone réel.
-- **D10 — Information de l'utilisateur.** Le nom et l'avatar partent chez un tiers et sont vus des autres applications. Recommandation : pas de nouvel écran (non demandé) ; le dire à l'oral et dans la fiche « Sécurité des données ». À confirmer par le lead.
+## Décisions validées
+Le lead développeur a accepté cet ADR le 6 novembre 2026. Les points suivants sont des décisions.
+- **D1 — Emplacement de l'entrée** : icône « Crosslive » dans la barre du haut de l'Accueil, à côté de la recherche, pour tout compte connecté ; elle ouvre `LiveListScreen`.
+- **D2 — Mode d'inclusion** (tranché par la compilation) : deux modules locaux, `android/live-sdk-core` et `android/live-sdk-ui`, pointant sur le clone (`assembleDebug` et `assembleRelease` passent) ; JitPack sur `9b2f639` reste le repli.
+- **D4 — Visiteur non connecté** : l'icône ouvre la connexion ; aucune liste sans compte (pas de jeton possible).
+- **D5 — Avatar (`picture`)** : `USER.avatarUrl` est un chemin relatif et le backend ne connaît pas d'adresse publique pour le rendre absolu ; `picture` n'est envoyé que si `avatarUrl` est déjà une URL absolue en https, sinon il est omis (l'initiale s'affiche), sans nouvelle variable d'environnement.
+- **D6 — Libellé du Live (`LiveTheme.label`) et nom de l'entrée** : « Crosslive », nom commun à toutes les App membres, pour le libellé comme pour l'entrée ; l'utilisateur distingue ainsi le Live partagé de notre « EN DIRECT ».
+- **D7 — Seuil de 50 abonnés pour lancer un Live partagé** : pas de seuil. Le serveur commun ne le connaît pas ; nous ne pourrions le vérifier que dans l'application, contre le principe « le serveur décide ». L'entrée étant dans le fil et non dans l'onglet « En direct », le texte « En savoir plus » de cet onglet reste exact et n'est pas modifié.
+- **D8 — Emplacement de la route backend** : module `lives`, interface à part.
+
+## Décisions encore ouvertes
+- **D3 — Valeur définitive de `iss`, à obtenir d'echimine.** `demo-android` reste **provisoire**, par décision du lead. La valeur est affichée à côté du pseudo (« Léa · <iss> ») chez tous les Participants. Proposition maintenue pour la valeur définitive : `clone`, qui reprend le nom affiché de l'application (« Clone ») et le format en minuscules des autres App membres, sans dire « YouTube ». Inconvénient : toutes les App membres sont des clones. Le passage à la valeur définitive est un simple changement de `LIVE_SDK_APP_ID` et `LIVE_SDK_SECRET` dans `backend/.env`, sans code.
+- **D9 — Caméra de l'émulateur.** Constat du 6 novembre sur l'émulateur Pixel_8 (caméra avant réglée sur « emulated ») : l'image synthétique de l'émulateur (blocs de couleur animés) a bien été publiée dans un Live réel, comme Co-hôte. « Lancer » (`LiveLaunchScreen`) n'a pas été essayé. Pour montrer un visage, lancer l'émulateur avec `-camera-front webcam0` (webcam de l'ordinateur) ou diffuser depuis un téléphone réel. Reste ouvert : le lancement d'un Live depuis l'émulateur n'est pas vérifié.
+- **D10 — Information de l'utilisateur.** Le nom et l'avatar partent chez un tiers et sont vus des autres applications. Recommandation : pas de nouvel écran (non demandé) ; le dire à l'oral et dans la fiche « Sécurité des données ». Non tranché par le lead au 6 novembre.
 
 ## Liens
-- [ADR-029](ADR-029-live-shopping.md) : notre live shopping, conservé à côté ; amendé à l'acceptation (capture caméra par le SDK seulement).
-- [ADR-015](ADR-015-publication-depuis-mobile.md) : feuille de création, onglet « En direct », seuil de 50 abonnés, inchangés ; amendé à l'acceptation pour la seule mention de la capture caméra.
+- [ADR-029](ADR-029-live-shopping.md) : notre live shopping, conservé à côté ; amendé le 6 novembre (capture caméra par le SDK seulement).
+- [ADR-015](ADR-015-publication-depuis-mobile.md) : feuille de création, onglet « En direct », seuil de 50 abonnés, inchangés ; amendé le 6 novembre pour la seule mention de la capture caméra.
 - [ADR-013](ADR-013-mesures-donnees-personnelles.md) : données personnelles ; le flux vers le serveur commun est décrit ici.
 - [ADR-008](ADR-008-authentification-jwt.md), [ADR-022](ADR-022-plusieurs-comptes-appareil.md) : authentification et compte actif ; le jeton suit le compte actif.
 - [ADR-027](ADR-027-adresse-serveur-configurable.md) : adresse de notre serveur, distincte de celle du serveur commun.

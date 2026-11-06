@@ -25,11 +25,14 @@ backoffice/   administration web (Next.js)
 docs/adr/     décisions d'architecture
 ```
 
+`android/live-sdk-core` et `android/live-sdk-ui` compilent les sources du clone `live-sdk` placé à côté du projet (propriété Gradle `liveSdkDir`, commit `9b2f639`) : SDK du live partagé, ADR-031.
+
 ## Stack
 
 **Android** — Kotlin, Jetpack Compose, Media3 ExoPlayer (lecture vidéo), Room (cache local),
 Retrofit (API), OkHttp WebSocket (temps réel), Coil (images), Hilt (injection), Navigation Compose, DataStore,
-Firebase Cloud Messaging (notifications de publication, ADR-020), Stripe PaymentSheet (paiement Premium, ADR-014 ; achats du live shopping, ADR-029).
+Firebase Cloud Messaging (notifications de publication, ADR-020), Stripe PaymentSheet (paiement Premium, ADR-014 ; achats du live shopping, ADR-029),
+SDK du live partagé Crosslive avec LiveKit (ADR-031).
 Architecture **MVVM + Clean Architecture** : `presentation/` · `domain/` · `data/`.
 minSdk 26.
 
@@ -37,6 +40,7 @@ minSdk 26.
 passerelle WebSocket NestJS, firebase-admin (envoi des notifications FCM), Stripe en mode test (Premium, ADR-014 ; achats du live shopping, ADR-029). Stockage vidéo : dossier local en développement, Cloudflare R2 + CDN au déploiement.
 Architecture **hexagonale, monolithe modulaire** : `domain/` · `application/` · `infrastructure/` · `interfaces/`.
 Modules : auth, channels (dont les abonnements), videos, comments, premium, realtime, playlists, notifications, ads, messaging, lives, products (les deux derniers : ADR-029).
+Route `POST /live/participant-token` (module lives, ADR-031) : Jeton de Participant du live partagé ; variables `LIVE_SDK_APP_ID`, `LIVE_SDK_SECRET` et `LIVE_SDK_SERVER_URL` dans `backend/.env`.
 
 **Back-office** — Next.js (TypeScript), Tailwind CSS.
 Architecture **MVC** : `app/` · `controllers/` · `models/` · `views/` · `services/`.
@@ -70,7 +74,9 @@ Les événements partent de l'application directement vers PostHog, pas par le b
 
 **Live shopping (ADR-029)** — entre dans le périmètre et lève l'ancienne exclusion du « live ». Démarrer un live depuis l'onglet « En direct » (chaîne de 50 abonnés au moins), le regarder avec chat, compteur de spectateurs et réactions, produit épinglé et achat Stripe en mode test, pages Produits et Lives du back-office. Plan en quatre étapes, un commit par étape : 1) démarrer et regarder avec chat et compteur ; 2) réactions ; 3) produit épinglé et achat ; 4) modération par le diffuseur (bonus) : **sautée**, hors livraison. Le flux d'un live est un fichier existant du catalogue, lu en boucle et présenté comme un direct ; tout le reste est réel et tourne sur notre serveur.
 
-**Hors périmètre** — version iOS, capture caméra et diffusion réelle d'un live (le live shopping, lui, est dans le périmètre : ADR-029), monétisation des créateurs, mot de passe oublié, tendances, signalement, « à regarder plus tard ».
+**Live partagé Crosslive (ADR-031)** — icône « Crosslive » en haut de l'Accueil, pour tout compte connecté ; elle ouvre les écrans du SDK commun (liste, lancement, Live), distincts du live shopping. L'achat y est simulé par le serveur commun, sans paiement.
+
+**Hors périmètre** — version iOS, monétisation des créateurs, mot de passe oublié, tendances, signalement, « à regarder plus tard ». La capture caméra et la diffusion réelle ne sont plus hors périmètre : uniquement par le SDK et le serveur commun du live partagé (ADR-031), jamais par notre serveur ; le live shopping garde son flux simulé (ADR-029).
 
 ## Conventions
 

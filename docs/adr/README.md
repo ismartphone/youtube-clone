@@ -32,6 +32,6 @@ Liste des décisions d'architecture du projet et de leur statut. Seul un humain 
 | [ADR-026](ADR-026-miniatures-floutees-premium.md) | Miniatures floutées des vidéos Premium pour les comptes sans abonnement | Accepté |
 | [ADR-027](ADR-027-adresse-serveur-configurable.md) | Adresse du serveur configurable dans l'application Android (version debug) | Accepté |
 | [ADR-028](ADR-028-onboarding-parcours-etapes.md) | Onboarding : parcours d'accueil en étapes décrites par des données | Accepté |
-| [ADR-029](ADR-029-live-shopping.md) | Live shopping : direct simulé sur un fichier du catalogue, chat, produit épinglé et achat en direct (lève l'exclusion du « live » de CLAUDE.md et de l'ADR-015) | Accepté |
+| [ADR-029](ADR-029-live-shopping.md) | Live shopping : direct simulé sur un fichier du catalogue, chat, produit épinglé et achat en direct (lève l'exclusion du « live » de CLAUDE.md et de l'ADR-015) | Accepté, amendé par l'ADR-031 (capture caméra par le SDK du live partagé) |
 | [ADR-030](ADR-030-accessibilite-talkback.md) | Accessibilité pour les personnes aveugles : TalkBack sur l'application Android (Challenge 2) | Accepté |
-| [ADR-031](ADR-031-sdk-live-partage.md) | Live partagé entre les applications de la classe : intégration du SDK commun (Crosslive), à côté du live shopping de l'ADR-029 | Proposé |
+| [ADR-031](ADR-031-sdk-live-partage.md) | Live partagé entre les applications de la classe : intégration du SDK commun (Crosslive), à côté du live shopping de l'ADR-029 | Accepté |
