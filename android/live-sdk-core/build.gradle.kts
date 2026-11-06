@@ -8,6 +8,16 @@ plugins {
 
 val liveSdkDir: File = rootProject.file(providers.gradleProperty("liveSdkDir").get())
 
+// Clone absent : arrêt immédiat avec la marche à suivre, plutôt que des erreurs de compilation
+// incompréhensibles dans l'application (références fr.echimine introuvables).
+if (!liveSdkDir.resolve("kotlin/core/src/main/kotlin").isDirectory) {
+    throw GradleException(
+        "SDK du live partagé introuvable dans ${liveSdkDir.absolutePath}. Cloner " +
+            "https://github.com/echimine/live-sdk.git à côté du projet (dossier live-sdk, commit 9b2f639), " +
+            "ou régler liveSdkDir dans android/gradle.properties. Voir le README, « Cloner le dépôt ».",
+    )
+}
+
 android {
     namespace = "fr.echimine.live.core"
     compileSdk {

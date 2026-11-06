@@ -92,8 +92,31 @@ Si FFmpeg ne peut pas être dans le PATH, indiquer son chemin dans `backend/.env
 
 ```powershell
 git clone https://github.com/ismartphone/youtube-clone.git Youtube_project
+```
+
+**Puis cloner le SDK du live partagé, à côté du projet.** L'application Android ne compile pas sans
+lui : les lives partagés Crosslive ([ADR-031](docs/adr/ADR-031-sdk-live-partage.md)) compilent les
+sources de ce dépôt, qui n'est pas publié en version. Il doit être dans le **même dossier parent**
+que `Youtube_project`, sous le nom `live-sdk`, et au commit attendu :
+
+```powershell
+git clone https://github.com/echimine/live-sdk.git live-sdk
+git -C live-sdk checkout 9b2f639   # commit attendu par le projet (git signale un « detached HEAD » : normal)
 cd Youtube_project
 ```
+
+Disposition obtenue :
+
+```
+<dossier parent>/
+├── Youtube_project/   ce dépôt
+└── live-sdk/          SDK du live partagé, commit 9b2f639
+```
+
+Ailleurs, indiquer son chemin dans `android/gradle.properties` (`liveSdkDir`, relatif au dossier
+`android/` ou absolu), ou passer `-PliveSdkDir=<chemin>` à Gradle. Si le dossier manque, Gradle
+s'arrête dès la synchronisation avec un message qui renvoie ici. Un autre commit du SDK peut ne
+pas compiler avec le projet : ne le mettre à jour qu'avec le reste de l'équipe.
 
 ### 3. Démarrer PostgreSQL et Redis
 
@@ -135,6 +158,13 @@ Paiement Premium : pour un vrai paiement Stripe en mode test, renseigner aussi `
 Sans ces clés, l'application propose l'achat simulé, ce qui suffit pour une démonstration hors ligne
 ([ADR-014](docs/adr/ADR-014-paiement-stripe-mode-test.md)). Carte de test : 4242 4242 4242 4242,
 date future et CVC quelconques.
+
+Lives partagés Crosslive (facultatif) : renseigner `LIVE_SDK_APP_ID` et `LIVE_SDK_SECRET`, l'identifiant
+et le secret de l'application sur le serveur commun, transmis en privé et jamais versionnés.
+`LIVE_SDK_SERVER_URL` (`https://live.echimine.fr`) est gardée pour référence. L'identifiant vaut
+pour l'instant `demo-android`, application de test du serveur commun, en attendant que la nôtre y
+soit déclarée. Sans ces variables, le reste fonctionne ; seule l'icône Crosslive de l'accueil
+affiche une erreur ([ADR-031](docs/adr/ADR-031-sdk-live-partage.md)).
 
 Puis créer les tables, générer le client Prisma et remplir la base :
 
@@ -278,6 +308,8 @@ PostHog ont besoin d'Internet. Si la salle n'a pas de connexion :
   pour revenir à Stripe.
 - **Mesures PostHog** — rien à faire : sans réseau, les envois échouent en silence sans bloquer
   l'application, et le test A/B du paywall affiche sa variante par défaut.
+- **Lives partagés Crosslive** — impossibles sans Internet : ils passent par le serveur commun
+  `https://live.echimine.fr` (ADR-031). Notre live shopping (ADR-029), lui, reste local.
 
 ## Pièges courants
 
@@ -289,6 +321,7 @@ PostHog ont besoin d'Internet. Si la salle n'a pas de connexion :
 | Le conteneur PostgreSQL ne démarre pas, ou le backend ne trouve pas la base `youtube` | Port 5432 déjà pris, souvent par un PostgreSQL installé sur la machine : arrêter ce service |
 | Le backend, les migrations ou le seed échouent sur la connexion à la base ou à Redis | Docker Desktop n'est pas lancé, ou `docker compose up -d --wait` n'a pas été fait |
 | Le backend ne compile pas : client Prisma introuvable | `npx prisma generate` n'a pas été lancé après le clone |
+| Gradle s'arrête : « SDK du live partagé introuvable » | Dépôt `live-sdk` absent ou mal placé : le cloner à côté du projet, au commit `9b2f639` (étape 2) |
 | Vidéos ou bannières qui ne s'affichent pas | `backend/storage/` vide : lancer `npm run seed:videos` puis `npm run seed:banners` |
 | Miniatures grises avec le titre en texte | `npm run thumbnails:regenerate` n'a pas été lancé |
 | `gradlew.bat` : « JAVA_HOME is not set » ou SDK introuvable | Ouvrir une fois `android/` dans Android Studio, et faire pointer `JAVA_HOME` vers son dossier `jbr` |
