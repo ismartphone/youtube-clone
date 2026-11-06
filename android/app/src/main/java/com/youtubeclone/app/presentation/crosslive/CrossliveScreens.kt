@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import com.youtubeclone.app.data.live.SharedLiveSdk
+import com.youtubeclone.app.domain.repository.LivesRepository
 import com.youtubeclone.app.presentation.theme.YoutubeRedFill
 import dagger.hilt.android.lifecycle.HiltViewModel
 import fr.echimine.live.core.Live
@@ -26,7 +27,13 @@ import fr.echimine.live.ui.LiveScreen as SharedLiveScreen
 
 /** Configure le SDK à la première ouverture d'un écran Crosslive, y compris après une restauration. */
 @HiltViewModel
-class CrossliveViewModel @Inject constructor(val sdk: SharedLiveSdk) : ViewModel() {
+class CrossliveViewModel @Inject constructor(
+    val sdk: SharedLiveSdk,
+    lives: LivesRepository,
+) : ViewModel() {
+    /** Nos produits, proposés aux Animateurs pour l'épinglage. */
+    val productSource = CatalogProductSource(lives)
+
     init {
         sdk.ensureConfigured()
     }
@@ -85,9 +92,9 @@ fun CrossliveLiveDestination(liveId: String, onClose: () -> Unit) {
     CrossliveFrame { viewModel ->
         val launched = remember(liveId) { viewModel.sdk.takeLaunched(liveId) }
         if (launched != null) {
-            SharedLiveScreen(launched, onClose = onClose)
+            SharedLiveScreen(launched, onClose = onClose, productSource = viewModel.productSource)
         } else {
-            SharedLiveScreen(liveId, onClose = onClose)
+            SharedLiveScreen(liveId, onClose = onClose, productSource = viewModel.productSource)
         }
     }
 }
