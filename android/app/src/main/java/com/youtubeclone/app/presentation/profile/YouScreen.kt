@@ -43,6 +43,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +61,7 @@ import com.youtubeclone.app.domain.model.PremiumStatus
 import com.youtubeclone.app.domain.model.User
 import com.youtubeclone.app.domain.model.Video
 import com.youtubeclone.app.presentation.common.ChannelAvatar
+import com.youtubeclone.app.presentation.common.isLargeText
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.LoadingState
@@ -232,7 +235,7 @@ private fun HistorySection(videos: List<Video>, onVideoClick: (String) -> Unit, 
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).semantics { heading() },
             )
             OutlinedButton(onClick = onViewAll) { Text(stringResource(R.string.you_view_all)) }
         }
@@ -261,14 +264,14 @@ private fun HistorySection(videos: List<Video>, onVideoClick: (String) -> Unit, 
                             text = video.title,
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                             color = MaterialTheme.colorScheme.onBackground,
-                            maxLines = 2,
+                            maxLines = if (isLargeText()) 4 else 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             text = video.channel.name,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
+                            maxLines = if (isLargeText()) 3 else 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
@@ -288,7 +291,7 @@ private fun PlaylistsSection(playlists: List<PlaylistSummary>, onPlaylistClick: 
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() },
         )
         if (playlists.isEmpty()) {
             Text(
@@ -321,6 +324,7 @@ private fun PlaylistsSection(playlists: List<PlaylistSummary>, onPlaylistClick: 
                             if (playlist.thumbnailUrl != null) {
                                 AsyncImage(
                                     model = playlist.thumbnailUrl,
+                                    // Décoratif (ADR-030) : la miniature de la playlist n'a pas de texte alternatif ; son titre est lu avec la carte.
                                     contentDescription = null,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.matchParentSize(),
@@ -328,6 +332,7 @@ private fun PlaylistsSection(playlists: List<PlaylistSummary>, onPlaylistClick: 
                             } else {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_save),
+                                    // Décoratif (ADR-030) : icône de repli d'une playlist sans miniature ; le titre de la carte est lu.
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -337,7 +342,7 @@ private fun PlaylistsSection(playlists: List<PlaylistSummary>, onPlaylistClick: 
                             text = playlist.title,
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                             color = MaterialTheme.colorScheme.onBackground,
-                            maxLines = 2,
+                            maxLines = if (isLargeText()) 4 else 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
@@ -369,6 +374,7 @@ private fun HeaderLink(text: String, onClick: () -> Unit) {
         )
         Icon(
             painter = painterResource(R.drawable.ic_chevron_right),
+            // Décoratif (ADR-030) : chevron du lien : le texte du lien porte le sens.
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.size(18.dp),
@@ -442,6 +448,7 @@ private fun AccountHeader(
                         )
                         Icon(
                             painter = painterResource(R.drawable.ic_chevron_right),
+                            // Décoratif (ADR-030) : chevron du lien : le texte du lien porte le sens.
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(18.dp),
@@ -467,6 +474,7 @@ private fun AccountHeader(
                     )
                     Icon(
                         painter = painterResource(R.drawable.ic_chevron_right),
+                        // Décoratif (ADR-030) : chevron du lien : le texte du lien porte le sens.
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.size(18.dp),
@@ -487,6 +495,7 @@ private fun Avatar(user: User) {
     if (user.avatarUrl != null) {
         AsyncImage(
             model = user.avatarUrl,
+            // Décoratif (ADR-030) : avatar du compte : le nom et le bouton de l'en-tête portent le sens.
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = avatarModifier,
@@ -514,6 +523,7 @@ private fun SignInPrompt(onLoginClick: () -> Unit, onRegisterClick: () -> Unit) 
     ) {
         Icon(
             painter = painterResource(R.drawable.ic_folder),
+            // Décoratif (ADR-030) : icône de dossier d'une liste : le libellé de la ligne est lu.
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(72.dp),
@@ -580,6 +590,7 @@ private fun Shortcuts(
             ) {
                 Icon(
                     painter = painterResource(shortcut.icon),
+                    // Décoratif (ADR-030) : icône du raccourci : le libellé du raccourci est lu avec lui.
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.size(20.dp),
@@ -620,6 +631,7 @@ private fun SettingsRow(@DrawableRes icon: Int, @StringRes label: Int, onClick: 
     ) {
         Icon(
             painter = painterResource(icon),
+            // Décoratif (ADR-030) : icône du réglage : le libellé de la ligne est lu.
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.size(24.dp),
@@ -656,6 +668,7 @@ private fun PremiumCard(premium: PremiumStatus?, onPremiumClick: () -> Unit, onC
             ) {
                 Icon(
                     painter = painterResource(R.drawable.ic_premium),
+                    // Décoratif (ADR-030) : icône de la carte Premium : le texte de la carte est lu.
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(22.dp),

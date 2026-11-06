@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,6 +40,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -56,6 +60,7 @@ import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.ErrorToast
 import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.formatFollowerCount
+import com.youtubeclone.app.presentation.common.isLargeText
 import com.youtubeclone.app.presentation.home.previewVideo
 import com.youtubeclone.app.presentation.theme.YoutubeCloneTheme
 import com.youtubeclone.app.presentation.watch.SuggestedVideoCard
@@ -116,6 +121,7 @@ private fun SearchBar(
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val hint = stringResource(R.string.search_hint)
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Row(
@@ -134,7 +140,7 @@ private fun SearchBar(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .height(44.dp)
+                .heightIn(min = 44.dp) // grandit avec la police du système (ADR-030)
                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(22.dp))
                 .padding(start = 16.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -162,7 +168,8 @@ private fun SearchBar(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(focusRequester),
+                        .focusRequester(focusRequester)
+                        .semantics { contentDescription = hint }, // nom du champ pour TalkBack (ADR-030),
                 )
             }
             if (query.isNotEmpty()) {
@@ -266,7 +273,7 @@ private fun SectionTitle(titleRes: Int) {
         text = stringResource(titleRes),
         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
         color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp).semantics { heading() },
     )
 }
 
@@ -276,7 +283,8 @@ private fun ChannelResultRow(result: ChannelSearchResult, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -286,14 +294,14 @@ private fun ChannelResultRow(result: ChannelSearchResult, onClick: () -> Unit) {
                 text = result.channel.name,
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
+                maxLines = if (isLargeText()) 3 else 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "@${result.channel.handle} · ${formatFollowerCount(result.followerCount)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
+                maxLines = if (isLargeText()) 3 else 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
