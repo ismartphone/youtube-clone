@@ -159,7 +159,7 @@ fun CommentsSection(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable(onClick = onLoginRequired)
+                    .clickable(role = Role.Button, onClick = onLoginRequired)
                     .padding(16.dp),
             )
         }

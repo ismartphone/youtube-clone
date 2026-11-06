@@ -96,6 +96,7 @@ private fun BannerContent(publication: Publication) {
                 val video = publication.video
                 AsyncImage(
                     model = video.thumbnailUrl,
+                    // Décoratif (ADR-030) : miniature de la vidéo publiée : le titre voisin est lu.
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -116,6 +117,7 @@ private fun BannerContent(publication: Publication) {
                 if (post.imageUrl != null) {
                     AsyncImage(
                         model = post.imageUrl,
+                        // Décoratif (ADR-030) : image du post publié : le texte du post est lu.
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier

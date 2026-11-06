@@ -27,6 +27,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.youtubeclone.app.R
@@ -118,10 +120,12 @@ fun HelpScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 private fun FaqItem(faq: Faq) {
     var expanded by rememberSaveable(faq.question) { mutableStateOf(false) }
+    val expandedState = stringResource(if (expanded) R.string.a11y_state_expanded else R.string.a11y_state_collapsed)
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button) { expanded = !expanded }
+            .semantics { stateDescription = expandedState } // l'état de la réponse est dit (ADR-030)
             .animateContentSize()
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
@@ -134,6 +138,7 @@ private fun FaqItem(faq: Faq) {
             )
             Icon(
                 painter = painterResource(R.drawable.ic_chevron_right),
+                // Décoratif (ADR-030) : chevron de la question : la question est lue, l'état se lit avec la ligne.
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier

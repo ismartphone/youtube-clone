@@ -664,6 +664,7 @@ private fun TabIcon(tab: Tab, selected: Boolean) {
     )
     Icon(
         painter = painterResource(tab.icon),
+        // Décoratif (ADR-030) : icône de l'onglet : le libellé de l'onglet (TabLabel) est lu.
         contentDescription = null,
         tint = color,
         modifier = Modifier.graphicsLayer {

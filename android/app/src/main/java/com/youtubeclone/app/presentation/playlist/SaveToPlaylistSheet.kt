@@ -130,6 +130,7 @@ fun SaveToPlaylistSheet(
                     }
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     TextButton(colors = redTextButtonColors(), onClick = { showCreate = true }, modifier = Modifier.padding(horizontal = 12.dp)) {
+                        // Décoratif (ADR-030) : icône du bouton « Nouvelle playlist » : son libellé est lu.
                         Icon(painterResource(R.drawable.ic_add), contentDescription = null, modifier = Modifier.size(20.dp))
                         Text(stringResource(R.string.playlist_new), modifier = Modifier.padding(start = 8.dp))
                     }

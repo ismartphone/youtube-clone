@@ -56,6 +56,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -319,6 +321,7 @@ private fun PublishSettings(
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val chevron by animateFloatAsState(if (expanded) 90f else 0f, label = "chevron")
+    val expandedState = stringResource(if (expanded) R.string.a11y_state_expanded else R.string.a11y_state_collapsed)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -329,6 +332,7 @@ private fun PublishSettings(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(role = Role.Button) { expanded = !expanded }
+                .semantics { stateDescription = expandedState } // l'état de la section est dit (ADR-030)
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -348,6 +352,7 @@ private fun PublishSettings(
             }
             Icon(
                 painter = painterResource(R.drawable.ic_chevron_right),
+                // Décoratif (ADR-030) : chevron de la section : son état est porté par stateDescription.
                 contentDescription = null,
                 modifier = Modifier.rotate(chevron),
             )

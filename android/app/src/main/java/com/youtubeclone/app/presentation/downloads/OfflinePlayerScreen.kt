@@ -81,6 +81,7 @@ fun OfflinePlayerScreen(onBack: () -> Unit, viewModel: OfflinePlayerViewModel = 
                     if (showThumbnail && thumbnail != null) {
                         AsyncImage(
                             model = File(thumbnail),
+                            // Décoratif (ADR-030) : miniature d'attente du lecteur hors connexion : le titre de l'écran est lu.
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.matchParentSize(),

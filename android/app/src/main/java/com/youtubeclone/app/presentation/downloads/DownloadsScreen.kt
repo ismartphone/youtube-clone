@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -45,6 +46,7 @@ import com.youtubeclone.app.presentation.common.BackTopBar
 import com.youtubeclone.app.presentation.common.EmptyStateMessage
 import com.youtubeclone.app.presentation.common.LoadingState
 import com.youtubeclone.app.presentation.common.formatDuration
+import com.youtubeclone.app.presentation.common.isLargeText
 import java.io.File
 
 /**
@@ -108,7 +110,7 @@ private fun DownloadRow(video: DownloadedVideo, onPlay: () -> Unit, onRemove: ()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = video.playable, onClick = onPlay)
+            .clickable(enabled = video.playable, role = Role.Button, onClick = onPlay)
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -123,6 +125,7 @@ private fun DownloadRow(video: DownloadedVideo, onPlay: () -> Unit, onRemove: ()
             video.thumbnailPath?.let {
                 AsyncImage(
                     model = File(it),
+                    // Décoratif (ADR-030) : miniature d'une vidéo téléchargée : le titre de la ligne est lu.
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.matchParentSize(),
@@ -143,7 +146,7 @@ private fun DownloadRow(video: DownloadedVideo, onPlay: () -> Unit, onRemove: ()
             Text(
                 text = video.title,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                maxLines = 2,
+                maxLines = if (isLargeText()) 4 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(video.channelName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
