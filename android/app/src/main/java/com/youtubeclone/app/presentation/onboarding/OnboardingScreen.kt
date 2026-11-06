@@ -15,6 +15,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -26,6 +27,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -147,11 +150,12 @@ fun OnboardingScreen(viewModel: OnboardingViewModel = hiltViewModel()) {
                     fadeIn(tween(Motion.REDUCED_FADE_MS)) togetherWith fadeOut(tween(Motion.REDUCED_FADE_MS))
                 } else {
                     // Glissement dans le sens du parcours : vers la gauche en avançant, vers la droite en reculant.
+                    // Courbe standard (accélération puis décélération), sans rebond.
                     val direction = if (state.forward) 1 else -1
-                    (slideInHorizontally(tween(Motion.SCREEN_MS, easing = Motion.Easing)) { it * direction / 3 } +
-                        fadeIn(tween(Motion.SCREEN_MS))) togetherWith
-                        (slideOutHorizontally(tween(Motion.SCREEN_MS, easing = Motion.Easing)) { -it * direction / 3 } +
-                            fadeOut(tween(Motion.SCREEN_MS / 2)))
+                    (slideInHorizontally(tween(STEP_MS, easing = Motion.Easing)) { it * direction / 3 } +
+                        fadeIn(tween(STEP_MS, easing = Motion.Easing))) togetherWith
+                        (slideOutHorizontally(tween(STEP_MS, easing = Motion.Easing)) { -it * direction / 3 } +
+                            fadeOut(tween(STEP_MS / 2, easing = Motion.Easing)))
                 }
             },
             label = "onboarding-step",
@@ -176,9 +180,11 @@ private fun requiredInterests(state: OnboardingUiState): Int {
 
 @Composable
 private fun ProgressBar(index: Int, count: Int) {
+    // La jauge glisse d'une position à l'autre ; animations réduites : elle change sans mouvement.
+    val reduceMotion = LocalReduceMotion.current
     val progress by animateFloatAsState(
         targetValue = (index + 1).toFloat() / count,
-        animationSpec = tween(Motion.SCREEN_MS, easing = Motion.Easing),
+        animationSpec = if (reduceMotion) snap() else tween(STEP_MS, easing = Motion.Easing),
         label = "onboarding-progress",
     )
     val description = stringResource(R.string.onboarding_progress, index + 1, count)
@@ -210,6 +216,7 @@ private fun StepFooter(step: OnboardingStep, canGoNext: Boolean, onNext: () -> U
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (step.showNext) {
+            val nextInteraction = remember { MutableInteractionSource() }
             Button(
                 onClick = onNext,
                 enabled = canGoNext,
@@ -218,7 +225,9 @@ private fun StepFooter(step: OnboardingStep, canGoNext: Boolean, onNext: () -> U
                     containerColor = MaterialTheme.colorScheme.onBackground,
                     contentColor = MaterialTheme.colorScheme.background,
                 ),
+                interactionSource = nextInteraction,
                 modifier = Modifier
+                    .pressScale(nextInteraction)
                     .fillMaxWidth()
                     .height(48.dp),
             ) {
@@ -227,7 +236,12 @@ private fun StepFooter(step: OnboardingStep, canGoNext: Boolean, onNext: () -> U
         }
         // « Passer » discret : un simple texte gris, sous le bouton principal.
         step.skipLabel?.let { label ->
-            TextButton(onClick = onSkip) {
+            val skipInteraction = remember { MutableInteractionSource() }
+            TextButton(
+                onClick = onSkip,
+                interactionSource = skipInteraction,
+                modifier = Modifier.pressScale(skipInteraction),
+            ) {
                 Text(
                     text = stringResource(label),
                     style = MaterialTheme.typography.bodyMedium,
@@ -237,6 +251,28 @@ private fun StepFooter(step: OnboardingStep, canGoNext: Boolean, onNext: () -> U
         }
     }
 }
+
+/**
+ * Retour visuel à l'appui : le bouton se réduit légèrement tant qu'il est pressé. Rien quand
+ * l'utilisateur a demandé moins d'animations (l'effet d'onde du bouton reste).
+ */
+@Composable
+private fun Modifier.pressScale(interactionSource: MutableInteractionSource): Modifier {
+    if (LocalReduceMotion.current) return this
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) PRESSED_SCALE else 1f,
+        animationSpec = tween(PRESS_MS, easing = Motion.Easing),
+        label = "onboarding-press",
+    )
+    return graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+}
+
+private const val PRESSED_SCALE = 0.96f
+private const val PRESS_MS = 100
 
 /** Contenu central d'une étape : choisi selon son type, jamais selon son identifiant. */
 @Composable
@@ -256,7 +292,7 @@ private fun StepContent(step: OnboardingStep, state: OnboardingUiState, required
 }
 
 // Mise en page commune : visuel (ou rien), titre, texte, puis le contenu de l'étape. Les éléments
-// apparaissent l'un après l'autre.
+// apparaissent l'un après l'autre : titre, texte, puis visuel ou options.
 @Composable
 private fun Page(
     step: OnboardingStep,
@@ -276,7 +312,8 @@ private fun Page(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 8.dp)
+                    .cascadeIn(3),
                 contentAlignment = Alignment.Center,
             ) { visual() }
         }
@@ -333,8 +370,12 @@ private fun Modifier.cascadeIn(order: Int): Modifier {
     }
 }
 
-private const val CASCADE_MS = 90L
-private const val CASCADE_FADE_MS = 380
+// Écart d'environ 50 ms entre deux éléments : senti, pas compté.
+private const val CASCADE_MS = 50L
+private const val CASCADE_FADE_MS = 250
+
+/** Passage d'une étape à l'autre (glissement et fondu), et glissement de la jauge de progression. */
+private const val STEP_MS = 300
 
 // ---------------------------------------------------------------------------------------------
 // Visuels
