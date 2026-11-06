@@ -2,6 +2,7 @@ package com.youtubeclone.app.data.live
 
 import com.youtubeclone.app.BuildConfig
 import com.youtubeclone.app.data.remote.SharedLiveApi
+import fr.echimine.live.core.Live
 import fr.echimine.live.core.LiveSdk
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,6 +17,19 @@ import javax.inject.Singleton
 class SharedLiveSdk @Inject constructor(private val api: SharedLiveApi) {
 
     private var configured = false
+
+    // Live que l'utilisateur vient de lancer, déjà connecté : passé de l'écran de lancement à l'écran
+    // du Live, l'objet ne pouvant pas voyager dans une route de navigation.
+    private var launched: Live? = null
+
+    @Synchronized
+    fun holdLaunched(live: Live) {
+        launched = live
+    }
+
+    /** Le Live lancé si c'est bien [liveId], une seule fois ; null sinon (il sera rouvert par son id). */
+    @Synchronized
+    fun takeLaunched(liveId: String): Live? = launched?.takeIf { it.id == liveId }.also { launched = null }
 
     @Synchronized
     fun ensureConfigured() {

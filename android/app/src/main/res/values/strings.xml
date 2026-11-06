@@ -103,6 +103,8 @@
     <string name="home_empty">Aucune vidéo pour le moment.</string>
     <string name="home_filter_all">Tout</string>
     <string name="home_search">Rechercher</string>
+    <!-- Lives partagés entre les applications (ADR-031). -->
+    <string name="home_crosslive">Lives Crosslive</string>
     <string name="home_account">Votre compte</string>
     <string name="shorts_empty">Aucun Short pour le moment.</string>
     <string name="shorts_paused">En pause</string>

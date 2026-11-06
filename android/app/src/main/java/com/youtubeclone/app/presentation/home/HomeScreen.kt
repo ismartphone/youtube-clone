@@ -117,6 +117,7 @@ fun HomeScreen(
     onMessagesClick: () -> Unit,
     onLoginRequired: () -> Unit,
     onLiveClick: (liveId: String) -> Unit,
+    onCrossliveClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -175,6 +176,7 @@ fun HomeScreen(
         onLoginRequired = onLoginRequired,
         lives = lives,
         onLiveClick = onLiveClick,
+        onCrossliveClick = onCrossliveClick,
     )
 }
 
@@ -204,6 +206,7 @@ private fun HomeContent(
     onLoginRequired: () -> Unit = {},
     lives: List<Live> = emptyList(),
     onLiveClick: (liveId: String) -> Unit = {},
+    onCrossliveClick: () -> Unit = {},
 ) {
     Column(
         modifier = modifier
@@ -214,6 +217,8 @@ private fun HomeContent(
             account = account,
             unreadMessages = unreadMessages,
             onSearchClick = onSearchClick,
+            // Lives partagés (ADR-031) : un Jeton de Participant exige un compte (D4).
+            onCrossliveClick = if (account != null) onCrossliveClick else onLoginRequired,
             // Un visiteur qui touche la messagerie est invité à se connecter.
             onMessagesClick = if (account != null) onMessagesClick else onLoginRequired,
             onAccountClick = onAccountClick,
@@ -297,6 +302,7 @@ private fun HomeTopBar(
     account: User?,
     unreadMessages: Int,
     onSearchClick: () -> Unit,
+    onCrossliveClick: () -> Unit,
     onMessagesClick: () -> Unit,
     onAccountClick: () -> Unit,
 ) {
@@ -321,6 +327,14 @@ private fun HomeTopBar(
             modifier = Modifier.semantics { heading() },
         )
         Spacer(Modifier.weight(1f))
+        // Lives partagés entre les applications (ADR-031, D1), distincts de nos lives (ADR-029).
+        IconButton(onClick = onCrossliveClick) {
+            Icon(
+                painter = painterResource(R.drawable.ic_crosslive),
+                contentDescription = stringResource(R.string.home_crosslive),
+                tint = MaterialTheme.colorScheme.onBackground,
+            )
+        }
         IconButton(onClick = onSearchClick) {
             Icon(
                 painter = painterResource(R.drawable.ic_search),

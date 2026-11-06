@@ -66,6 +66,9 @@ import com.youtubeclone.app.presentation.channel.ChannelScreen
 import com.youtubeclone.app.presentation.channel.CreateChannelScreen
 import com.youtubeclone.app.presentation.channel.CustomizeChannelScreen
 import com.youtubeclone.app.presentation.create.ComposePostScreen
+import com.youtubeclone.app.presentation.crosslive.CrossliveLaunchDestination
+import com.youtubeclone.app.presentation.crosslive.CrossliveListDestination
+import com.youtubeclone.app.presentation.crosslive.CrossliveLiveDestination
 import com.youtubeclone.app.presentation.create.CreateSheet
 import com.youtubeclone.app.presentation.create.PublishVideoScreen
 import com.youtubeclone.app.presentation.create.PublishedBanner
@@ -153,7 +156,19 @@ import kotlinx.serialization.Serializable
 // Un live en cours (ADR-029). Le nom du paramètre est lu par LiveViewModel.
 @Serializable data class LiveRoute(val liveId: String)
 
-private val FULL_SCREEN_ROUTES = listOf(
+// Lives partagés Crosslive (ADR-031), écrans du SDK : liste, lancement, Live en plein écran.
+@Serializable data object CrossliveListRoute
+@Serializable data object CrossliveLaunchRoute
+@Serializable data class CrossliveLiveRoute(val liveId: String)
+
+// Plein écran, et mini-lecteur effacé et mis en pause : le son d'un Live ne se mêle pas à une vidéo.
+private val CROSSLIVE_ROUTES = listOf(
+    CrossliveListRoute::class,
+    CrossliveLaunchRoute::class,
+    CrossliveLiveRoute::class,
+)
+
+private val FULL_SCREEN_ROUTES = CROSSLIVE_ROUTES + listOf(
     ConversationsRoute::class,
     NewConversationRoute::class,
     ConversationRoute::class,
@@ -172,7 +187,7 @@ private val FULL_SCREEN_ROUTES = listOf(
 )
 
 // Écrans qui prennent la place du mini-lecteur : il s'efface et la lecture se met en pause (ADR-024).
-private val PLAYER_HIDDEN_ROUTES = listOf(
+private val PLAYER_HIDDEN_ROUTES = CROSSLIVE_ROUTES + listOf(
     ShortsRoute::class,
     ShortsPlayerRoute::class,
     PublishVideoRoute::class,
@@ -400,6 +415,30 @@ fun AppNavigation(
                         onMessagesClick = { navController.navigate(ConversationsRoute) },
                         onLoginRequired = openLogin,
                         onLiveClick = openLive,
+                        onCrossliveClick = { navController.navigate(CrossliveListRoute) },
+                    )
+                }
+                composable<CrossliveListRoute> {
+                    CrossliveListDestination(
+                        onOpenLive = { liveId -> navController.navigate(CrossliveLiveRoute(liveId)) },
+                        onLaunch = { navController.navigate(CrossliveLaunchRoute) },
+                    )
+                }
+                composable<CrossliveLaunchRoute> {
+                    CrossliveLaunchDestination(
+                        // L'écran de lancement est remplacé par le Live : le retour mène à la liste.
+                        onLaunched = { liveId ->
+                            navController.navigate(CrossliveLiveRoute(liveId)) {
+                                popUpTo<CrossliveLaunchRoute> { inclusive = true }
+                            }
+                        },
+                        onClose = { navController.popBackStack() },
+                    )
+                }
+                composable<CrossliveLiveRoute> { entry ->
+                    CrossliveLiveDestination(
+                        liveId = entry.toRoute<CrossliveLiveRoute>().liveId,
+                        onClose = { navController.popBackStack() },
                     )
                 }
                 composable<LiveRoute> {
