@@ -29,6 +29,10 @@ android {
         val apiBaseUrl = providers.gradleProperty("apiBaseUrl").get()
         buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
 
+        // Serveur commun du live partagé (ADR-031), défini dans gradle.properties (liveServerUrl).
+        val liveServerUrl = providers.gradleProperty("liveServerUrl").get()
+        buildConfigField("String", "LIVE_SERVER_URL", "\"$liveServerUrl\"")
+
         // Clés PostHog (ADR-006), lues dans android/secrets.properties, jamais versionné.
         // Fichier absent : clé vide, l'application fonctionne sans envoyer de mesures.
         val secrets = Properties().apply {
@@ -104,6 +108,8 @@ dependencies {
     // Notifications de publication par Firebase Cloud Messaging, sans Firebase Analytics (ADR-020)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
+    // SDK du live partagé (ADR-031) : écrans Compose, tire aussi le module core.
+    implementation(project(":live-sdk-ui"))
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

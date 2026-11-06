@@ -23,6 +23,10 @@ posthog = "3.72.5"
 stripe = "23.24.0"
 firebaseBom = "35.1.0"
 googleServices = "4.5.0"
+# SDK du live partagé (ADR-031) : versions de son catalogue, au commit 9b2f639 du dépôt live-sdk.
+livekit = "2.29.2"
+okhttp = "4.12.0"
+coroutines = "1.10.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -63,9 +67,14 @@ posthog-android = { group = "com.posthog", name = "posthog-android", version.ref
 stripe-android = { group = "com.stripe", name = "stripe-android", version.ref = "stripe" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+livekit-android = { group = "io.livekit", name = "livekit-android", version.ref = "livekit" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+# Cache du compilateur Kotlin 2.x
+.kotlin

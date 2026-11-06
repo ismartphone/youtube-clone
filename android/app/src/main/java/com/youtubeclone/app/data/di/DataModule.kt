@@ -9,6 +9,7 @@ import com.youtubeclone.app.data.remote.CategoryApi
 import com.youtubeclone.app.data.remote.ChannelApi
 import com.youtubeclone.app.data.remote.CommentApi
 import com.youtubeclone.app.data.remote.LivesApi
+import com.youtubeclone.app.data.remote.SharedLiveApi
 import com.youtubeclone.app.data.remote.MessagingApi
 import com.youtubeclone.app.data.remote.DeviceApi
 import com.youtubeclone.app.data.remote.DownloadApi
@@ -120,6 +121,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideLivesApi(retrofit: Retrofit): LivesApi = retrofit.create(LivesApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSharedLiveApi(retrofit: Retrofit): SharedLiveApi = retrofit.create(SharedLiveApi::class.java)
 
     @Provides
     @Singleton
