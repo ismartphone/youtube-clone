@@ -22,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
@@ -36,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.youtubeclone.app.R
 import com.youtubeclone.app.domain.model.Person
 import com.youtubeclone.app.presentation.common.BackTopBar
+import com.youtubeclone.app.presentation.common.isLargeText
 import com.youtubeclone.app.presentation.common.ErrorToast
 
 /** Nouvelle conversation (ADR-025) : on cherche quelqu'un par son nom, puis on lui écrit. */
@@ -57,6 +60,7 @@ fun NewConversationScreen(
             value = state.query,
             onValueChange = viewModel::onQueryChange,
             placeholder = { Text(stringResource(R.string.messages_search_placeholder)) },
+            // Décoratif (ADR-030) : loupe du champ de recherche : le champ porte son libellé.
             leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Search),
@@ -91,7 +95,8 @@ private fun PersonRow(person: Person, enabled: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) {} // nom et identifiant lus ensemble (ADR-030)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -102,7 +107,7 @@ private fun PersonRow(person: Person, enabled: Boolean, onClick: () -> Unit) {
                 text = person.displayName,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
+                maxLines = if (isLargeText()) 3 else 1,
                 overflow = TextOverflow.Ellipsis,
             )
             person.handle?.let {
@@ -110,7 +115,7 @@ private fun PersonRow(person: Person, enabled: Boolean, onClick: () -> Unit) {
                     text = "@$it",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = if (isLargeText()) 3 else 1,
                 )
             }
         }

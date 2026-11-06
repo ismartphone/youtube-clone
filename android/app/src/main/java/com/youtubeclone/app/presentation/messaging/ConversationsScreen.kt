@@ -22,6 +22,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -41,6 +43,7 @@ import com.youtubeclone.app.presentation.theme.YoutubeRedFill
 import com.youtubeclone.app.domain.model.Conversation
 import com.youtubeclone.app.domain.model.Person
 import com.youtubeclone.app.presentation.common.BackTopBar
+import com.youtubeclone.app.presentation.common.isLargeText
 import com.youtubeclone.app.presentation.common.EmptyStateMessage
 import com.youtubeclone.app.presentation.common.ErrorState
 import com.youtubeclone.app.presentation.common.LoadingState
@@ -96,10 +99,12 @@ fun ConversationsScreen(
 @Composable
 private fun ConversationRow(conversation: Conversation, myId: String, onClick: () -> Unit) {
     val unread = conversation.unreadCount > 0
+    val large = isLargeText() // police très agrandie (ADR-030) : plus de lignes pour le nom et l'aperçu
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics(mergeDescendants = true) {} // une seule annonce : nom, dernier message, date, non-lus (ADR-030)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -110,7 +115,7 @@ private fun ConversationRow(conversation: Conversation, myId: String, onClick: (
                 text = conversation.other.displayName,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = if (unread) FontWeight.Bold else FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
+                maxLines = if (large) 3 else 1,
                 overflow = TextOverflow.Ellipsis,
             )
             conversation.lastMessage?.let { last ->
@@ -125,7 +130,7 @@ private fun ConversationRow(conversation: Conversation, myId: String, onClick: (
                     text = text,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (unread) FontWeight.Bold else FontWeight.Normal),
                     color = if (unread) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = if (large) 3 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -168,6 +173,7 @@ internal fun PersonAvatar(person: Person, size: Dp) {
     if (person.avatarUrl != null) {
         AsyncImage(
             model = person.avatarUrl,
+            // Décoratif (ADR-030) : photo de la personne : son nom est lu avec la ligne.
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier.background(MaterialTheme.colorScheme.surfaceVariant),

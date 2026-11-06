@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.youtubeclone.app.R
+import com.youtubeclone.app.presentation.common.isLargeText
 import com.youtubeclone.app.presentation.theme.YoutubeRedFill
 import com.youtubeclone.app.presentation.theme.redTextButtonColors
 import com.youtubeclone.app.domain.model.Account
@@ -155,7 +156,7 @@ private fun AccountRow(account: Account, managing: Boolean, onClick: () -> Unit,
                     text = account.displayName.ifBlank { account.email },
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = if (isLargeText()) 3 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -166,7 +167,7 @@ private fun AccountRow(account: Account, managing: Boolean, onClick: () -> Unit,
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
+                    maxLines = if (isLargeText()) 3 else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -190,6 +191,7 @@ private fun AccountAvatar(account: Account) {
     if (account.avatarUrl != null) {
         AsyncImage(
             model = account.avatarUrl,
+            // Décoratif (ADR-030) : avatar du compte : le nom du compte est lu avec la ligne.
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = modifier.background(MaterialTheme.colorScheme.surface),
@@ -215,6 +217,7 @@ private fun SheetAction(icon: Int, label: Int, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
+        // Décoratif (ADR-030) : icône de la ligne : le libellé de la ligne est lu.
         Icon(painterResource(icon), contentDescription = null, modifier = Modifier.padding(start = 8.dp).size(24.dp))
         Text(stringResource(label), style = MaterialTheme.typography.bodyLarge)
     }

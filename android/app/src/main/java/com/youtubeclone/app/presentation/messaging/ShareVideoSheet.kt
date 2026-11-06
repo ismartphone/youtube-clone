@@ -199,6 +199,7 @@ private fun SheetAction(icon: Int, label: Int, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
+        // Décoratif (ADR-030) : icône de la ligne : le libellé de la ligne est lu.
         Icon(painterResource(icon), contentDescription = null, modifier = Modifier.padding(start = 8.dp).size(24.dp))
         Text(stringResource(label), style = MaterialTheme.typography.bodyLarge)
     }
