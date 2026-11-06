@@ -8,6 +8,13 @@ import { LIVE_ROOMS, type LiveRooms } from '../realtime/domain/live-rooms.js';
 import { RealtimeModule } from '../realtime/realtime.module.js';
 import { LiveShoppingUseCases } from './application/live-shopping.use-cases.js';
 import { LivesUseCases } from './application/lives.use-cases.js';
+import { IssueParticipantTokenUseCase } from './application/participant-token.use-case.js';
+import {
+  PARTICIPANT_TOKEN_SIGNER,
+  type ParticipantTokenSigner,
+} from './domain/participant-token.js';
+import { JwtParticipantTokenSigner } from './infrastructure/jwt-participant-token-signer.js';
+import { ParticipantTokenController } from './interfaces/http/participant-token.controller.js';
 import { LIVES_REPOSITORY, type LivesRepository } from './domain/ports.js';
 import {
   LIVE_PAYMENT_GATEWAY,
@@ -45,11 +52,29 @@ function createLivePaymentGateway(redis: Redis): LivePaymentGateway {
   );
 }
 
+// Live partagé (ADR-031) : signataire des Jetons de Participant si LIVE_SDK_APP_ID et LIVE_SDK_SECRET
+// sont définies ; sinon null, la route répond 503 et le reste du serveur démarre normalement.
+function createParticipantTokenSigner(): ParticipantTokenSigner | null {
+  const appId = process.env.LIVE_SDK_APP_ID;
+  const secret = process.env.LIVE_SDK_SECRET;
+  const logger = new Logger('LivesModule');
+  if (!appId || !secret) {
+    logger.log(
+      'LIVE_SDK_APP_ID ou LIVE_SDK_SECRET absente : live partagé désactivé',
+    );
+    return null;
+  }
+  logger.log(`Live partagé : App membre « ${appId} »`);
+  return new JwtParticipantTokenSigner(appId, secret);
+}
+
 // Live shopping (ADR-029) : direct simulé sur une vidéo du catalogue, avec son chat et son compteur
-// de spectateurs, diffusés par la passerelle temps réel existante.
+// de spectateurs, diffusés par la passerelle temps réel existante. Héberge aussi la route du Jeton
+// de Participant du live partagé (ADR-031), qui ne touche pas au live shopping.
 @Module({
   imports: [AuthModule, RealtimeModule],
   controllers: [
+    ParticipantTokenController,
     MyLivesController,
     LivesController,
     MyProductsController,
@@ -57,6 +82,18 @@ function createLivePaymentGateway(redis: Redis): LivePaymentGateway {
     AdminLivesController,
   ],
   providers: [
+    {
+      provide: PARTICIPANT_TOKEN_SIGNER,
+      useFactory: createParticipantTokenSigner,
+    },
+    {
+      provide: IssueParticipantTokenUseCase,
+      useFactory: (
+        repository: LivesRepository,
+        signer: ParticipantTokenSigner | null,
+      ) => new IssueParticipantTokenUseCase(repository, signer),
+      inject: [LIVES_REPOSITORY, PARTICIPANT_TOKEN_SIGNER],
+    },
     {
       provide: LIVES_REPOSITORY,
       useFactory: (prisma: PrismaService) => new PrismaLivesRepository(prisma),
